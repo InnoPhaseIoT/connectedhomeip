@@ -1,0 +1,283 @@
+# Copyright (c) 2021 Project CHIP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build_overrides/build.gni")
+import("//build_overrides/chip.gni")
+import("//build_overrides/nlassert.gni")
+
+import("${build_root}/config/linux/pkg_config.gni")
+
+import("${chip_root}/src/lib/core/core.gni")
+import("${chip_root}/src/platform/device.gni")
+
+assert(chip_device_platform == "talaria")
+
+if (chip_use_pw_logging) {
+  import("//build_overrides/pigweed.gni")
+}
+
+if (chip_enable_openthread) {
+  import("//build_overrides/openthread.gni")
+  import("//build_overrides/ot_br_posix.gni")
+}
+
+if (chip_mdns == "platform") {
+  pkg_config("avahi_client_config") {
+    packages = [ "avahi-client" ]
+  }
+}
+
+declare_args() {
+  # chip_project_config_include_dirs += ""
+}
+
+config("system_config") {
+  # include_dirs = chip_project_config_include_dirs
+  # test_include_dirs = "test_var"
+}
+
+static_library("talaria") {
+  output_name = "TalariaPlatform"
+
+  configs = [
+    # ":system_config"
+  ]
+
+  # output_dir = ${root_out_dir}/lib
+  sources = [
+    # "../DeviceSafeQueue.cpp",
+    # "../DeviceSafeQueue.h",
+    "../SingletonConfigurationManager.cpp",
+
+    # # "NetworkCommissioningDriver.h",
+    # # "NetworkCommissioningEthernetDriver.cpp",
+    # # "Config.cpp",
+    # # "Config.h",
+
+    # "BlePlatformConfig.h",
+    # "CHIPDevicePlatformConfig.h",
+    # "CHIPDevicePlatformEvent.h",
+    # "CHIPLinuxStorage.cpp",
+    # "CHIPLinuxStorage.h",
+    # "CHIPLinuxStorageIni.cpp",
+    # "CHIPLinuxStorageIni.h",
+    # "CHIPPlatformConfig.h",
+    "ConfigurationManagerImpl.cpp",
+    # "../../system/SystemClock.cpp",
+    "BLEManagerImpl.cpp",
+    "BLEManagerImpl.h",
+
+    # # "NetworkCommissioningDriver.h",
+    # # "NetworkCommissioningEthernetDriver.cpp",
+    # "Config.cpp",
+    # "Config.h",
+    # "ConfigurationManagerImpl.h",
+    # "ConnectivityManagerImpl.cpp",
+    # "ConnectivityManagerImpl.h",
+    # "ConnectivityManagerImpl_WiFi.cpp",
+    # "NetworkCommissioningDriver.cpp",
+    # "NetworkCommissioningDriver.h",
+    # "NetworkCommissioningEthernetDriver.cpp",
+    "Config.cpp",
+    "Config.h",
+    "ConfigurationManagerImpl.h",
+    "ConnectivityManagerImpl.cpp",
+    "ConnectivityManagerImpl.h",
+    "ConnectivityManagerImpl_WiFi.cpp",
+    "NetworkCommissioningDriver.cpp",
+    "NetworkCommissioningDriver.h",
+    "TalariaUtils.cpp",
+    "TalariaUtils.h",
+
+    # "ConnectivityUtils.cpp",
+    # "ConnectivityUtils.h",
+    # "DeviceInstanceInfoProviderImpl.cpp",
+    # "DeviceInstanceInfoProviderImpl.h",
+    "DeviceInfoProviderImpl.cpp",
+    "DeviceInfoProviderImpl.h",
+    "DiagnosticDataProviderImpl.cpp",
+    "DiagnosticDataProviderImpl.h",
+
+    # "InetPlatformConfig.h",
+    "KeyValueStoreManagerImpl.cpp",
+    "KeyValueStoreManagerImpl.h",
+    "PlatformManagerImpl.cpp",
+    "PlatformManagerImpl.h",
+    "SystemPlatformConfig.h",
+    "SystemTimeSupport.cpp",
+
+    # #"TalariaConfig.cpp",
+
+    # # "InetPlatformConfig.h",
+    # #"TariaConfig.h",
+  ]
+
+  defines = [
+    # "_GLIBCXX_HAVE_WCHAR_H=0",
+    # "CHIP_DEVICE_PLATFORM_CONFIG_INCLUDE=0",
+    "CHIP_SYSTEM_CONFIG_USE_LWIP=1",
+    "CHIP_SYSTEM_CONFIG_USE_OPEN_THREAD_ENDPOINT=0",
+    "CHIP_SYSTEM_CONFIG_POSIX_LOCKING=0",
+    "CHIP_SYSTEM_CONFIG_FREERTOS_LOCKING=1",
+    "CHIP_SYSTEM_LAYER_IMPL_CONFIG_FILE=<system/SystemLayerImplFreeRTOS.h>",
+    "CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE=1",
+  ]
+
+  cflags = [ "-mcpu=cortex-m3" ]
+  cflags += [ "-MD" ]
+  cflags += [ "-MMD" ]
+  cflags += [ "-g" ]
+  cflags += [ "-nostdinc" ]
+  cflags += [ "-Wno-address-of-packed-member" ]
+  cflags += [ "-ffunction-sections" ]
+  cflags += [ "-fdata-sections" ]
+  cflags += [ "-fno-common" ]
+  cflags += [ "-Wshadow" ]
+  cflags += [ "-Wnull-dereference" ]
+  cflags += [ "-Warray-bounds=2" ]
+  cflags += [ "-Os" ]
+  cflags += [ "-Wno-unused-variable" ]
+  cflags += [ "-Wno-unused-function" ]
+  cflags += [ "-fno-exceptions" ]
+  cflags += [ "-Wno-pointer-arith" ]
+  cflags += [ "-fpermissive" ]
+  cflags += [ "-fdiagnostics-color" ]
+
+  # include_dirs = [
+  #   "${chip_root}/src/",
+  # ]
+  include_dirs = [
+    "${chip_root}/src/",
+    "${chip_root}/src/include",
+    "${chip_root}/../../out/test/gen/include",
+
+    # "${chip_root}/freertos_sdk/include/libc/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/arm",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/innos_osal/inc",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/lwip2/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/core/innos_osal/inc",
+    "../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
+    "../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
+
+    # "../../../.environment/cipd/packages/arm/arm-none-eabi/include/",
+    # "${chip_root}/freertos_sdk/include/libc/include_1",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/libc/include",
+  ]
+
+  defines +=
+      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>" ]
+
+  # print("$chip_enable_ble = chip_enable_ble")
+  # print("$chip_enable_wifi = chip_enable_wifi")
+  # print("$chip_use_external_logging = chip_use_external_logging")
+  # print("$chip_enable_ota_requestor = chip_enable_ota_requestor")
+  # print("$chip_enable_openthread = chip_enable_openthread")
+  # print("$chip_use_pw_logging = chip_use_pw_logging")
+  # print("$chip_mdns = chip_mdns")
+
+  if (!chip_use_external_logging) {
+    sources += [ "Logging.cpp" ]
+  }
+
+  if (chip_enable_openthread) {
+    sources += [ "NetworkCommissioningThreadDriver.cpp" ]
+  }
+
+  # if (chip_enable_ble) {
+  #   sources += [
+  #     "bluez/AdapterIterator.cpp",
+  #     "bluez/AdapterIterator.h",
+  #     "bluez/ChipDeviceScanner.cpp",
+  #     "bluez/ChipDeviceScanner.h",
+  #     "bluez/Helper.cpp",
+  #     "bluez/Helper.h",
+  #     "bluez/Types.h",
+  #   ]
+  # }
+
+  include_dirs += [
+    # "${chip_root}/third_party/nlio/repo/include",
+    "${chip_root}/zzz_generated/app-common",
+  ]
+
+  # test = "${chip_root}/zzz_generated/app-common"
+  # print(test)
+  # print(chip_root)
+
+  # deps = [ "${chip_root}/src/setup_payload" ]
+  deps = [
+    # "${nlassert_root}:nlassert",
+    "${chip_root}/third_party/nlassert:nlassert",
+    "${chip_root}/third_party/nlio:nlio",
+
+    # "${chip_root}/zzz_generated/app-common",
+  ]
+
+  public_deps = [
+    # "${chip_root}/src/app/common:cluster-objects",
+    # "${chip_root}/src/platform:platform_base",
+    # "${chip_root}/third_party/inipp",
+    # "${nlassert_root}:nlassert",
+  ]
+
+  public_configs = []
+
+  if (chip_mdns == "platform") {
+    sources += [
+      "DnssdImpl.cpp",
+      "DnssdImpl.h",
+    ]
+
+    deps += [ "${chip_root}/src/lib/dnssd:platform_header" ]
+
+    public_configs += [ ":avahi_client_config" ]
+  }
+
+  if (chip_enable_ota_requestor) {
+    sources += [
+      "OTAImageProcessorImpl.cpp",
+      "OTAImageProcessorImpl.h",
+    ]
+  }
+
+  if (chip_enable_openthread) {
+    sources += [
+      "GlibTypeDeleter.h",
+      "ThreadStackManagerImpl.cpp",
+      "ThreadStackManagerImpl.h",
+    ]
+
+    public_deps += [ "dbus/openthread" ]
+  }
+
+  if (chip_use_pw_logging) {
+    deps += [ "$dir_pw_log" ]
+  }
+
+  if (chip_enable_wifi) {
+    sources += [
+      "GlibTypeDeleter.h",
+      "NetworkCommissioningWiFiDriver.cpp",
+    ]
+
+    public_deps += [ "dbus/wpa" ]
+  }
+
+  # if (chip_enable_ble) {
+  #   public_deps += [ "dbus/bluez" ]
+  # }
+}

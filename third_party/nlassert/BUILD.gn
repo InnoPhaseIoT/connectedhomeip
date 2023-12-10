@@ -12,8 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import("//build_overrides/chip.gni")
+# import("//build_overrides/build.gni")
+
 config("nlassert_config") {
   include_dirs = [ "repo/include" ]
+  include_dirs += [
+    "${chip_root}/src/",
+    "${chip_root}/src/include",
+    "${chip_root}/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/arm",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/innos_osal/inc",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/lwip2/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/core/innos_osal/inc",
+    "${chip_root}/examples/lighting-app/talaria/include",
+    "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
+    # "../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
+    "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/libc/include",
+    "${chip_root}/config/standalone",
+    "${chip_root}/examples/platform/talaria",
+    # "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include",
+  ]
 }
 
 source_set("nlassert") {

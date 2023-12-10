@@ -1,0 +1,121 @@
+# Copyright (c) 2020 Project CHIP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# CHIPProjectConfig.h
+
+import("//build_overrides/chip.gni")
+import("//build_overrides/build.gni")
+import("${chip_root}/build_overrides/talaria.gni")
+
+import("${chip_root}/config/standalone/args.gni")
+
+chip_device_project_config_include = "<CHIPProjectAppConfig.h>"
+chip_project_config_include = "<CHIPProjectAppConfig.h>"
+chip_system_project_config_include = "<SystemProjectConfig.h>"
+
+declare_args() {
+  custom_toolchain = "arm_gcc"
+  target_cpu = "arm"
+  target_os = "freertos"
+  arm_cpu = "cortex-m3"
+  chip_device_platform = "talaria"
+  treat_warnings_as_errors = false
+  lwip_platform = "talaria"
+  chip_system_config_use_lwip = true
+  chip_mdns = "minimal"
+  chip_build_tests = false
+  chip_crypto = "mbedtls"
+  chip_persist_subscriptions = true
+  chip_config_network_layer_ble = true
+  # is_debug = false
+  chip_external_mbedtls = true
+  optimize_for_size = true
+  chip_system_config_freertos_locking=true
+  chip_inet_config_enable_tcp_endpoint = false
+  chip_inet_config_enable_udp_endpoint = true
+  chip_inet_config_enable_ipv4 = false
+  chip_config_enable_arg_parser = false
+  chip_system_config_use_sockets = false
+  chip_system_config_event_loop = "FreeRTOS"
+  chip_enable_ble = true
+  chip_config_network_layer_ble = true
+
+  # config_device_layer
+  # chip_build_tests
+  # chip_with_nlfaultinjection
+  # chip_system_config_use_dispatch
+  # chip_system_config_use_libev
+  # chip_system_config_use_lwip
+  # chip_system_config_use_open_thread_inet_endpoints
+  # chip_system_config_use_sockets
+  # chip_system_config_posix_locking
+  # chip_system_config_freertos_locking
+  # chip_system_config_mbed_locking
+  # chip_system_config_cmsis_rtos_locking
+  # chip_system_config_zephyr_locking
+  # chip_system_config_no_locking
+  # chip_system_config_provide_statistics
+  # have_clock_gettime
+  # have_clock_settime
+  # have_gettimeofday
+  # chip_system_config_use_sockets
+
+  chip_project_config_include_dirs = [
+      "${chip_root}/src/",
+      "${chip_root}/src/include",
+      "${chip_root}/include",
+      "${talaria_sdk_root}/freertos_sdk/include",
+      "${talaria_sdk_root}/freertos_sdk/include/arm",
+      "${talaria_sdk_root}/freertos_sdk/FreeRTOS-Kernel/include",
+      "${talaria_sdk_root}/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+      "${talaria_sdk_root}/freertos_sdk/include/innos_osal/inc",
+      "${talaria_sdk_root}/freertos_sdk/include/lwip2/include",
+      "${talaria_sdk_root}/freertos_sdk/core/innos_osal/inc",
+      "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
+      "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
+      "${chip_root}/third_party/talaria/repo/freertos_sdk/include/libc/include",
+      # "${chip_root}/examples/platform/talaria",
+      "${chip_root}/config/talaria",
+      # "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include",
+    ]
+
+  default_configs_abi = [
+    # "${build_root}/config/compiler:abi_default",
+    # "${chip_root}/third_party/talaria:talaria_cflags"
+    "${chip_root}/config/talaria:cflags"
+  ]
+
+  default_configs_unwind_tables = [ ]
+  default_configs_aliasing = [ ]
+  default_configs_std = [ ]
+  default_configs_rtti = [ ]
+  default_configs_symbols = [ ]
+  default_configs_debug = [ ]
+  default_configs_optimize = [ ]
+  default_configs_size = [ ]
+  default_configs_specs = [ ]
+  default_configs_exceptions = [ ]
+  default_configs_pic = [ ]
+  default_configs_warnings = [ ]
+  default_configs_cosmetic = [ ]
+  default_configs_runtime = [ ]
+  default_configs_sanitize = [ ]
+  default_configs_fuzzing = [ ]
+  default_configs_coverage = [ ]
+  default_configs_target = [ ]
+  default_configs_dead_code = [ ]
+  default_configs_prefix_mappings = [ ]
+  default_configs_extra = [ ]
+
+}

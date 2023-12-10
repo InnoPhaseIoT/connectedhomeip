@@ -187,6 +187,8 @@ if (chip_device_platform == "cc13x2_26x2") {
   _chip_device_layer = "ASR"
 } else if (chip_device_platform == "stm32") {
   _chip_device_layer = "stm32"
+} else if (chip_device_platform == "talaria") {
+  _chip_device_layer = "talaria"
 }
 
 if (chip_device_platform != "external") {
@@ -257,5 +259,5 @@ assert(
         chip_device_platform == "bl702" || chip_device_platform == "bl702l" ||
         chip_device_platform == "mt793x" || chip_device_platform == "SiWx917" ||
         chip_device_platform == "openiotsdk" || chip_device_platform == "asr" ||
-        chip_device_platform == "stm32",
+        chip_device_platform == "stm32" || chip_device_platform == "talaria",
     "Please select a valid value for chip_device_platform")

@@ -1,0 +1,118 @@
+# Copyright (c) 2020 Project CHIP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build_overrides/chip.gni")
+import("//build_overrides/build.gni")
+
+# config("cflags") {
+#   cflags = [
+#     "-MD",
+#     "-MMD",
+#     "-nostdinc",
+#     "-Wno-address-of-packed-member",
+#     "-Wnull-dereference",
+#     "-Warray-bounds=2",
+#     "-Wno-unused-variable",
+#     "-Wno-unused-function",
+#     "-fpermissive",
+#     "-fdiagnostics-color",
+#   ]
+# }
+
+config("cflags") {
+  cflags = [
+    "-Wconversion",
+    "-mcpu=cortex-m3",
+    "-MD",
+    "-MMD",
+    "-g",
+    "-nostdinc",
+    "-Wno-address-of-packed-member",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-fno-common",
+    "-Wshadow",
+    "-Wnull-dereference",
+    "-Warray-bounds=2",
+    "-Os",
+    "-Wno-unused-variable",
+    "-Wno-unused-function",
+    "-fno-exceptions",
+    "-fpermissive",
+    "-fdiagnostics-color",
+  ]
+}
+
+config("ldflags") {
+  # cflags = [ ]
+  # ldflags = [ "-lunni_test" ]
+  ldflags = [ 
+    "-T../../third_party/connectedhomeip/third_party/talaria/repo/freertos_sdk/build/firmware-arm-virt.lds",
+    "--entry",
+    "_start",
+    "-zmax-page-size=256",
+    "-nostdlib"
+  ]
+
+  lib_dirs = [
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/libs",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/libs/arm",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/build",
+    # -Lout/test/lib \
+    "${chip_root}/examples/lighting-app/talaria/out/test/lib",
+  ]
+  # libs = [ "unni_test" ]
+  # libs = [
+  #   "wifi",
+  #   "rfdrv",
+  #   "lwip2",
+  #   "supplicant",
+  #   "freertos",
+  #   "c",
+  #   "innos",
+  #   "fs",
+  #   "osal",
+  #   "components",
+  #   "mbedtls",
+  #   "dragonfly",
+  #   "${chip_root}/examples/lighting-app/talaria/out/test/LightApplication.a",
+  #   "CHIP",
+  #   "bt_host",
+  #   "bt_controller",
+  #   "bt_profiles",
+  #   "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/lib/thumb/v7-m/nofp/libstdc++_nano.a",
+  #   "${chip_root}/.environment/cipd/packages/arm/lib/gcc/arm-none-eabi/12.2.1/thumb/v7-m/nofp/libgcc.a",
+  # ]
+  libs = [
+    "wifi",
+    "rfdrv",
+    "lwip2",
+    "supplicant",
+    "freertos",
+    "c",
+    "innos",
+    "fs",
+    "osal",
+    "components",
+    "mbedtls",
+    "dragonfly",
+    # "${chip_root}/examples/lighting-app/talaria/out/test/LightApplication.a",
+    # "CHIP",
+    "bt_host",
+    "bt_controller",
+    "bt_profiles",
+    "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/lib/thumb/v7-m/nofp/libstdc++_nano.a",
+    "${chip_root}/.environment/cipd/packages/arm/lib/gcc/arm-none-eabi/12.2.1/thumb/v7-m/nofp/libgcc.a",
+  ]
+}
