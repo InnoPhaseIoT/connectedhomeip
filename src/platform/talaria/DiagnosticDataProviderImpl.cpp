@@ -363,37 +363,58 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiRssi(int8_t & rssi)
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiBeaconLostCount(uint32_t & beaconLostCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    beaconLostCount = TalariaUtils::Get_wifi_beacon_lost_count();
+
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiBeaconRxCount(uint32_t & beaconRxCount)
+{
+    beaconRxCount = TalariaUtils::Get_wifi_beacon_rx_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiCurrentMaxRate(uint64_t & currentMaxRate)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    currentMaxRate = TalariaUtils::Get_max_rate();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiPacketMulticastRxCount(uint32_t & packetMulticastRxCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    packetMulticastRxCount = TalariaUtils::Get_multicast_rx_pkt_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiPacketMulticastTxCount(uint32_t & packetMulticastTxCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    packetMulticastTxCount = TalariaUtils::Get_multicast_tx_pkt_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiPacketUnicastRxCount(uint32_t & packetUnicastRxCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    packetUnicastRxCount = TalariaUtils::Get_unicast_rx_pkt_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiPacketUnicastTxCount(uint32_t & packetUnicastTxCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    packetUnicastTxCount = TalariaUtils::Get_unicast_tx_pkt_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetWiFiOverrunCount(uint64_t & overrunCount)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    overrunCount = TalariaUtils::Get_overrun_count();
+
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR DiagnosticDataProviderImpl::ResetWiFiNetworkDiagnosticsCounts()

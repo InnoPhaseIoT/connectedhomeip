@@ -60,6 +60,14 @@ public:
     static struct netif * GetNetif(const char * ifKey);
     static int GetAuthmode(struct wcm_security * security);
     static void GetBssid(uint8_t * bssid);
+    static uint64_t Get_max_rate(void);
+    static uint32_t Get_unicast_rx_pkt_count(void);
+    static uint32_t Get_unicast_tx_pkt_count(void);
+    static uint32_t Get_multicast_rx_pkt_count(void);
+    static uint32_t Get_multicast_tx_pkt_count(void);
+    static uint32_t Get_overrun_count(void);
+    static uint32_t Get_wifi_beacon_rx_count(void);
+    static uint32_t Get_wifi_beacon_lost_count(void);
     static void GetChannel(struct wcm_status * wcmstat);
     static int GetRssi();
     static bool GetAddr6(struct wcm_in6_addr * wcm_addr6, int addr6_idx);

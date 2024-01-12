@@ -275,6 +275,58 @@ int TalariaUtils::GetAuthmode(struct wcm_security * security)
     return wcm_get_security(wcm_handle, security);
 }
 
+uint64_t TalariaUtils::Get_max_rate(void)
+{
+     return wcm_get_wifi_current_rate(wcm_handle);
+}
+
+uint32_t TalariaUtils::Get_unicast_rx_pkt_count(void)
+{
+     struct wifi_counters out;
+
+     wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
+     return out.rxframe;
+}
+
+uint32_t TalariaUtils::Get_unicast_tx_pkt_count(void)
+{
+     struct wifi_counters out;
+
+     wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
+     return out.txframe;
+}
+
+uint32_t TalariaUtils::Get_multicast_rx_pkt_count(void)
+{
+     struct wifi_counters out;
+
+     wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
+     return out.rxmframe;
+}
+
+uint32_t TalariaUtils::Get_multicast_tx_pkt_count(void)
+{
+     struct wifi_counters out;
+
+     wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
+     return out.txmframe;
+}
+
+uint32_t TalariaUtils::Get_overrun_count(void)
+{
+     return wcm_get_wifi_overrun_pkt_count(wcm_handle);
+}
+
+uint32_t TalariaUtils::Get_wifi_beacon_rx_count(void)
+{
+     return wcm_get_wifi_beacon_rx_count(wcm_handle);
+}
+
+uint32_t TalariaUtils::Get_wifi_beacon_lost_count(void)
+{
+     return wcm_get_wifi_beacon_miss_count(wcm_handle);
+}
+
 void TalariaUtils::GetBssid(uint8_t * bssid)
 {
     return wcm_get_bssid(wcm_handle, bssid);
