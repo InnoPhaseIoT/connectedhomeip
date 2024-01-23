@@ -27,7 +27,7 @@
 #include <platform/internal/GenericConfigurationManagerImpl.h>
 
 // #include <platform/Linux/PosixConfig.h>
-#include <platform/talaria/TalariaConfig.h>
+#include <platform/talaria/Config.h>
 
 namespace chip {
 namespace DeviceLayer {

@@ -62,7 +62,8 @@ config("ldflags") {
     "--entry",
     "_start",
     "-zmax-page-size=256",
-    "-nostdlib"
+    "-nostdlib",
+    "-Wl,--gc-sections"
   ]
 
   lib_dirs = [

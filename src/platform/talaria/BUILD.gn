@@ -218,8 +218,8 @@ static_library("talaria") {
   # print(test)
   # print(chip_root)
 
-  # deps = [ "${chip_root}/src/setup_payload" ]
-  deps = [
+  deps = [ "${chip_root}/src/setup_payload" ]
+  deps += [
     # "${nlassert_root}:nlassert",
     "${chip_root}/third_party/nlassert:nlassert",
     "${chip_root}/third_party/nlio:nlio",

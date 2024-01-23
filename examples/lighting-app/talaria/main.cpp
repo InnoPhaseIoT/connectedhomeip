@@ -137,7 +137,7 @@ exit:
  */
 void emberAfOnOffClusterInitCallback(EndpointId endpoint)
 {
-    ChipLogDetail(App, "emberAfOnOffClusterInitCallback");
+    ChipLogDetail(AppServer, "emberAfOnOffClusterInitCallback");
 }
 
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & path, uint8_t type, uint16_t size, uint8_t * value)
@@ -146,7 +146,7 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & 
     const char * name = pcTaskGetName(task);
     if (strcmp(name, "CHIP"))
     {
-        ChipLogError(App, "application, Attribute changed on non-Matter task '%s'\n", name);
+        ChipLogError(AppServer, "application, Attribute changed on non-Matter task '%s'\n", name);
     }
 
     PostAttributeChangeCallback(path.mEndpointId, path.mClusterId, path.mAttributeId, type, size, value);

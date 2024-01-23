@@ -403,7 +403,7 @@ void LogV(uint8_t module, uint8_t category, const char * msg, va_list args) ENFO
 #define ChipInternalLog(...) ChipPlatformLog(__VA_ARGS__)
 #else // CHIP_SYSTEM_CONFIG_PLATFORM_LOG
 #define ChipInternalLog(MOD, CAT, MSG, ...)                                                                                        \
-    // if (CHIP_CONFIG_LOG_MODULE_##MOD && IsModuleCategoryEnabled(MOD, CAT))                                                         \
+    if (CHIP_CONFIG_LOG_MODULE_##MOD && IsModuleCategoryEnabled(MOD, CAT))                                                         \
     {                                                                                                                              \
         ChipInternalLogImpl(MOD, CHIP_LOG_CATEGORY_##CAT, MSG, ##__VA_ARGS__);                                                     \
     }

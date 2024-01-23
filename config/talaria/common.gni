@@ -50,6 +50,10 @@ declare_args() {
   chip_system_config_event_loop = "FreeRTOS"
   chip_enable_ble = true
   chip_config_network_layer_ble = true
+  chip_logging = true
+  chip_error_logging = true
+  chip_detail_logging = true
+  chip_progress_logging = true
 
   # config_device_layer
   # chip_build_tests

@@ -11,7 +11,7 @@ pwd
 echo -e "${yellow}    2)*** loading out/chip-example-app...${clear}"
 
 if [ $1 -eq 0 ]; then
-    ../../../third_party/talaria/repo/freertos_sdk/script/internal/load.sh /dev/ttyUSB2 out/chip-example-app.elf matter.factory_reset=1
+    ../../../third_party/talaria/repo/freertos_sdk/script/internal/load.sh /dev/ttyUSB2 out/test/Talaria-Application matter.factory_reset=1
     sleep 2
 fi
 
