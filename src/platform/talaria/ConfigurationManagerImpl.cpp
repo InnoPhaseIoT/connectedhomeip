@@ -350,7 +350,7 @@ CHIP_ERROR ConfigurationManagerImpl::StoreBootReason(uint32_t bootReason)
 
 CHIP_ERROR ConfigurationManagerImpl::GetRegulatoryLocation(uint8_t & location)
 {
-    uint32_t value;
+    location = 0;
 
     // if (CHIP_NO_ERROR != ReadConfigValue(PosixConfig::kConfigKey_RegulatoryLocation, value))
     // {
@@ -371,7 +371,7 @@ CHIP_ERROR ConfigurationManagerImpl::GetRegulatoryLocation(uint8_t & location)
 
 CHIP_ERROR ConfigurationManagerImpl::GetLocationCapability(uint8_t & location)
 {
-    uint32_t value = 0;
+    location = 0;
 
     // CHIP_ERROR err = ReadConfigValue(PosixConfig::kConfigKey_LocationCapability, value);
 

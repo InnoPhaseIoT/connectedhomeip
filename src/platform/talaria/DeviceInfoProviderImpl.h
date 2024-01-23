@@ -22,7 +22,6 @@
 namespace chip {
 namespace DeviceLayer {
 
-#if 1
 class DeviceInfoProviderImpl : public DeviceInfoProvider
 {
 public:
@@ -103,7 +102,6 @@ protected:
 private:
     static constexpr size_t UserLabelTLVMaxSize() { return TLV::EstimateStructOverhead(kMaxLabelNameLength, kMaxLabelValueLength); }
 };
-#endif
 
 } // namespace DeviceLayer
 } // namespace chip

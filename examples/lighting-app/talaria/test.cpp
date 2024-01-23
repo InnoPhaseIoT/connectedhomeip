@@ -50,6 +50,7 @@ filesystem_util_mount_data_if(const char* path);
 #include <credentials/DeviceAttestationCredsProvider.h>
 #include <credentials/examples/DeviceAttestationCredsExample.h>
 #include <platform/talaria/NetworkCommissioningDriver.h>
+#include <platform/talaria/TalariaUtils.h>
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
 #include <common/DeviceCommissioningInterface.h>
@@ -120,6 +121,11 @@ void InitServer(intptr_t context)
     sWiFiNetworkCommissioningInstance.Init();
     CommissioningInterface::EnableCommissioning();
     matterutils::MatterConfigLog();
+
+    /* Trigger Connect WiFi Network if the Device is already Provisioned */
+    if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
+        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
+    }
 }
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)

@@ -474,6 +474,8 @@ void ConnectivityManagerImpl::OnWiFiPlatformEvent(const ChipDeviceEvent * event)
             NetworkCommissioning::TalariaWiFiDriver::GetInstance().OnConnectWiFiNetwork();
 
             UpdateInternetConnectivityState();
+            /* This Delay is to wait for ipv6 address to be assigned to the netif port */
+            vTaskDelay(pdMS_TO_TICKS(300));
             chip::app::DnssdServer::Instance().StartServer(); /*MJ-merge*/
 
             ChipDeviceEvent eventx;
@@ -490,10 +492,6 @@ void ConnectivityManagerImpl::OnWiFiPlatformEvent(const ChipDeviceEvent * event)
             ChipLogDetail(DeviceLayer, "Wifi platform Event %d unhandled", event->Platform.TalariaSystemEvent.Data);
             break;
         }
-    }
-    else if (event->Type == DeviceEventType::kServerReady)
-    {
-        NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
     }
 #if 0
     if (event->Type == DeviceEventType::kESPSystemEvent)

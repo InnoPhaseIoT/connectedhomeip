@@ -32,7 +32,7 @@ extern "C" {
 #include <platform/NetworkCommissioning.h>
 
 using chip::BitFlags;
-// using chip::app::Clusters::NetworkCommissioning::WiFiSecurityBitmap;
+using chip::app::Clusters::NetworkCommissioning::WiFiSecurityBitmap;
 
 namespace chip {
 namespace DeviceLayer {
@@ -43,16 +43,19 @@ constexpr uint8_t kWiFiScanNetworksTimeOutSeconds   = 10;
 constexpr uint8_t kWiFiConnectNetworkTimeoutSeconds = 30;
 } // namespace
 
-// BitFlags<WiFiSecurityBitmap> ConvertSecurityType(wifi_auth_mode_t authMode);
+BitFlags<WiFiSecurityBitmap> ConvertSecurityType(struct wifi_netinfo *netIf);
 
-#if 0
-class ESPScanResponseIterator : public Iterator<WiFiScanResponse>
+#if 1
+class TalariaScanResponseIterator : public Iterator<WiFiScanResponse>
 {
 public:
-    TalariaScanResponseIterator(const size_t size, const struct wifi_netinfo ** scanResults) : mSize(size), mpScanResults(scanResults) {}
+    TalariaScanResponseIterator(const size_t size, struct wifi_netinfo **scanResults) : mSize(size), mpScanResults(scanResults) {}
     size_t Count() override { return mSize; }
     bool Next(WiFiScanResponse & item) override
     {
+        struct wifi_ssid ni_ssid;
+        uint8_t channel;
+        int retval = 0;
         if (mIternum >= mSize)
         {
             return false;
@@ -60,13 +63,15 @@ public:
 
         item.security = ConvertSecurityType(mpScanResults[mIternum]);
         static_assert(chip::DeviceLayer::Internal::kMaxWiFiSSIDLength <= UINT8_MAX, "SSID length might not fit in item.ssidLen");
-        item.ssidLen = static_cast<uint8_t>(
-            strnlen(reinterpret_cast<const char *>(mpScanResults[mIternum]->ni_ssid), chip::DeviceLayer::Internal::kMaxWiFiSSIDLength));
-        item.channel  = mpScanResults[mIternum].ni_channel;
+        /* TODO: The scan sometimes gives the ssids with no entry for ssid. Observed the same with using_wifi/wif_scan.elf also */
+        retval = wifi_netinfo_get_ssid(mpScanResults[mIternum], &ni_ssid);
+        item.ssidLen = ni_ssid.ws_len;
+        wifi_netinfo_get_chan(mpScanResults[mIternum], &channel);
+        item.channel = channel;
         item.wiFiBand = chip::DeviceLayer::NetworkCommissioning::WiFiBand::k2g4;
-        item.rssi     = mpScanResults[mIternum].ni_rssi;
-        memcpy(item.ssid, mpScanResults[mIternum]->ni_ssid, item.ssidLen);
-        memcpy(item.bssid, mpScanResults[mIternum].ni_bssid, 6);
+        item.rssi     = mpScanResults[mIternum]->ni_rssi;
+        memcpy(item.ssid, ni_ssid.ws_ssid, item.ssidLen);
+        memcpy(item.bssid, mpScanResults[mIternum]->ni_bssid, 6);
 
         mIternum++;
         return true;
@@ -75,7 +80,7 @@ public:
 
 private:
     const size_t mSize;
-    const struct wifi_netinfo * mpScanResults;
+    const struct wifi_netinfo **mpScanResults;
     size_t mIternum = 0;
 };
 #endif

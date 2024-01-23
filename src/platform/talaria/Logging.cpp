@@ -7,7 +7,6 @@
 #include <lib/support/logging/Constants.h>
 #include <stdio.h>
 
-
 #define ENABLE_CONSOLE_COLOR_PRINT  0
 
 // Forground color

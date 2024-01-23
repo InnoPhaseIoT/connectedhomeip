@@ -356,3 +356,14 @@ void TalariaUtils::RegisterTalariaErrorFormatter()
 
     RegisterErrorFormatter(&sErrorFormatter);
 }
+
+void TalariaUtils::ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt)
+{
+    struct wifi_scan_param scanparam;
+
+    /* Init default scan parameters */
+    wifi_init_scan_default(&scanparam);
+
+    *scanres_cnt = wcm_scan(wcm_handle, &scanparam, scan_result, MAX_NW_SCANS);
+    os_printf("\r\n scan:%d", *scanres_cnt);
+}

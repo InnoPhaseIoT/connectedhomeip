@@ -98,9 +98,6 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
                      ChipLogError(AppServer, "Unhandled Attribute ID: '0x%" PRIx32 "'", attributeId));
         VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
 
-        /* TODO: Use LED control api call to T2
-        AppLED.Set(*value);
-        */
         if (*value == 1)
         {
             os_gpio_set_pin(1 << LED_PIN);
@@ -194,11 +191,16 @@ void print_test_results(nlTestSuite * tSuite)
 
 int main(void)
 {
+    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
+    if (FactoryReset == 1)
+    {
+        talariautils::FactoryReset();
+        while (1)
+            vTaskDelay(100000);
+    }
 #ifdef UNIT_TEST
     run_unit_test();
 #endif
-#if 1
-    CHIP_ERROR err = CHIP_NO_ERROR;
 
     talariautils::ApplicationInitLog("matter lighting app");
     talariautils::EnableSuspend();
@@ -220,12 +222,7 @@ int main(void)
 
     app_test();
 
-    os_printf("\n");
-    while (1)
-    {
-        vTaskDelay(10000);
-        os_printf(".");
-    }
-#endif
+    /* There is nothing to do in this task. Putting the task in suspend mode */
+    vTaskSuspend(NULL);
     return 0;
 }

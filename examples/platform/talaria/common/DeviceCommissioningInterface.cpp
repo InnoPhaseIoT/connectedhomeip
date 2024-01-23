@@ -56,6 +56,10 @@ namespace DeviceCommissioning
                 os_printf("\n ((((((((((((((((( 222-B )))))))))))))))\n");
                 break;
             }
+            case COMMISSIONING_FLOW_TYPE_HOST:
+            {
+                break;
+            }
             default:
             {
                 mCommissioningMgr = nullptr;

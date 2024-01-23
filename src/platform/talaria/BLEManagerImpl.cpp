@@ -245,11 +245,7 @@ void BLEManagerImpl::_OnPlatformEvent(const ChipDeviceEvent * event)
 
     case DeviceEventType::kServiceProvisioningChange:
     case DeviceEventType::kWiFiConnectivityChange:
-        // Force the advertising configuration to be refreshed to reflect new provisioning state.
-        ChipLogProgress(DeviceLayer, "Updating advertising data");
-        mFlags.Clear(Flags::kAdvertisingConfigured);
-        mFlags.Set(Flags::kAdvertisingRefreshNeeded);
-        DriveBLEState();
+        /* Nothing to do here */
         break;
 
     default:
@@ -696,9 +692,9 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
     /* Configure advertisement */
     bt_gap_cfg_adv_t bt_adv_handle;
     bt_smp_cfg_t bt_smp_handle;
-    bt_adv_handle.fast_period   = 10240;
+    bt_adv_handle.fast_period   = 30000;  /* Configure fast period as 30sec as per Matter spec  */
     bt_adv_handle.slow_period   = 0;
-    bt_adv_handle.fast_interval = 160;
+    bt_adv_handle.fast_interval = 40;     /* Configure fast interval as 40ms as per Matter spec range(20ms-60ms) */
     bt_adv_handle.slow_interval = 480;
     bt_adv_handle.tx_power      = 0;
     bt_adv_handle.channel_map   = BT_HCI_ADV_CHANNEL_ALL;

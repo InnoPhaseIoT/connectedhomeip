@@ -40,6 +40,44 @@ constexpr char kWiFiCredentialsKeyName[] = "wifi-pass";
 static uint8_t WiFiSSIDStr[DeviceLayer::Internal::kMaxWiFiSSIDLength];
 } // namespace
 
+
+BitFlags<WiFiSecurity> ConvertSecurityType(struct wifi_netinfo *netIf)
+{
+    BitFlags<WiFiSecurity> securityType;
+    struct wifi_authmode authmode;
+    wifi_netinfo_get_authmode(netIf, &authmode);
+    switch (authmode.authmask)
+    {
+    case 0:
+        securityType.Set(WiFiSecurity::kUnencrypted);
+        break;
+    case IE_WPA_ENTERPRISE:
+    case IE_WPA23_ENTERPRISE:
+        securityType.Set(WiFiSecurity::kWep);
+        break;
+    case IE_WPA_PERSONAL:
+        securityType.Set(WiFiSecurity::kWpaPersonal);
+        break;
+    case IE_WPA2_PERSONAL:
+        securityType.Set(WiFiSecurity::kWpa2Personal);
+        break;
+    case IE_WPA_PERSONAL | IE_WPA2_PERSONAL:
+        securityType.Set(WiFiSecurity::kWpa2Personal);
+        securityType.Set(WiFiSecurity::kWpaPersonal);
+        break;
+    case IE_WPA3_PERSONAL:
+        securityType.Set(WiFiSecurity::kWpa3Personal);
+        break;
+    case IE_WPA2_PERSONAL | IE_WPA3_PERSONAL:
+        securityType.Set(WiFiSecurity::kWpa3Personal);
+        securityType.Set(WiFiSecurity::kWpa2Personal);
+        break;
+    default:
+        break;
+    }
+    return securityType;
+}
+
 CHIP_ERROR GetConfiguredNetwork(Network & network)
 {
     /* TODO: yet to implement */
@@ -238,7 +276,7 @@ void TalariaWiFiDriver::TriggerConnectNetwork()
 {
     if (mStagingNetwork.ssidLen != 0)
     {
-	ConnectWiFiNetwork(reinterpret_cast<const char *>(mStagingNetwork.ssid), mStagingNetwork.ssidLen,
+	    ConnectWiFiNetwork(reinterpret_cast<const char *>(mStagingNetwork.ssid), mStagingNetwork.ssidLen,
 			   reinterpret_cast<const char *>(mStagingNetwork.credentials), mStagingNetwork.credentialsLen);
     }
     else
@@ -291,13 +329,49 @@ exit:
 
 CHIP_ERROR TalariaWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
 {
-    /* TODO */
+    struct wifi_netinfo **scan_result;
+    int scanres_cnt;
+
+    if (!mpScanCallback)
+    {
+        ChipLogProgress(DeviceLayer, "No scan callback");
+        return;
+    }
+
+    scan_result = malloc(MAX_NW_SCANS * sizeof(void *));
+    if (scan_result == NULL) {
+        ChipLogError(DeviceLayer, "Failed to allocate memory");
+        return;
+    }
+
+    TalariaUtils::ScanWiFiNetwork(scan_result, &scanres_cnt);
+    if (scanres_cnt < 0) {
+        ChipLogProgress(DeviceLayer, "No AP found");
+        mpScanCallback->OnFinished(Status::kSuccess, CharSpan(), nullptr);
+        mpScanCallback = nullptr;
+        goto exit;
+    }
+    if (CHIP_NO_ERROR == DeviceLayer::SystemLayer().ScheduleLambda([scanres_cnt, scan_result]() {
+        TalariaScanResponseIterator iter(scanres_cnt, scan_result);
+        if (GetInstance().mpScanCallback)
+        {
+            GetInstance().mpScanCallback->OnFinished(Status::kSuccess, CharSpan(), &iter);
+            GetInstance().mpScanCallback = nullptr;
+        }
+        else
+        {
+            ChipLogError(DeviceLayer, "can't find the ScanCallback function");
+        }
+    }))
+exit:
+    wcm_free_scanresult(scan_result, scanres_cnt);
+    free(scan_result);
     return CHIP_NO_ERROR;
 }
 
 void TalariaWiFiDriver::OnScanWiFiNetworkDone()
 {
-    /* TODO */
+    /* Not required to be implemented */
 }
 
 void TalariaWiFiDriver::OnNetworkStatusChange()

@@ -56,39 +56,10 @@ static_library("talaria") {
 
   # output_dir = ${root_out_dir}/lib
   sources = [
-    # "../DeviceSafeQueue.cpp",
-    # "../DeviceSafeQueue.h",
     "../SingletonConfigurationManager.cpp",
-
-    # # "NetworkCommissioningDriver.h",
-    # # "NetworkCommissioningEthernetDriver.cpp",
-    # # "Config.cpp",
-    # # "Config.h",
-
-    # "BlePlatformConfig.h",
-    # "CHIPDevicePlatformConfig.h",
-    # "CHIPDevicePlatformEvent.h",
-    # "CHIPLinuxStorage.cpp",
-    # "CHIPLinuxStorage.h",
-    # "CHIPLinuxStorageIni.cpp",
-    # "CHIPLinuxStorageIni.h",
-    # "CHIPPlatformConfig.h",
     "ConfigurationManagerImpl.cpp",
-    # "../../system/SystemClock.cpp",
     "BLEManagerImpl.cpp",
     "BLEManagerImpl.h",
-
-    # # "NetworkCommissioningDriver.h",
-    # # "NetworkCommissioningEthernetDriver.cpp",
-    # "Config.cpp",
-    # "Config.h",
-    # "ConfigurationManagerImpl.h",
-    # "ConnectivityManagerImpl.cpp",
-    # "ConnectivityManagerImpl.h",
-    # "ConnectivityManagerImpl_WiFi.cpp",
-    # "NetworkCommissioningDriver.cpp",
-    # "NetworkCommissioningDriver.h",
-    # "NetworkCommissioningEthernetDriver.cpp",
     "Config.cpp",
     "Config.h",
     "ConfigurationManagerImpl.h",
@@ -99,28 +70,16 @@ static_library("talaria") {
     "NetworkCommissioningDriver.h",
     "TalariaUtils.cpp",
     "TalariaUtils.h",
-
-    # "ConnectivityUtils.cpp",
-    # "ConnectivityUtils.h",
-    # "DeviceInstanceInfoProviderImpl.cpp",
-    # "DeviceInstanceInfoProviderImpl.h",
     "DeviceInfoProviderImpl.cpp",
     "DeviceInfoProviderImpl.h",
     "DiagnosticDataProviderImpl.cpp",
     "DiagnosticDataProviderImpl.h",
-
-    # "InetPlatformConfig.h",
     "KeyValueStoreManagerImpl.cpp",
     "KeyValueStoreManagerImpl.h",
     "PlatformManagerImpl.cpp",
     "PlatformManagerImpl.h",
     "SystemPlatformConfig.h",
     "SystemTimeSupport.cpp",
-
-    # #"TalariaConfig.cpp",
-
-    # # "InetPlatformConfig.h",
-    # #"TariaConfig.h",
   ]
 
   defines = [

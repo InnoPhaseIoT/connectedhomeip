@@ -34,6 +34,7 @@ extern "C" {
 }
 #endif
 
+#define MAX_NW_SCANS    64
 namespace chip {
 namespace DeviceLayer {
 namespace Internal {
@@ -75,6 +76,7 @@ public:
     static void RegisterTalariaErrorFormatter();
     static bool FormatError(char * buf, uint16_t bufSize, CHIP_ERROR err);
     static CHIP_ERROR RequestSEDActive(uint32_t listern_interval, uint32_t traffic_tmo);
+    static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt);
 };
 
 #define ReturnMappedErrorOnFailure(expr)                                                                                           \

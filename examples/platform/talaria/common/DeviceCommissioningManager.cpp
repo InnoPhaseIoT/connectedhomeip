@@ -29,6 +29,7 @@ namespace DeviceCommissioning
     SemaphoreHandle_t CommissioningSetupButton::mSem = nullptr;
     TaskHandle_t UserIntentCommissioningManager::mCommissioningTask = nullptr;
     CommissioningInput* UserIntentCommissioningManager::mCommissioningInput = nullptr;
+    bool UserIntentCommissioningGpioTwoSecondHolded = false;
 
     /* ------------------------------------ CommissioningManager ------------------------------------------------------------------------- */
 
@@ -118,8 +119,10 @@ namespace DeviceCommissioning
             ChipLogError(DeviceLayer, "Cannot perform user intent commission, invalid setup button configuration");
             return CHIP_ERROR_INVALID_ARGUMENT; // to do: return corect error code
         }
-
-        mCommissioningInput->Enable();
+        if(matterutils::IsNodeCommissioned() == false && chip::Server::GetInstance().GetCommissioningWindowManager().IsCommissioningWindowOpen() == 0)
+        {
+            mCommissioningInput->Enable();
+        }
         return CHIP_NO_ERROR;
     }
 
@@ -129,20 +132,21 @@ namespace DeviceCommissioning
 
         while(1)
         {
-            mCommissioningInput->TriggerWait();
-
-            if(chip::Server::GetInstance().GetCommissioningWindowManager().IsCommissioningWindowOpen() == 1)
+            vTaskDelay(300);
+            if(chip::Server::GetInstance().GetCommissioningWindowManager().IsCommissioningWindowOpen() == 0 && matterutils::IsNodeCommissioned() == false )
             {
+                mCommissioningInput->TriggerWait();
+            }
+            if(chip::Server::GetInstance().GetCommissioningWindowManager().IsCommissioningWindowOpen() == 1)
+             {
                 /* Commissioning window has alredy been opened */
                 /* A small delay before enabling the setup button, to avoid continous loop in the worst case */
                 vTaskDelay(300);
                 continue;
             }
-
             CommissioningManager::EnableCommissioning();
 
             /* Delay before enabling the setup button again */
-            vTaskDelay(300);
         }
     }
 
@@ -179,7 +183,7 @@ namespace DeviceCommissioning
         os_gpio_request(GPIO_PIN(mTriggerGpio));
         os_gpio_set_input(GPIO_PIN(mTriggerGpio));
         os_gpio_set_pull(GPIO_PIN(mTriggerGpio));
-        os_gpio_set_irq_edge_both(GPIO_PIN(mTriggerGpio));
+        os_gpio_set_irq_level_low(GPIO_PIN(mTriggerGpio));
         os_gpio_attach_event(gpio_event_3, CommissioningSetupButton::Irq, NULL);
         callout_init(&mCallout, CommissioningSetupButton::Event);
         mSem = xSemaphoreCreateCounting(1,0);
@@ -192,24 +196,34 @@ namespace DeviceCommissioning
 
     void CommissioningSetupButton::Event(struct callout *co)
     {
-        xSemaphoreGiveFromISR(mSem, pdTRUE);
+        UserIntentCommissioningGpioTwoSecondHolded = true;
     }
 
     void CommissioningSetupButton::Irq(void *c)
     {
         // static int start_time;
-
+        os_gpio_disable_irq(GPIO_PIN(mTriggerGpio));
+        os_clear_event(EVENT_GPIO_3);
         if(os_gpio_get_value(GPIO_PIN(mTriggerGpio)) == 0)
         {
             // System::Clock::Timeout maxTimeout = System::Clock::Seconds32(5000);
             // System::Clock::Timeout maxTimeout = static_cast<System::Clock::Timeout>(30);
             // DeviceLayer::SystemLayer().StartTimer(maxTimeout, setup_button_tigger, nullptr);
-
+            os_gpio_set_irq_level_high(GPIO_PIN(mTriggerGpio));
+            os_gpio_enable_irq(GPIO_PIN(mTriggerGpio), 3);
             callout_stop(&mCallout);
             callout_schedule(&mCallout, SYSTIME_MS(mTimeout));
         }
         else
         {
+            os_gpio_set_irq_level_low(GPIO_PIN(mTriggerGpio));
+            os_gpio_enable_irq(GPIO_PIN(mTriggerGpio), 3);
+            if(UserIntentCommissioningGpioTwoSecondHolded == true)
+            {
+                xSemaphoreGiveFromISR(mSem, pdTRUE);
+                UserIntentCommissioningGpioTwoSecondHolded = false;
+            }
+
             callout_stop(&mCallout);
         }
     }
@@ -222,6 +236,9 @@ namespace DeviceCommissioning
     void CommissioningSetupButton::Disable()
     {
         os_gpio_disable_irq(GPIO_PIN(mTriggerGpio));
+        os_gpio_detach_event(GPIO_PIN(mTriggerGpio), CommissioningSetupButton::Irq);
+        os_gpio_free(GPIO_PIN(mTriggerGpio));
+
     }
 
     void CommissioningSetupButton::TriggerWait()

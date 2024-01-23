@@ -135,16 +135,17 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Get(const char * key, void * value, size_t
 			{
 				memcpy(value, read + offset_bytes, value_size);
 				*read_bytes_size = value_size;
+				if (read != NULL)
+					free(read);
 
 				return CHIP_ERROR_BUFFER_TOO_SMALL;
 			}
 			/* -1 from read size is for removing EOF
 Check: currently offset_bytes always is 0,
 So does it required to be consided for (size - 1) value? */
-			{
-				memcpy(value, read + offset_bytes, size - 1);
-				*read_bytes_size = size - 1;
-			}
+
+		        memcpy(value, read + offset_bytes, size - 1);
+		        *read_bytes_size = size - 1;
 		}
 		else if (size == 0){
 			*read_bytes_size = size ;
@@ -155,6 +156,8 @@ So does it required to be consided for (size - 1) value? */
 		memset(value, 0, value_size);
 		return CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
 	}
+	if (read != NULL)
+		free(read);
 	return CHIP_NO_ERROR;
 }
 
@@ -171,6 +174,7 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Delete(const char * key)
 	/* Delete file */
 	if ((sample_file = fopen(configfile, "r")) != NULL)
 	{
+		fclose(sample_file);
 		ret_code = unlink(configfile);
 		return CHIP_NO_ERROR;
 	}
@@ -207,6 +211,7 @@ Resolution: create separate directory for matter in /data/ parition and use the 
 			/* Delete file */
 			if ((sample_file = fopen(filePath, "r")) != NULL)
 			{
+				fclose(sample_file);
 				ret_code = unlink(filePath);
 				if(ret_code < 0)
 				{
