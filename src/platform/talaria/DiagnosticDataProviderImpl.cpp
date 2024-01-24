@@ -211,8 +211,7 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetNetworkInterfaces(NetworkInterface ** 
     }
     else
     {
-        for (struct netif * ifa = netif; ifa != NULL; ifa = netif->next)
-        {
+            struct netif * ifa = netif;
             NetworkInterface * ifp = new NetworkInterface();
             Platform::CopyString(ifp->Name, ifa->name);
             ifp->name          = CharSpan::fromCharString(ifp->Name);
@@ -221,12 +220,13 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetNetworkInterfaces(NetworkInterface ** 
             ifp->offPremiseServicesReachableIPv4.SetNull();
             ifp->offPremiseServicesReachableIPv6.SetNull();
             memcpy(ifp->MacAddress, ifa->hwaddr, NETIF_MAX_HWADDR_LEN);
+            ifp->hardwareAddress = ByteSpan(ifp->MacAddress, NETIF_MAX_HWADDR_LEN);
 
             for (uint8_t idx = 0; idx < LWIP_IPV6_NUM_ADDRESSES; ++idx)
             {
                 if (true == TalariaUtils::GetAddr6(&ip6_addr[idx], idx))
                 {
-                    memcpy(ifp->Ipv6AddressesBuffer[idx], ip6_addr[idx].s6_addr8, kMaxIPv6AddrSize);
+                    memcpy(ifp->Ipv6AddressesBuffer[idx], ip6_addr[idx].s6_addr16, kMaxIPv6AddrSize);
                     ifp->Ipv6AddressSpans[idx] = ByteSpan(ifp->Ipv6AddressesBuffer[idx], kMaxIPv6AddrSize);
                     ipv6_addr_count++;
                 }
@@ -240,7 +240,6 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetNetworkInterfaces(NetworkInterface ** 
             ifp->Next = head;
             head      = ifp;
         }
-    }
     *netifpp = head;
     return CHIP_NO_ERROR;
 }
