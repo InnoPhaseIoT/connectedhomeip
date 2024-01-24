@@ -88,4 +88,6 @@
 // Safe to enable this flag since standalone is associated with host and not a device.
 #define CONFIG_BUILD_FOR_HOST_UNIT_TEST 1
 
+#define CHIP_DEVICE_CONFIG_ENABLE_PAIRING_AUTOSTART 0
+
 #endif /* CHIPPROJECTCONFIG_H */

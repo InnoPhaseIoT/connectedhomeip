@@ -101,7 +101,6 @@ CHIP_ERROR TalariaWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusCh
     size_t ssidLen        = 0;
     size_t credentialsLen = 0;
 
-#if 1 /* TODO: Need to enable once persistance sotrage is enabled */
     err = chip::DeviceLayer::PersistedStorage::KeyValueStoreMgr().Get(kWiFiCredentialsKeyName, mSavedNetwork.credentials,
                                                    sizeof(mSavedNetwork.credentials), &credentialsLen);
     if (err == CHIP_ERROR_NOT_FOUND)
@@ -133,7 +132,6 @@ CHIP_ERROR TalariaWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusCh
     mSavedNetwork.ssidLen = static_cast<uint8_t>(ssidLen);
 
     mStagingNetwork = mSavedNetwork;
-#endif
     mpScanCallback         = nullptr;
     mpConnectCallback      = nullptr;
     mpStatusChangeCallback = networkStatusChangeCallback;

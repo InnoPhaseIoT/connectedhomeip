@@ -56,6 +56,8 @@ filesystem_util_mount_data_if(const char* path);
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
 
+#define USER_INTENDED_COMMISSIONING_TRIGGER_GPIO 3;
+
 using namespace chip;
 using namespace chip::Platform;
 using namespace chip::DeviceLayer;
@@ -81,7 +83,7 @@ CommissioningInterface::CommissioningParam& GetCommissioningParam(CommissioningI
 
     if(Type == matterutils::COMMISSIONING_FLOW_TYPE_USER_INTENT)
     {
-        param.TypedParam.UserIntent.TriggerGpio = 19;
+        param.TypedParam.UserIntent.TriggerGpio = USER_INTENDED_COMMISSIONING_TRIGGER_GPIO;
     }
 
     return param;
@@ -98,22 +100,25 @@ void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
 
 void InitServer(intptr_t context)
 {
-    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if(FactoryReset == 1)
+    chip::PayloadContents payload;
+    CHIP_ERROR err = GetPayloadContents(payload, chip::RendezvousInformationFlag::kBLE);
+    if (err != CHIP_NO_ERROR)
     {
-        os_printf("\e[1;43;31;5m");
-        os_printf("\n*******************************\n");
-        os_printf("\nFACTORY RESET\n");
-        os_printf("\n*******************************\n");
-        chip::Server::GetInstance().ScheduleFactoryReset();
-        os_printf("\nFACTORY RESET is completed ...........");
-        os_printf("\nProgram T2 elf without FactoryReset to commission the device \n");
-        os_printf("\n*******************************");
-        os_printf("\e[0m");
-        return;
+        ChipLogError(AppServer, "GetPayloadContents() failed: %" CHIP_ERROR_FORMAT, err.Format());
     }
-
-    PrintOnboardingCodes(chip::RendezvousInformationFlags(chip::RendezvousInformationFlag::kBLE));
+    int flow_type =os_get_boot_arg_int("matter.commissioning.flow_type", 0);
+    if (flow_type == 1)
+    {
+        payload.commissioningFlow = CommissioningFlow::kUserActionRequired;
+    }
+    else if (flow_type == 2)
+    {
+        payload.commissioningFlow = CommissioningFlow::kCustom;
+    }
+    else{
+        payload.commissioningFlow = CommissioningFlow::kStandard;
+    }
+    PrintOnboardingCodes(payload);
     static chip::CommonCaseDeviceServerInitParams initParams;
     (void) initParams.InitializeStaticResourcesBeforeServerInit();
     chip::Server::GetInstance().Init(initParams);
