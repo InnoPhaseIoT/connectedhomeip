@@ -28,7 +28,7 @@ extern "C" {
 
 #include <wifi/network_profile.h>
 #include <wifi/wcm.h>
-#include <wifi/wifi_utils.h>
+#include <wifi_utils.h>
 
 #ifdef __cplusplus
 }

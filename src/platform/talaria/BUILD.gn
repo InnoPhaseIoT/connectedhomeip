@@ -113,40 +113,9 @@ static_library("talaria") {
   cflags += [ "-fpermissive" ]
   cflags += [ "-fdiagnostics-color" ]
 
-  # include_dirs = [
-  #   "${chip_root}/src/",
-  # ]
-  include_dirs = [
-    "${chip_root}/src/",
-    "${chip_root}/src/include",
-    "${chip_root}/../../out/test/gen/include",
-
-    # "${chip_root}/freertos_sdk/include/libc/include",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/include",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/arm",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/include",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/innos_osal/inc",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/lwip2/include",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/core/innos_osal/inc",
-    "../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
-    "../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
-
-    # "../../../.environment/cipd/packages/arm/arm-none-eabi/include/",
-    # "${chip_root}/freertos_sdk/include/libc/include_1",
-    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/libc/include",
-  ]
-
   defines +=
       [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>" ]
 
-  # print("$chip_enable_ble = chip_enable_ble")
-  # print("$chip_enable_wifi = chip_enable_wifi")
-  # print("$chip_use_external_logging = chip_use_external_logging")
-  # print("$chip_enable_ota_requestor = chip_enable_ota_requestor")
-  # print("$chip_enable_openthread = chip_enable_openthread")
-  # print("$chip_use_pw_logging = chip_use_pw_logging")
-  # print("$chip_mdns = chip_mdns")
 
   if (!chip_use_external_logging) {
     sources += [ "Logging.cpp" ]
@@ -156,26 +125,6 @@ static_library("talaria") {
     sources += [ "NetworkCommissioningThreadDriver.cpp" ]
   }
 
-  # if (chip_enable_ble) {
-  #   sources += [
-  #     "bluez/AdapterIterator.cpp",
-  #     "bluez/AdapterIterator.h",
-  #     "bluez/ChipDeviceScanner.cpp",
-  #     "bluez/ChipDeviceScanner.h",
-  #     "bluez/Helper.cpp",
-  #     "bluez/Helper.h",
-  #     "bluez/Types.h",
-  #   ]
-  # }
-
-  include_dirs += [
-    # "${chip_root}/third_party/nlio/repo/include",
-    "${chip_root}/zzz_generated/app-common",
-  ]
-
-  # test = "${chip_root}/zzz_generated/app-common"
-  # print(test)
-  # print(chip_root)
 
   deps = [ "${chip_root}/src/setup_payload" ]
   deps += [

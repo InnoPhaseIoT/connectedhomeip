@@ -47,7 +47,7 @@
 
 #include <hwreg/dma.h>
 #include <wifi/wcm.h>
-#include <wifi/wifi_utils.h>
+#include <wifi_utils.h>
 
 #ifdef __cplusplus
     }

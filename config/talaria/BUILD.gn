@@ -15,21 +15,6 @@
 import("//build_overrides/chip.gni")
 import("//build_overrides/build.gni")
 
-# config("cflags") {
-#   cflags = [
-#     "-MD",
-#     "-MMD",
-#     "-nostdinc",
-#     "-Wno-address-of-packed-member",
-#     "-Wnull-dereference",
-#     "-Warray-bounds=2",
-#     "-Wno-unused-variable",
-#     "-Wno-unused-function",
-#     "-fpermissive",
-#     "-fdiagnostics-color",
-#   ]
-# }
-
 config("cflags") {
   cflags = [
     "-Wconversion",
@@ -52,11 +37,25 @@ config("cflags") {
     "-fpermissive",
     "-fdiagnostics-color",
   ]
+
+  include_dirs = [
+    "${chip_root}/src/",
+    "${chip_root}/src/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/arm",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/innos_osal/inc",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/lwip2/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/core/innos_osal/inc",
+    "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
+    "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/include/libc/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
+]
 }
 
 config("ldflags") {
-  # cflags = [ ]
-  # ldflags = [ "-lunni_test" ]
   ldflags = [ 
     "-T../../third_party/connectedhomeip/third_party/talaria/repo/freertos_sdk/build/firmware-arm-virt.lds",
     "--entry",
@@ -70,31 +69,9 @@ config("ldflags") {
     "${chip_root}/third_party/talaria/repo/freertos_sdk/libs",
     "${chip_root}/third_party/talaria/repo/freertos_sdk/libs/arm",
     "${chip_root}/third_party/talaria/repo/freertos_sdk/build",
-    # -Lout/test/lib \
     "${chip_root}/examples/lighting-app/talaria/out/test/lib",
   ]
-  # libs = [ "unni_test" ]
-  # libs = [
-  #   "wifi",
-  #   "rfdrv",
-  #   "lwip2",
-  #   "supplicant",
-  #   "freertos",
-  #   "c",
-  #   "innos",
-  #   "fs",
-  #   "osal",
-  #   "components",
-  #   "mbedtls",
-  #   "dragonfly",
-  #   "${chip_root}/examples/lighting-app/talaria/out/test/LightApplication.a",
-  #   "CHIP",
-  #   "bt_host",
-  #   "bt_controller",
-  #   "bt_profiles",
-  #   "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/lib/thumb/v7-m/nofp/libstdc++_nano.a",
-  #   "${chip_root}/.environment/cipd/packages/arm/lib/gcc/arm-none-eabi/12.2.1/thumb/v7-m/nofp/libgcc.a",
-  # ]
+
   libs = [
     "wifi",
     "rfdrv",
@@ -108,8 +85,6 @@ config("ldflags") {
     "components",
     "mbedtls",
     "dragonfly",
-    # "${chip_root}/examples/lighting-app/talaria/out/test/LightApplication.a",
-    # "CHIP",
     "bt_host",
     "bt_controller",
     "bt_profiles",

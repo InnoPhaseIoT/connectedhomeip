@@ -20,13 +20,6 @@ import("${chip_root}/third_party/imgui/imgui.gni")
 
 # assert(chip_build_tools)
 
-config("includes") {
-  include_dirs = [
-    ".",
-    "include",
-  ]
-}
-
 static_library("common") {
   # complete_static_lib = true
 
@@ -40,51 +33,9 @@ static_library("common") {
     "${chip_root}/src/lib",
   ]
 
-  # defines = [
-  #   "CHIP_SYSTEM_CONFIG_USE_LWIP=1",
-  #   "CHIP_SYSTEM_CONFIG_USE_OPEN_THREAD_ENDPOINT=0",
-  #   # "HAVE_LWIP_UDP_BIND_NETIF=1",
-  #   "INET_CONFIG_ENABLE_IPV4=0",
-  # ]
-
-  # include_dirs = [
-  #   "${chip_root}/examples/platform/talaria/",
-  #   "${chip_root}/src/",
-  #   "${chip_root}/src/include",
-  #   "${chip_root}/src/platform/Talaria",
-  #   "${chip_root}/freertos_sdk/include",
-  #   "${chip_root}/freertos_sdk/include/arm",
-  #   "${chip_root}/freertos_sdk/FreeRTOS-Kernel/include",
-  #   "${chip_root}/freertos_sdk/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
-  #   "${chip_root}/freertos_sdk/include/innos_osal/inc",
-  #   "${chip_root}/freertos_sdk/include/lwip2/include",
-  #   "${chip_root}/freertos_sdk/core/innos_osal/inc",
-  #   "../../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/",
-  #   "../../../../.environment/cipd/packages/arm/arm-none-eabi/include/c++/12.2.1/arm-none-eabi/thumb/v7-m/nofp",
-  #   "${chip_root}/freertos_sdk/include/libc/include",
-  # ]
-
-  # cflags = [ "-Wconversion" ]
-  # cflags = [ "-mcpu=cortex-m3" ]
-  # cflags += [ "-MD" ]
-  # cflags += [ "-MMD" ]
-  # cflags += [ "-g" ]
-  # cflags += [ "-nostdinc" ]
-  # cflags += [ "-Wno-address-of-packed-member" ]
-  # cflags += [ "-ffunction-sections" ]
-  # cflags += [ "-fdata-sections" ]
-  # cflags += [ "-fno-common" ]
-  # cflags += [ "-Wshadow" ]
-  # cflags += [ "-Wnull-dereference" ]
-  # cflags += [ "-Warray-bounds=2" ]
-  # cflags += [ "-Os" ]
-
-  # # cflags += [ "-Wall" ]
-  # # cflags += [ "-Werror" ]
-  # cflags += [ "-Wno-unused-variable" ]
-  # cflags += [ "-Wno-unused-function" ]
-  # cflags += [ "-fno-exceptions" ]
-  # cflags += [ "-fpermissive" ]
+  include_dirs = [
+    "..",
+  ]
 
   output_name = "libCommon"
 
