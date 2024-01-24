@@ -367,3 +367,16 @@ void TalariaUtils::ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanr
     *scanres_cnt = wcm_scan(wcm_handle, &scanparam, scan_result, MAX_NW_SCANS);
     os_printf("\r\n scan:%d", *scanres_cnt);
 }
+
+CHIP_ERROR TalariaUtils::BootArgsGetSetupDiscriminator(uint32_t & val)
+{
+    CHIP_ERROR error = CHIP_NO_ERROR;
+    uint32_t boot_arg_val = os_get_boot_arg_int("matter.discriminator", 0);
+    if (boot_arg_val != 0) {
+        val = boot_arg_val;
+    } else {
+        error = CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+
+    return error;
+}

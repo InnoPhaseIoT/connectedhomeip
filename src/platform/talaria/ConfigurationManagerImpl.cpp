@@ -195,12 +195,7 @@ CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint16_t & val)
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint32_t & val)
 {
-    // return PosixConfig::ReadConfigValue(key, val);
-    // val = 4567;
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValue(key, val);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(key, val);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint64_t & val)

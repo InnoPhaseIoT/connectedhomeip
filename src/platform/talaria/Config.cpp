@@ -32,11 +32,7 @@
 #include <lib/support/CHIPMemString.h>
 #include <lib/support/CodeUtils.h>
 #include <lib/support/logging/CHIPLogging.h>
-// #include <platform/ESP32/ESP32Utils.h>
-// #include <platform/ESP32/ScopedNvsHandle.h>
-
-// #include "nvs.h"
-// #include "nvs_flash.h"
+#include <platform/talaria/TalariaUtils.h>
 
 namespace chip {
 namespace DeviceLayer {
@@ -131,9 +127,11 @@ CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, bool & val)
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint32_t & val)
 {
-    val = 1234; // 0x4D2
+    if (key == TalariaConfig::kConfigKey_SetupDiscriminator) {
+        return TalariaUtils::BootArgsGetSetupDiscriminator(val);
+    }
 
-    return CHIP_NO_ERROR;
+    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint64_t & val)
