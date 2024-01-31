@@ -57,7 +57,7 @@ config("cflags") {
 
 config("ldflags") {
   ldflags = [ 
-    "-T../../third_party/connectedhomeip/third_party/talaria/repo/freertos_sdk/build/firmware-arm-virt.lds",
+    "-T../../third_party/connectedhomeip/third_party/talaria/repo/freertos_sdk/build/firmware-arm-virt-connectedhomeip.lds",
     "--entry",
     "_start",
     "-zmax-page-size=256",
