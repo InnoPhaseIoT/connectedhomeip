@@ -1,11 +1,10 @@
 
-all: out/test/build.ninja out/chip-example-app.elf
+all: out/test/build.ninja out/test/Talaria-Application
 
-out/chip-example-app.elf: FORCE
-	ninja -C out/test/
-	./4_gn_link.sh
-	ls -lah out/chip-example-app.elf
-	cksum out/chip-example-app.elf
+out/test/Talaria-Application: FORCE
+	ninja -C out/test -j 4
+	ls -lah out/test/Talaria-Application
+	cksum out/test/Talaria-Application
 
 out/test/build.ninja:
 	gn gen out/test --args="is_debug=false"
