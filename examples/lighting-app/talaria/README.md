@@ -1,145 +1,83 @@
-# CHIP Linux Lighting Example
+# CHIP Talaria Lighting Example
 
-An example showing the use of CHIP on the Linux. The document will describe how
-to build and run CHIP Linux Lighting Example on Raspberry Pi. This doc is tested
-on **Ubuntu for Raspberry Pi Server 20.04 LTS (aarch64)** and **Ubuntu for
-Raspberry Pi Desktop 20.10 (aarch64)**
-
-To cross-compile this example on x64 host and run on **NXP i.MX 8M Mini**
-**EVK**, see the associated
-[README document](../../../docs/guides/nxp_imx8m_linux_examples.md) for details.
-
-<hr>
-
--   [CHIP Linux Lighting Example](#chip-linux-lighting-example)
-    -   [Building](#building)
-    -   [Commandline Arguments](#commandline-arguments)
-    -   [Running the Complete Example on Raspberry Pi 4](#running-the-complete-example-on-raspberry-pi-4)
-    -   [Running RPC console](#running-rpc-console)
-    -   [Device Tracing](#device-tracing)
-
-<hr>
+An example showing the use of CHIP on the Talaria Two platform. The document will describe how
+to build and run CHIP Lighting Example on Talaria Two platform. This doc is tested
+on **Ubuntu 22.04.3 LTS (x86_64)**
 
 ## Building
 
--   Install tool chain
-
-          $ sudo apt-get install git gcc g++ python pkg-config libssl-dev libdbus-1-dev libglib2.0-dev ninja-build python3-venv python3-dev unzip
+-   Setup the environment by running the boostrap.sh script as menionend in the FreeRTOS_sdk_3.0_master_matter/matter/README.md **Building the Example application** secion
 
 -   Build the example application:
 
-          $ cd ~/connectedhomeip/examples/lighting-app/linux
-          $ git submodule update --init
-          $ source third_party/connectedhomeip/scripts/activate.sh
-          $ gn gen out/debug
-          $ ninja -C out/debug
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make
 
 -   To delete generated executable, libraries and object files use:
 
-          $ cd ~/connectedhomeip/examples/lighting-app/linux
-          $ rm -rf out/
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ make clean
 
--   Build the example with pigweed RPC
+## Boot arguments
 
-          $ cd ~/connectedhomeip/examples/lighting-app/linux
-          $ git submodule update --init
-          $ source third_party/connectedhomeip/scripts/activate.sh
-          $ gn gen out/debug --args='import("//with_pw_rpc.gni")'
-          $ ninja -C out/debug
+-   `matter.discriminator=<value>`
 
-## Commandline arguments
+    Setting the discriminator value to identify the device. Unisigned short integer value. Default: 3840.
 
--   `--wifi`
+-   `matter.commissioning.flow_type=<value>`
 
-    Enables WiFi management feature. Required for WiFi commissioning.
+    0: Standard commissioning flow (Default)
+    1: User-intended commissioning flow. To enable this, GPIO3 should be connected to GND for 5 seconds and then disconnected from GND
 
--   `--thread`
+-   `suspend=<value>`
 
-    Enables Thread management feature, requires ot-br-posix dbus daemon running.
-    Required for Thread commissioning.
+    Puts the device in suspend state
+    0: Disable suspend (Default)
+    1: Enable suspend
 
--   `--ble-device <interface id>`
+-   `matter.factory_reset=<value>`
 
-    Use specific bluetooth interface for BLE advertisement and connections.
+    To enable/disable the flow for factory resetting the device.
+    0: Disable Factory Reset (Default)
+    1: Enable factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
+       Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
 
-    `interface id`: the number after `hci` when listing BLE interfaces by
-    `hciconfig` command, for example, `--ble-device 1` means using `hci1`
-    interface. Default: `0`.
 
-## Running the Complete Example on Raspberry Pi 4
+## Programming the Example on Talaria Two Platform
+The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
 
-> If you want to test Echo protocol, please enable Echo handler
->
->     gn gen out/debug --args='chip_app_use_echo=true'
->     ninja -C out/debug
+#### Updating the partition table of T2 EVB (One Time)
+- Connect T2 EVB with the system
+- Run following command to flash gordon.elf
 
--   Prerequisites
+          $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
+          $ sudo python3 script/boot.py --device /dev/ttyUSB2 ./apps/gordon.elf
+- Run the following command to update the partition table
 
-    1. A Raspberry Pi 4 board
-    2. A USB Bluetooth Dongle, Ubuntu desktop will send Bluetooth advertisement,
-       which will block CHIP from connecting via BLE. On Ubuntu server, you need
-       to install `pi-bluetooth` via APT.
-    3. Ubuntu 20.04 or newer image for ARM64 platform.
+          $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
+          $ sudo python3 ./script/flash.py --device /dev/ttyUSB2 from_json ./tools/partition_files/matter_demo_partition.json
+          
+#### Programming image elf
+- Connect T2 EVB with the system
+- Run the T2DownloadTool_Linux tool with sudo access from FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/ and select following fields in the GUI tool
+- Boot Target: Select the appropriate EVK from the drop-down
+- ELF Input: Load the out/test/lighting-app.elf by clicking on Select ELF File
+- Boot Arguments: Pass the following boot arguments
 
--   Building
+          matter.discriminator=1122 matter.commissioning.flow_type=0 suspend=1 matter.factory_reset=0
+- Programming: Prog RAM or Prog Flash as per requirement.
+**For more details on using the Download tool, refer to the document: UG_Download_Tool.pdf (path:
+FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).**
 
-    Follow [Building](#building) section of this document.
+## Commissioning and Controlling the device
+- Run generated chip-tool binary using following commands. Steps to build chip-tool is provided in FreeRTOS_sdk_3.0_master_matter/matter/README.md
 
--   Running
+          $ out/debug/chip-tool interactive start
+          >>> pairing ble-wifi <node-id> <wifi-ssid> <wifi-passwd> 20202021 <discriminator>
+          e.g. pairing ble-wifi 1111 tplinkc6_iop InnoQA2023$ 20202021 1122
+- Once the commissioning is completed successfully you can use following commands to control the D1 LED of Talaria Two EVB. Here the 1111 is the node-id given at the time of commissioning to the device
 
-    -   [Optional] Plug USB Bluetooth dongle
-
-        -   Plug USB Bluetooth dongle and find its bluetooth device number. The
-            number after `hci` is the bluetooth device number, `1` in this
-            example.
-
-                  $ hciconfig
-                  hci1:	Type: Primary  Bus: USB
-                      BD Address: 00:1A:7D:AA:BB:CC  ACL MTU: 310:10  SCO MTU: 64:8
-                      UP RUNNING PSCAN ISCAN
-                      RX bytes:20942 acl:1023 sco:0 events:1140 errors:0
-                      TX bytes:16559 acl:1011 sco:0 commands:121 errors:0
-
-                  hci0:	Type: Primary  Bus: UART
-                      BD Address: B8:27:EB:AA:BB:CC  ACL MTU: 1021:8  SCO MTU: 64:1
-                      UP RUNNING PSCAN ISCAN
-                      RX bytes:8609495 acl:14 sco:0 events:217484 errors:0
-                      TX bytes:92185 acl:20 sco:0 commands:5259 errors:0
-
-        -   Run Linux Lighting Example App
-
-                  $ cd ~/connectedhomeip/examples/lighting-app/linux
-                  $ sudo out/debug/chip-lighting-app --ble-device [bluetooth device number]
-                  # In this example, the device we want to use is hci1
-                  $ sudo out/debug/chip-lighting-app --ble-device 1
-
-        -   Test the device using ChipDeviceController on your laptop /
-            workstation etc.
-
-## Running RPC Console
-
--   As part of building the example with RPCs enabled the chip_rpc python
-    interactive console is installed into your venv. The python wheel files are
-    also created in the output folder: out/debug/chip_rpc_console_wheels. To
-    install the wheel files without rebuilding:
-    `pip3 install out/debug/chip_rpc_console_wheels/*.whl`
-
--   To use the chip-rpc console after it has been installed run:
-    `chip-console -s localhost:33000 -o /<YourFolder>/pw_log.out`
-
--   Then you can Get and Set the light using the RPCs:
-    `rpcs.chip.rpc.Lighting.Get()`
-
-    `rpcs.chip.rpc.Lighting.Set(on=True, level=128, color=protos.chip.rpc.LightingColor(hue=5, saturation=5))`
-
-## Device Tracing
-
-Device tracing is available to analyze the device performance. To turn on
-tracing, build with RPC enabled. See [Building with RPC enabled](#building).
-
-Obtain tracing json file.
-
-```
-    $ ./{PIGWEED_REPO}/pw_trace_tokenized/py/pw_trace_tokenized/get_trace.py -s localhost:33000 \
-     -o {OUTPUT_FILE} -t {ELF_FILE} {PIGWEED_REPO}/pw_trace_tokenized/pw_trace_protos/trace_rpc.proto
-```
+          >>> onoff on 1111 1     ## To Turn on the LED
+          >>> onoff off 1111 1     ## To Turn off the LED
+          >>> onoff toggle 1111 1     ## To toggle the LED
