@@ -14,7 +14,7 @@
 
 import("//build_overrides/chip.gni")
 
-executable("Talaria-Application") {
+executable("light-switch-app.elf") {
   sources = [
     "BindingHandler.h",
     "BindingHandler.cpp",
@@ -42,7 +42,7 @@ executable("Talaria-Application") {
 }
 
 group("talaria") {
-  deps = [ ":Talaria-Application" ]
+  deps = [ ":light-switch-app.elf" ]
 }
 
 group("default") {
