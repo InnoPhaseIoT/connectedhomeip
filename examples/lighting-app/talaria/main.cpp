@@ -204,15 +204,6 @@ int main(void)
 
     talariautils::ApplicationInitLog("matter lighting app");
     talariautils::EnableSuspend();
-
-    ConnectivityManager::SEDIntervalsConfig intervalsConfig;
-    uint32_t active_interval         = os_get_boot_arg_int("matter.sed.active_interval", 3);
-    uint32_t idle_interval           = os_get_boot_arg_int("matter.sed.idle_interval", 3);
-    intervalsConfig.ActiveIntervalMS = static_cast<System::Clock::Milliseconds32>(active_interval);
-    intervalsConfig.IdleIntervalMS   = static_cast<System::Clock::Milliseconds32>(idle_interval);
-
-    // ConnectivityMgr().SetSEDIntervalsConfig(intervalsConfig);
-
     int led_pin = 1 << LED_PIN;
     os_gpio_request(led_pin);
     os_gpio_set_output(led_pin);
