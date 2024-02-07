@@ -62,32 +62,20 @@ namespace DeviceLayer {
 
 CHIP_ERROR ConnectivityManagerImpl::_GetSEDIntervalsConfig(SEDIntervalsConfig & intervalsConfig)
 {
-    intervalsConfig = SEDConfig;
-
-    return CHIP_NO_ERROR;
+    /*SED Feature is currently not supported */
+    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 }
 
 CHIP_ERROR ConnectivityManagerImpl::_SetSEDIntervalsConfig(const SEDIntervalsConfig & intervalsConfig)
 {
-    SEDConfig = intervalsConfig;
-
-    return CHIP_NO_ERROR;
+    /*SED Feature is currently not supported */
+    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 }
 
 CHIP_ERROR ConnectivityManagerImpl::_RequestSEDActiveMode(bool onOff, bool delayIdle)
 {
-    CHIP_ERROR err = CHIP_NO_ERROR;
-
-    if(onOff == true)
-    {
-        err = TalariaUtils::RequestSEDActive(SEDConfig.ActiveIntervalMS.count(), 20);
-    }
-    else
-    {
-        err = TalariaUtils::RequestSEDActive(SEDConfig.IdleIntervalMS.count(), 20);
-    }
-
-    return err;
+    /*SED Feature is currently not supported */
+    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 }
 
 ConnectivityManager::WiFiStationMode ConnectivityManagerImpl::_GetWiFiStationMode(void)

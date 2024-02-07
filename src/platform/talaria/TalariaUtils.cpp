@@ -118,6 +118,8 @@ CHIP_ERROR TalariaUtils::IsStationConnected(bool & connected)
 
 CHIP_ERROR TalariaUtils::RequestSEDActive(uint32_t listern_interval, uint32_t traffic_tmo)
 {
+    /* RequestSEDActive can be called to set listen_interval and traffic_tmo in
+       wcm power management configuration */
     if(wcm_handle == nullptr)
     {
         return CHIP_ERROR_NOT_CONNECTED;
