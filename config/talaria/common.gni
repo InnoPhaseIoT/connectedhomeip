@@ -92,6 +92,7 @@ declare_args() {
       # "${chip_root}/examples/platform/talaria",
       "${chip_root}/config/talaria",
       # "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include",
+      "${chip_root}/third_party/talaria/repo/freertos_sdk/components/fota/inc",
     ]
 
   default_configs_abi = [

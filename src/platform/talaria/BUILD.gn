@@ -15,6 +15,7 @@
 import("//build_overrides/build.gni")
 import("//build_overrides/chip.gni")
 import("//build_overrides/nlassert.gni")
+import("//out/test/args.gn")
 
 import("${build_root}/config/linux/pkg_config.gni")
 
@@ -40,6 +41,8 @@ if (chip_mdns == "platform") {
 
 declare_args() {
   # chip_project_config_include_dirs += ""
+  chip_enable_secureboot = false
+  chip_enable_ota_storage_on_host = flase
 }
 
 config("system_config") {
@@ -114,7 +117,9 @@ static_library("talaria") {
   cflags += [ "-fdiagnostics-color" ]
 
   defines +=
-      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>" ]
+      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>",
+        "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
+        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}, ]
 
 
   if (!chip_use_external_logging) {

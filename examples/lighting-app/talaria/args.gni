@@ -21,6 +21,7 @@ import("${chip_root}/config/talaria/common.gni")
 
 declare_args() {
   is_debug = false
+  chip_enable_ota_requestor = true
 
   default_configs_pie = [ "${chip_root}/config/talaria/:ldflags" ]
 }
