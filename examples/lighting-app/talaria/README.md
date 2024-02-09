@@ -62,7 +62,7 @@ The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_T
 - Connect T2 EVB with the system
 - Run the T2DownloadTool_Linux tool with sudo access from FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/ and select following fields in the GUI tool
 - Boot Target: Select the appropriate EVK from the drop-down
-- ELF Input: Load the out/test/lighting-app.elf by clicking on Select ELF File
+- ELF Input: Load the out/test/on-off-light-app.elf by clicking on Select ELF File
 - Boot Arguments: Pass the following boot arguments
 
           matter.discriminator=1122 matter.commissioning.flow_type=0 suspend=1 matter.factory_reset=0

@@ -13,36 +13,32 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("${chip_root}/src/app/chip_data_model.gni")
 
-executable("on-off-light-app.elf") {
+config("config") {
+  include_dirs = [ "include" ]
+}
+
+chip_data_model("lighting-common") {
+  zap_file = "lighting-app.zap"
+
+  zap_pregenerated_dir = "${chip_root}/zzz_generated/lighting-app/zap-generated"
+  is_server = true
+}
+
+source_set("color-format") {
+  public_configs = [ ":config" ]
   sources = [
-    "main.cpp",
-    "test.cpp",
+    "include/ColorFormat.h",
+    "src/ColorFormat.cpp",
   ]
-
-  deps = [
-    "${chip_root}/examples/lighting-app/talaria/data-model:lighting-common",
-    "${chip_root}/src/lib",
-    "${chip_root}/examples/platform/talaria/common"
-  ]
-
-  include_dirs = [ 
-    "${chip_root}/examples/platform/talaria",
-  ]
-
-  output_dir = root_out_dir
-  # output_name = "application.elf"
-
-  ldflags = [  ]
-  lib_dirs = [  ]
-  libs = [  ]
-
 }
 
-group("talaria") {
-  deps = [ ":on-off-light-app.elf" ]
-}
-
-group("default") {
-  deps = [ ":talaria" ]
+source_set("lighting-manager") {
+  deps = [ "${chip_root}/src/lib" ]
+  public_configs = [ ":config" ]
+  sources = [
+    "include/LightingManager.h",
+    "src/LightingManager.cpp",
+  ]
 }
