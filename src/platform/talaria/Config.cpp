@@ -34,6 +34,16 @@
 #include <lib/support/logging/CHIPLogging.h>
 #include <platform/talaria/TalariaUtils.h>
 
+#ifdef __cplusplus
+extern "C" {
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fs_utils.h>
+}
+#endif /* _cplusplus */
+
+#define DATA_PARTITION_PATH "/data"
+
 namespace chip {
 namespace DeviceLayer {
 namespace Internal {
@@ -98,113 +108,228 @@ const TalariaConfig::Key TalariaConfig::kConfigKey_HolidaySchedules   = { kConfi
 const TalariaConfig::Key TalariaConfig::kCounterKey_RebootCount           = { kConfigNamespace_ChipCounters, "reboot-count" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_UpTime                = { kConfigNamespace_ChipCounters, "up-time" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_TotalOperationalHours = { kConfigNamespace_ChipCounters, "total-hours" };
-#if 0
-const char * TalariaConfig::GetPartitionLabelByNamespace(const char * ns)
+const TalariaConfig::Key TalariaConfig::kCounterKey_BootReason            = { kConfigNamespace_ChipCounters, "boot-reason" };
+
+
+CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
 {
-    if (strcmp(ns, kConfigNamespace_ChipFactory) == 0)
-    {
-        return CHIP_DEVICE_CONFIG_CHIP_FACTORY_NAMESPACE_PARTITION;
-    }
-    else if (strcmp(ns, kConfigNamespace_ChipConfig) == 0)
-    {
-        return CHIP_DEVICE_CONFIG_CHIP_CONFIG_NAMESPACE_PARTITION;
-    }
-    else if (strcmp(ns, kConfigNamespace_ChipCounters) == 0)
-    {
-        return CHIP_DEVICE_CONFIG_CHIP_COUNTERS_NAMESPACE_PARTITION;
+    char path[100];
+    sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
+    ChipLogError(DeviceLayer, "Reading path: %s", path);
+    if (utils_is_file_present(path) == 0) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
 
-    return NVS_DEFAULT_PART_NAME;
+    *read_data = utils_file_get(path, read_len);
+    return CHIP_NO_ERROR;
 }
-#endif
+
+CHIP_ERROR TalariaConfig::WriteToFS(Key key, const void * data, size_t data_len)
+{
+    char path[100];
+    int ret;
+    struct stat st = {0};
+
+    /* If the namespace directory isn't created then create */
+    sprintf(path, "%s/%s", DATA_PARTITION_PATH, key.Namespace);
+    if (stat(path, &st) == -1) {
+        mkdir(path, 0666);
+    }
+
+    sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
+    ChipLogError(DeviceLayer, "Writing path: %s", path);
+
+    ret = utils_file_store(path, data, data_len);
+    if (ret < 0) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR TalariaConfig::ClearConfigFromFS(Key key)
+{
+    char path[100];
+    int ret;
+    FILE *fp;
+    sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
+    ChipLogError(DeviceLayer, "Erasing path: %s", path);
+
+    if ((fp = fopen(path, "r")) != NULL)
+	{
+		fclose(fp);
+		ret = unlink(path);
+	}
+    return CHIP_NO_ERROR;
+}
+
+bool TalariaConfig::ConfigExistsInFS(Key key)
+{
+    char path[100];
+    int ret;
+    FILE *fp;
+    sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
+    ChipLogError(DeviceLayer, "Check path: %s exists?", path);
+
+    if (utils_is_file_present(path) == 0) {
+        return false;
+    }
+    return true;
+}
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, bool & val)
 {
-    val = true;
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+
+    val = atoi(read_data)? true: false;
+    free(read_data);
+
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint8_t & val)
+{
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+    val = atoi(read_data);
+    free(read_data);
+
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint16_t & val)
+{
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+    val = atoi(read_data);
+    free(read_data);
 
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint32_t & val)
 {
-    if (key == TalariaConfig::kConfigKey_SetupDiscriminator) {
-        return TalariaUtils::BootArgsGetSetupDiscriminator(val);
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
+    val = atoi(read_data);
+    free(read_data);
 
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, uint64_t & val)
 {
-    val = 2345; // 0x929
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
 
+    val = atol(read_data);
+    free(read_data);
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValueStr(Key key, char * buf, size_t bufSize, size_t & outLen)
 {
-    memcpy(buf, bufSize, "A");
-    outLen = bufSize;
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+
+    memcpy(buf, read_data, std::min(read_len, (int) bufSize));
+    free(read_data);
+    outLen = std::min(read_len, (int) bufSize);
 
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValueBin(Key key, uint8_t * buf, size_t bufSize, size_t & outLen)
 {
-    memcpy(buf, bufSize, 0x01);
-    outLen = bufSize;
+    char *read_data;
+    int read_len;
+    if ((ReadFromFS(key, &read_data, &read_len) ==
+            CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND) ||
+            (read_len <= 0)) {
+        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+    }
+
+    /* For binary data remove EOF from the end */
+    memcpy(buf, read_data, std::min(read_len - 1, (int) bufSize));
+    free(read_data);
+    outLen = std::min(read_len - 1, (int) bufSize);
 
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, bool val)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, &val, sizeof(val));
+}
+
+CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint16_t val)
+{
+    return WriteToFS(key, &val, sizeof(val));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint32_t val)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, &val, sizeof(val));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint64_t val)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, &val, sizeof(val));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValueStr(Key key, const char * str)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, str, strlen(str));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValueStr(Key key, const char * str, size_t strLen)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, str, strLen);
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValueBin(Key key, const uint8_t * data, size_t dataLen)
 {
-    return CHIP_NO_ERROR;
+    return WriteToFS(key, data, dataLen);
 }
 
 CHIP_ERROR TalariaConfig::ClearConfigValue(Key key)
 {
-    return CHIP_NO_ERROR;
+    return ClearConfigFromFS(key);
 }
 
 bool TalariaConfig::ConfigValueExists(Key key)
 {
-    return true;
-}
-
-CHIP_ERROR TalariaConfig::EnsureNamespace(const char * ns)
-{
-    return CHIP_NO_ERROR;
-}
-
-CHIP_ERROR TalariaConfig::ClearNamespace(const char * ns)
-{
-    return CHIP_NO_ERROR;
+    return ConfigExistsInFS(key);
 }
 
 // void TalariaConfig::RunConfigUnitTest() {}

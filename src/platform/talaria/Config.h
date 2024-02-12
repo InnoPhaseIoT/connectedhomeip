@@ -104,9 +104,12 @@ public:
     static const Key kCounterKey_RebootCount;
     static const Key kCounterKey_UpTime;
     static const Key kCounterKey_TotalOperationalHours;
+    static const Key kCounterKey_BootReason;
 
     // Config value accessors.
     static CHIP_ERROR ReadConfigValue(Key key, bool & val);
+    static CHIP_ERROR ReadConfigValue(Key key, uint8_t & val);
+    static CHIP_ERROR ReadConfigValue(Key key, uint16_t & val);
     static CHIP_ERROR ReadConfigValue(Key key, uint32_t & val);
     static CHIP_ERROR ReadConfigValue(Key key, uint64_t & val);
 
@@ -115,6 +118,7 @@ public:
     static CHIP_ERROR ReadConfigValueBin(Key key, uint8_t * buf, size_t bufSize, size_t & outLen);
 
     static CHIP_ERROR WriteConfigValue(Key key, bool val);
+    static CHIP_ERROR WriteConfigValue(Key key, uint16_t val);
     static CHIP_ERROR WriteConfigValue(Key key, uint32_t val);
     static CHIP_ERROR WriteConfigValue(Key key, uint64_t val);
     static CHIP_ERROR WriteConfigValueStr(Key key, const char * str);
@@ -123,14 +127,14 @@ public:
     static CHIP_ERROR ClearConfigValue(Key key);
     static bool ConfigValueExists(Key key);
 
-    // NVS Namespace helper functions.
-    static CHIP_ERROR EnsureNamespace(const char * ns);
-    static CHIP_ERROR ClearNamespace(const char * ns);
-
     // static void RunConfigUnitTest(void);
 
 private:
-    // static const char * GetPartitionLabelByNamespace(const char * ns);
+    static CHIP_ERROR ReadFromFS(Key key, char ** read_data, int *read_len);
+    static CHIP_ERROR WriteToFS(Key key, const void * data, size_t data_len);
+    static CHIP_ERROR ClearConfigFromFS(Key key);
+    static bool ConfigExistsInFS(Key key);
+
 };
 
 struct TalariaConfig::Key

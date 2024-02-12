@@ -38,6 +38,12 @@
 
 #include <algorithm>
 
+#ifdef __cplusplus
+extern "C" {
+#include <kernel/hwaddr.h>
+}
+#endif /* __cplusplus */
+
 namespace chip {
 namespace DeviceLayer {
 
@@ -118,16 +124,8 @@ CHIP_ERROR ConfigurationManagerImpl::GetSecondaryPairingInstruction(char * buf, 
 
 CHIP_ERROR ConfigurationManagerImpl::GetPrimaryWiFiMACAddress(uint8_t * buf)
 {
-    struct ifaddrs * addresses = nullptr;
-    struct sockaddr_ll * mac   = nullptr;
-    CHIP_ERROR error           = CHIP_NO_ERROR;
-/*/*MJ-merge
-    uint8_t hard_code_buf_esp32[] = {0xac,0x67,0xb2,0x53,0x8d,0xa8};
-    uint8_t hard_code_t2_mac[] = {0xe0, 0x69, 0x3a, 0x00, 0x01, 0x01};
-    memcpy(buf, hard_code_t2_mac, sizeof(hard_code_t2_mac));
-*/
-exit:
-    return error;
+    os_hwaddr_get(HWADDR_SCOPE_WIFI, buf);
+    return CHIP_NO_ERROR;
 }
 
 bool ConfigurationManagerImpl::CanFactoryReset()
@@ -143,55 +141,25 @@ void ConfigurationManagerImpl::InitiateFactoryReset()
 
 CHIP_ERROR ConfigurationManagerImpl::ReadPersistedStorageValue(::chip::Platform::PersistedStorage::Key key, uint32_t & value)
 {
-#if 0 /*Mj-merge*/
     TalariaConfig::Key configKey{ TalariaConfig::kConfigNamespace_ChipCounters, key };
-
-    CHIP_ERROR err = ReadConfigValue(configKey, value);
-    if (err == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
-    {
-        err = CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
-    }
-    return err;
-#endif
-    // PosixConfig::Key configKey{ PosixConfig::kConfigNamespace_ChipCounters, key };
-
-    // CHIP_ERROR err = ReadConfigValue(configKey, value);
-    // if (err == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
-    // {
-    //     err = CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
-    // }
-    // return err;
-    return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(configKey, value);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WritePersistedStorageValue(::chip::Platform::PersistedStorage::Key key, uint32_t value)
 {
-    // PosixConfig::Key configKey{ PosixConfig::kConfigNamespace_ChipCounters, key };
-    ///*MJ-merge*/TalariaConfig::Key configKey{ TalariaConfig::kConfigNamespace_ChipCounters, key };
-    // return WriteConfigValue(key, value);
-    return CHIP_NO_ERROR;
+    TalariaConfig::Key configKey{ TalariaConfig::kConfigNamespace_ChipCounters, key};
+    return TalariaConfig::WriteConfigValue(configKey, value);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, bool & val)
 {
-    // return PosixConfig::ReadConfigValue(key, val);
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValue(key, val);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(key, val);
 }
 
-///*MJ-merge*/#if 0
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint16_t & val)
 {
-    // return PosixConfig::ReadConfigValue(key, val);
-    // val = 1234;
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValue(key, val);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(key, val);
 }
-///*MJ-merge*/#endif
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint32_t & val)
 {
@@ -200,85 +168,58 @@ CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint32_t & val)
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValue(Key key, uint64_t & val)
 {
-    // return PosixConfig::ReadConfigValue(key, val);
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValue(key, val);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(key, val);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValueStr(Key key, char * buf, size_t bufSize, size_t & outLen)
 {
-    // return PosixConfig::ReadConfigValueStr(key, buf, bufSize, outLen);
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValueStr(key, buf, bufSize, outLen);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValueStr(key, buf, bufSize, outLen);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::ReadConfigValueBin(Key key, uint8_t * buf, size_t bufSize, size_t & outLen)
 {
-    // return PosixConfig::ReadConfigValueBin(key, buf, bufSize, outLen);
-    // return CHIP_NO_ERROR;
-    return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
-    ///*MJ-merge*/return TalariaConfig::ReadConfigValueBin(key, buf, bufSize, outLen);
-    ///*MJ-merge*/return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValueBin(key, buf, bufSize, outLen);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValue(Key key, bool val)
 {
-    // return PosixConfig::WriteConfigValue(key, val);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValue(key, val);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValue(key, val);
 }
 
-//#if 0 /*MJ-merge*/
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValue(Key key, uint16_t val)
 {
-    // return PosixConfig::WriteConfigValue(key, val);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValue(key, val);
 }
-//#endif
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValue(Key key, uint32_t val)
 {
-    // return PosixConfig::WriteConfigValue(key, val);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValue(key, val);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValue(key, val);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValue(Key key, uint64_t val)
 {
-    // return PosixConfig::WriteConfigValue(key, val);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValue(key, val);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValue(key, val);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValueStr(Key key, const char * str)
 {
-    // return PosixConfig::WriteConfigValueStr(key, str);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValueStr(key, str);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValueStr(key, str);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValueStr(Key key, const char * str, size_t strLen)
 {
-    // return PosixConfig::WriteConfigValueStr(key, str, strLen);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValueStr(key, str, strLen);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValueStr(key, str, strLen);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::WriteConfigValueBin(Key key, const uint8_t * data, size_t dataLen)
 {
-    // return PosixConfig::WriteConfigValueBin(key, data, dataLen);
-    ///*MJ-merge*/return TalariaConfig::WriteConfigValueBin(key, data, dataLen);
-    return CHIP_NO_ERROR;
+    return TalariaConfig::WriteConfigValueBin(key, data, dataLen);
 }
 
 void ConfigurationManagerImpl::RunConfigUnitTest()
 {
     // PosixConfig::RunConfigUnitTest();
-    return CHIP_NO_ERROR;
+    //return CHIP_NO_ERROR;
 }
 
 void ConfigurationManagerImpl::DoFactoryReset(intptr_t arg)
@@ -295,89 +236,53 @@ void ConfigurationManagerImpl::DoFactoryReset(intptr_t arg)
 
 CHIP_ERROR ConfigurationManagerImpl::StoreVendorId(uint16_t vendorId)
 {
-    // return WriteConfigValue(PosixConfig::kConfigKey_VendorId, vendorId);
-    return CHIP_NO_ERROR;
+    return WriteConfigValue(TalariaConfig::kConfigKey_VendorId, vendorId);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::StoreProductId(uint16_t productId)
 {
-    // return WriteConfigValue(PosixConfig::kConfigKey_ProductId, productId);
-    return CHIP_NO_ERROR;
+    return WriteConfigValue(TalariaConfig::kConfigKey_ProductId, productId);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetRebootCount(uint32_t & rebootCount)
 {
-    // return ReadConfigValue(PosixConfig::kCounterKey_RebootCount, rebootCount);
-    // /*MJ-merge*/return ReadConfigValue(TalariaConfig::kCounterKey_RebootCount, rebootCount);
-    return CHIP_NO_ERROR;
+    return ReadConfigValue(TalariaConfig::kCounterKey_RebootCount, rebootCount);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::StoreRebootCount(uint32_t rebootCount)
 {
-    // return WriteConfigValue(PosixConfig::kCounterKey_RebootCount, rebootCount);
-    return CHIP_NO_ERROR;
+    return WriteConfigValue(TalariaConfig::kCounterKey_RebootCount, rebootCount);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetTotalOperationalHours(uint32_t & totalOperationalHours)
 {
-    // return ReadConfigValue(PosixConfig::kCounterKey_TotalOperationalHours, totalOperationalHours);
-    // /*MJ-merge*/ return ReadConfigValue(TalariaConfig::kCounterKey_TotalOperationalHours, totalOperationalHours);
-    return CHIP_NO_ERROR;
+    return ReadConfigValue(TalariaConfig::kCounterKey_TotalOperationalHours, totalOperationalHours);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::StoreTotalOperationalHours(uint32_t totalOperationalHours)
 {
-    // return WriteConfigValue(PosixConfig::kCounterKey_TotalOperationalHours, totalOperationalHours);
-    return CHIP_NO_ERROR;
+    return WriteConfigValue(TalariaConfig::kCounterKey_TotalOperationalHours, totalOperationalHours);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetBootReason(uint32_t & bootReason)
 {
-    // return ReadConfigValue(PosixConfig::kCounterKey_BootReason, bootReason);
-    return CHIP_NO_ERROR;
+    return ReadConfigValue(TalariaConfig::kCounterKey_BootReason, bootReason);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::StoreBootReason(uint32_t bootReason)
 {
-    // return WriteConfigValue(PosixConfig::kCounterKey_BootReason, bootReason);
-    return CHIP_NO_ERROR;
+    return WriteConfigValue(TalariaConfig::kCounterKey_BootReason, bootReason);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetRegulatoryLocation(uint8_t & location)
 {
-    location = 0;
-
-    // if (CHIP_NO_ERROR != ReadConfigValue(PosixConfig::kConfigKey_RegulatoryLocation, value))
-    // {
-    //     ReturnErrorOnFailure(GetLocationCapability(location));
-
-    //     if (CHIP_NO_ERROR != StoreRegulatoryLocation(location))
-    //     {
-    //         ChipLogError(DeviceLayer, "Failed to store RegulatoryLocation");
-    //     }
-    // }
-    // else
-    // {
-    //     location = static_cast<uint8_t>(value);
-    // }
-
-    return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_RegulatoryLocation, location);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetLocationCapability(uint8_t & location)
 {
-    location = 0;
 
-    // CHIP_ERROR err = ReadConfigValue(PosixConfig::kConfigKey_LocationCapability, value);
-
-    // if (err == CHIP_NO_ERROR)
-    // {
-    //     VerifyOrReturnError(value <= UINT8_MAX, CHIP_ERROR_INVALID_INTEGER_VALUE);
-    //     location = static_cast<uint8_t>(value);
-    // }
-
-    // return err;
-    return CHIP_NO_ERROR;
+    return TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_LocationCapability, location);
 }
 
 ConfigurationManager & ConfigurationMgrImpl()
