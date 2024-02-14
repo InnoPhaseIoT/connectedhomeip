@@ -115,7 +115,7 @@ CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
 {
     char path[100];
     sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
-    ChipLogError(DeviceLayer, "Reading path: %s", path);
+    ChipLogDetail(DeviceLayer, "Reading path: %s", path);
     if (utils_is_file_present(path) == 0) {
         return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
@@ -137,10 +137,11 @@ CHIP_ERROR TalariaConfig::WriteToFS(Key key, const void * data, size_t data_len)
     }
 
     sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
-    ChipLogError(DeviceLayer, "Writing path: %s", path);
+    ChipLogDetail(DeviceLayer, "Writing path: %s", path, data_len);
 
     ret = utils_file_store(path, data, data_len);
     if (ret < 0) {
+        ChipLogError(DeviceLayer, "Error writing to FS");
         return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
     return CHIP_NO_ERROR;
@@ -152,11 +153,10 @@ CHIP_ERROR TalariaConfig::ClearConfigFromFS(Key key)
     int ret;
     FILE *fp;
     sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
-    ChipLogError(DeviceLayer, "Erasing path: %s", path);
+    ChipLogDetail(DeviceLayer, "Erasing path: %s", path);
 
-    if ((fp = fopen(path, "r")) != NULL)
+    if (utils_is_file_present(path) != 0)
 	{
-		fclose(fp);
 		ret = unlink(path);
 	}
     return CHIP_NO_ERROR;
@@ -168,7 +168,7 @@ bool TalariaConfig::ConfigExistsInFS(Key key)
     int ret;
     FILE *fp;
     sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
-    ChipLogError(DeviceLayer, "Check path: %s exists?", path);
+    ChipLogDetail(DeviceLayer, "Check path: %s exists?", path);
 
     if (utils_is_file_present(path) == 0) {
         return false;
@@ -289,22 +289,30 @@ CHIP_ERROR TalariaConfig::ReadConfigValueBin(Key key, uint8_t * buf, size_t bufS
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, bool val)
 {
-    return WriteToFS(key, &val, sizeof(val));
+    char str[16];
+    sprintf(str, "%d", val);
+    return WriteToFS(key, str, strlen(str));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint16_t val)
 {
-    return WriteToFS(key, &val, sizeof(val));
+    char str[16];
+    sprintf(str, "%u", val);
+    return WriteToFS(key, str, strlen(str));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint32_t val)
 {
-    return WriteToFS(key, &val, sizeof(val));
+    char str[16];
+    sprintf(str, "%u", val);
+    return WriteToFS(key, str, strlen(str));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValue(Key key, uint64_t val)
 {
-    return WriteToFS(key, &val, sizeof(val));
+    char str[32];
+    sprintf(str, "%llu", val);
+    return WriteToFS(key, str, strlen(str));
 }
 
 CHIP_ERROR TalariaConfig::WriteConfigValueStr(Key key, const char * str)

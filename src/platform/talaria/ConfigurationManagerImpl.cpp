@@ -58,7 +58,17 @@ ConfigurationManagerImpl & ConfigurationManagerImpl::GetDefaultInstance()
 CHIP_ERROR ConfigurationManagerImpl::Init()
 {
     CHIP_ERROR err;
+    uint32_t reboot_count;
+    uint32_t tmp;
     err = Internal::GenericConfigurationManagerImpl<TalariaConfig>::Init();
+
+    /* Update the Reboot Count value */
+    if (GetRebootCount(reboot_count) == CHIP_NO_ERROR) {
+        StoreRebootCount(reboot_count + 1);
+    } else {
+        reboot_count = 0;
+        StoreRebootCount(reboot_count + 1);
+    }
     SuccessOrExit(err);
 
 exit:
