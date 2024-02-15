@@ -32,26 +32,19 @@ namespace DeviceLayer {
 namespace Internal {
 
 /**
- * Provides functions and definitions for accessing device configuration information on the ESP32.
- *
- * This class is designed to be mixed-in to concrete implementation classes as a means to
- * provide access to configuration information to generic base classes.
+ * Provides functions and definitions for accessing device configuration information.
  */
 class TalariaConfig
 {
 public:
     struct Key;
-    // class KeyAllocator;
 
-    // Maximum length of an NVS key name, as specified in the ESP-IDF documentation.
     static constexpr size_t kMaxConfigKeyNameLength = 15;
 
-    // NVS namespaces used to store device configuration information.
     static const char kConfigNamespace_ChipFactory[];
     static const char kConfigNamespace_ChipConfig[];
     static const char kConfigNamespace_ChipCounters[];
 
-    // Key definitions for well-known keys.
     static const Key kConfigKey_SerialNum;
     static const Key kConfigKey_MfrDeviceId;
     static const Key kConfigKey_MfrDeviceCert;
@@ -81,7 +74,6 @@ public:
     static const Key kConfigKey_RotatingDevIdUniqueId;
     static const Key kConfigKey_LocationCapability;
 
-    // CHIP Config keys
     static const Key kConfigKey_ServiceConfig;
     static const Key kConfigKey_PairedAccountId;
     static const Key kConfigKey_ServiceId;
@@ -160,64 +152,6 @@ inline bool TalariaConfig::Key::operator==(const Key & other) const
 {
     return strcmp(Namespace, other.Namespace) == 0 && strcmp(Name, other.Name) == 0;
 }
-
-// class ESP32Config::KeyAllocator
-// {
-// public:
-//     static CHIP_ERROR Locale(char * key, size_t size, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "locale/%x", index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR FixedLabelCount(char * key, size_t size, uint16_t endpoint)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "fl-sz/%x", endpoint) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR FixedLabelKey(char * key, size_t size, uint16_t endpoint, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "fl-k/%x/%x", endpoint, index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR FixedLabelValue(char * key, size_t size, uint16_t endpoint, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "fl-v/%x/%x", endpoint, index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-
-//     // Supported modes
-
-//     static CHIP_ERROR SupportedModesCount(char * key, size_t size, uint16_t endpoint)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "sm-sz/%x", endpoint) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR SupportedModesLabel(char * key, size_t size, uint16_t endpoint, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "sm-label/%x/%x", endpoint, index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR SupportedModesValue(char * key, size_t size, uint16_t endpoint, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "sm-mode/%x/%x", endpoint, index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR SemanticTagsCount(char * key, size_t size, uint16_t endpoint, uint16_t index)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "sm-st-sz/%x/%x", endpoint, index) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR SemanticTagValue(char * key, size_t size, uint16_t endpoint, uint16_t index, uint16_t ind)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "st-v/%x/%x/%x", endpoint, index, ind) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-//     static CHIP_ERROR SemanticTagMfgCode(char * key, size_t size, uint16_t endpoint, uint16_t index, uint16_t ind)
-//     {
-//         VerifyOrReturnError(key, CHIP_ERROR_INVALID_ARGUMENT);
-//         return snprintf(key, size, "st-mfg/%x/%x/%x", endpoint, index, ind) > 0 ? CHIP_NO_ERROR : CHIP_ERROR_INTERNAL;
-//     }
-// };
 
 } // namespace Internal
 } // namespace DeviceLayer

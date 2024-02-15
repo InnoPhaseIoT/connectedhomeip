@@ -91,7 +91,7 @@ struct GDBusWpaSupplicant
 #endif
 
 /**
- * Concrete implementation of the ConnectivityManager singleton object for Linux platforms.
+ * Concrete implementation of the ConnectivityManager singleton object for Talaria platforms.
  */
 class ConnectivityManagerImpl final : public ConnectivityManager,
                                       public Internal::GenericConnectivityManagerImpl<ConnectivityManagerImpl>,
@@ -106,8 +106,6 @@ class ConnectivityManagerImpl final : public ConnectivityManager,
     // ConnectivityManager::WiFiStationMode mWiFiStationMode;
 
 public:
-    // const char * GetEthernetIfName() { return (mEthIfName[0] == '\0') ? nullptr : mEthIfName; }
-
     static const char * GetWiFiIfName() { return (sWiFiIfName[0] == '\0') ? nullptr : sWiFiIfName; }
     void wifi_connect();
     void wifi_test();
@@ -175,8 +173,6 @@ private:
 
     // ===== Private members reserved for use by this class only.
 
-    // char mEthIfName[50]; //[IFNAMSIZ];
-
     System::Clock::Timestamp mLastStationConnectFailTime;
     ConnectivityManager::WiFiStationMode mWiFiStationMode;
     ConnectivityManager::WiFiStationState mWiFiStationState;
@@ -187,8 +183,6 @@ private:
 
     static uint8_t sInterestedSSID[Internal::kMaxWiFiSSIDLength];
     static uint8_t sInterestedSSIDLen;
-    // static NetworkCommissioning::WiFiDriver::ScanCallback * mpScanCallback;
-    // static NetworkCommissioning::Internal::WirelessDriver::ConnectCallback * mpConnectCallback;
 
 };
 
@@ -207,7 +201,7 @@ inline ConnectivityManager & ConnectivityMgr()
  * Returns the platform-specific implementation of the ConnectivityManager singleton object.
  *
  * chip applications can use this to gain access to features of the ConnectivityManager
- * that are specific to the ESP32 platform.
+ * that are specific to the Talaria platform.
  */
 inline ConnectivityManagerImpl & ConnectivityMgrImpl()
 {

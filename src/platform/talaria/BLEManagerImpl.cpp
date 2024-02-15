@@ -153,10 +153,6 @@ void BLEManagerImpl::HandleFastAdvertisementTimer()
 
     if (currentTimestamp - mAdvertiseStartTime >= kFastAdvertiseTimeout)
     {
-        /* TODO: This needs to be enabled for power saving implementation */
-        // mFlags.Clear(Flags::kFastAdvertisingEnabled);
-        // mFlags.Set(Flags::kAdvertisingRefreshNeeded);
-        // PlatformMgr().ScheduleWork(DriveBLEState, 0);
     }
 }
 
@@ -638,7 +634,6 @@ void BLEManagerImpl::authenticate_cb(uint8_t handle, bt_smp_error_t result)
 
 void subscribe_callback(uint8_t bearer, uint16_t handle, uint8_t length, uint8_t * data)
 {
-    /* TODO: Yet to implement */
     for (int i = 0; i < length; i++)
     {
         os_printf("0x%2x ", data[i]);
@@ -710,17 +705,9 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
     extended_adv.conn_len    = 251; /* conn_len: Default is 27 */
     bt_gap_cfg_ext_set(&extended_adv);
 
-    /* Set SMP Configuration */
-#if 0 /* TODO: Take from the boot args */
-    if(cfg->pass_key_enabled)
-        bt_smp_handle.io_cap = bt_smp_io_display_only;
-    else
-        bt_smp_handle.io_cap = bt_smp_io_no_input_no_output;
-#else
     /* Assumed the value as 0, as the value is specified 0 in the
        prov application's documentation */
     bt_smp_handle.io_cap = bt_smp_io_no_input_no_output;
-#endif
     bt_smp_handle.ops          = &smp_ops;
     bt_smp_handle.oob          = 0;
     bt_smp_handle.bondable     = 1;

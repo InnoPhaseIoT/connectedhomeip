@@ -22,54 +22,26 @@
  *          for Talaria platforms.
  */
 
-// #include <platform/internal/CHIPDeviceLayerInternal.h>
-
-// #include <errno.h>
-
-// #include <arpa/inet.h>
-// #include <dirent.h>
-// // #include <linux/netlink.h>
-// // #include <linux/rtnetlink.h>
-// #include <net/if.h>
-// #include <netinet/in.h>
-// #include <unistd.h>
-
-// #include <mutex>
-
-// #include <app-common/zap-generated/enums.h>
-// #include <app-common/zap-generated/ids/Events.h>
-// #include <lib/support/CHIPMem.h>
-// #include <lib/support/logging/CHIPLogging.h>
-// #include <platform/DeviceControlServer.h>
-// #include <platform/DeviceInstanceInfoProvider.h>
-// #include <platform/Linux/DeviceInstanceInfoProviderImpl.h>
-// #include <platform/Linux/DiagnosticDataProviderImpl.h>
-
 #include <platform/PlatformManager.h>
 
-// #include <platform/internal/GenericPlatformManagerImpl_POSIX.ipp>
 #include <platform/internal/GenericPlatformManagerImpl_FreeRTOS.ipp>
 
-// using namespace ::chip::app::Clusters;
 
 #ifdef __cplusplus
 extern "C" {
 #include <unistd.h>
+#include <utils.h>
 
 /* Ideally we should be including the header file but that's a manual
    process as of now, hence declaring required function here.
    Header file name: <components/utils.h> */
-int __attribute__((warn_unused_result)) utils_mount_rootfs(void);
+// int __attribute__((warn_unused_result)) utils_mount_rootfs(void);
 }
 #endif
 namespace chip {
 namespace DeviceLayer {
 
-// PlatformManagerImpl PlatformManagerImpl::sInstance;
 PlatformManagerImpl PlatformManagerImpl::sInstance;
-// namespace PlatformManagerImpl {
-
-// namespace {
 
 CHIP_ERROR PlatformManagerImpl::_InitChipStack()
 {
@@ -77,7 +49,7 @@ CHIP_ERROR PlatformManagerImpl::_InitChipStack()
     mStartTime = System::SystemClock().GetMonotonicTimestamp();
 
     // Make sure the LwIP core lock has been initialized
-    // ReturnErrorOnFailure(Internal::InitLwIPCoreLock()); // to be enabled later, unni *
+    // ReturnErrorOnFailure(Internal::InitLwIPCoreLock());
 
     // Call _InitChipStack() on the generic implementation base class to finish the initialization process.
     ChipLogDetail(DeviceLayer, "Mounting file system...");
@@ -99,7 +71,6 @@ void PlatformManagerImpl::_Shutdown()
     Internal::GenericPlatformManagerImpl_FreeRTOS<PlatformManagerImpl>::_Shutdown();
 }
 
-// }
-// } // namespace PlatformManagerImpl
+
 } // namespace DeviceLayer
 } // namespace chip

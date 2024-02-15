@@ -161,13 +161,7 @@ void InitServer(intptr_t context)
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
-// #if CONFIG_SEC_CERT_DAC_PROVIDER
-//     return &gSecureCertDACProvider;
-// #elif CONFIG_ENABLE_ESP32_FACTORY_DATA_PROVIDER
-//     return &sFactoryDataProvider;    
-// #else // EXAMPLE_DAC_PROVIDER
     return chip::Credentials::Examples::GetExampleDACProvider();
-// #endif
 }
 
 void app_test()

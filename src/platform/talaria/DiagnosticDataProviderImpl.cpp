@@ -61,43 +61,6 @@ InterfaceTypeEnum GetInterfaceType(const char * if_desc)
     return InterfaceTypeEnum::kUnspecified;
 }
 
-#if CHIP_DEVICE_CONFIG_ENABLE_WIFI || 1
-#if 0 /* Not implemented AP mode hence not declaring */
-app::Clusters::WiFiNetworkDiagnostics::SecurityTypeEnum MapAuthModeToSecurityType(wifi_auth_mode_t authmode)
-{
-    using app::Clusters::WiFiNetworkDiagnostics::SecurityTypeEnum;
-    switch (authmode)
-    {
-    case WIFI_AUTH_OPEN:
-        return SecurityTypeEnum::kNone;
-    case WIFI_AUTH_WEP:
-        return SecurityTypeEnum::kWep;
-    case WIFI_AUTH_WPA_PSK:
-        return SecurityTypeEnum::kWpa;
-    case WIFI_AUTH_WPA2_PSK:
-        return SecurityTypeEnum::kWpa2;
-    case WIFI_AUTH_WPA3_PSK:
-        return SecurityTypeEnum::kWpa3;
-    default:
-        return SecurityTypeEnum::kUnspecified;
-    }
-}
-
-app::Clusters::WiFiNetworkDiagnostics::WiFiVersionEnum GetWiFiVersionFromAPRecord(wifi_ap_record_t ap_info)
-{
-    using app::Clusters::WiFiNetworkDiagnostics::WiFiVersionEnum;
-    if (ap_info.phy_11n)
-        return WiFiVersionEnum::kN;
-    else if (ap_info.phy_11g)
-        return WiFiVersionEnum::kG;
-    else if (ap_info.phy_11b)
-        return WiFiVersionEnum::kB;
-    else
-        return WiFiVersionEnum::kUnknownEnumValue;
-}
-#endif
-#endif // CHIP_DEVICE_CONFIG_ENABLE_WIFI
-
 } // namespace
 
 namespace chip {

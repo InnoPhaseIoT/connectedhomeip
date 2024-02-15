@@ -33,21 +33,6 @@
     }
 #endif
 
-// #include <platform/internal/CHIPDeviceLayerInternal.h>
-// #include <system/SystemClock.h>
-
-// #include <lib/support/TimeUtils.h>
-// #include <lib/support/logging/CHIPLogging.h>
-
-// #include <chrono>
-// #include <errno.h>
-// #include <inttypes.h>
-// #include <sys/time.h>
-
-// #include <platform/internal/CHIPDeviceLayerInternal.h>
-
-// #include <lib/support/logging/CHIPLogging.h>
-// #include <platform/ESP32/SystemTimeSupport.h>
 
 namespace chip {
 namespace System {
