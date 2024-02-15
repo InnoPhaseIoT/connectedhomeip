@@ -34,18 +34,17 @@
 #include <lib/support/logging/CHIPLogging.h>
 // #include <platform/Linux/CHIPLinuxStorage.h>
 
-#define DATA_PART_KEY_STORAGE "/data/"
+#define DATA_PART_KEY_STORAGE "/data/kvs"
 
 #ifdef __cplusplus
 extern "C" {
 #include <dirent.h>
 #include <stdint.h>
 #include <unistd.h>
-
-/* Ideally we should be including the header file but that's a manual
-   process as of now, hence declaring required function here.
-   Header file name: <components/utils.h> */
-char * utils_file_get(const char * path, int * len);
+#include <utils.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fs_utils.h>
 }
 #endif
 
@@ -60,7 +59,7 @@ int replaceSlahWithUnderscore(const char * key, char * configfile)
 	}
 
 	memset(configfile, 0, sizeof(configfile));
-	strcat(configfile, DATA_PART_KEY_STORAGE);
+	sprintf(configfile, "%s/", DATA_PART_KEY_STORAGE);
 	char *key_place_ptr = configfile + strlen(configfile);
 	strcat(configfile, key);
 	for (uint8_t i = 0; i < strlen(key); i++)
@@ -78,7 +77,7 @@ KeyValueStoreManagerImpl KeyValueStoreManagerImpl::sInstance;
 CHIP_ERROR KeyValueStoreManagerImpl::_Put(const char * key, const void * value, size_t value_size)
 {
 	/*
-	 * Storing key-value pair into /data partition
+	 * Storing key-value pair into DATA_PART_KEY_STORAGE partition
 	 *
 	 *  Each Key are hash-value computed using function djb2_order_sensitive_hash
 	 *  This hash-value have been used for file creation and storing
@@ -88,6 +87,12 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Put(const char * key, const void * value, 
 	char configfile[100];
 	int retval = 0;
 	FILE *sample_file;
+    struct stat st = {0};
+
+    if (stat(DATA_PART_KEY_STORAGE, &st) == -1) {
+        mkdir(DATA_PART_KEY_STORAGE, 0666);
+    }
+
 	retval = replaceSlahWithUnderscore(key,configfile);
 	/* TODO: retval unhandled */
 	/* Write to file */
@@ -186,13 +191,9 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Delete(const char * key)
 
 CHIP_ERROR KeyValueStoreManagerImpl::EraseAll(void)
 {
-	/* TODO: This erases all the contents of DATA partition,
-	   if at all you are storing something else in the partition that will go.
-Resolution: create separate directory for matter in /data/ parition and use the same
-*/
 	DIR * dir;
 	struct dirent * entry;
-	const char * folderPath = "/data";
+	const char * folderPath = DATA_PART_KEY_STORAGE;
 	dir                     = opendir(folderPath);
 	if (dir == NULL)
 	{
@@ -206,8 +207,6 @@ Resolution: create separate directory for matter in /data/ parition and use the 
 		{
 			char filePath[100];
 			snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name);
-			/* TODO: remove()*/
-			/* Delete file */
 			/* Delete file */
 			if ((sample_file = fopen(filePath, "r")) != NULL)
 			{
@@ -215,7 +214,6 @@ Resolution: create separate directory for matter in /data/ parition and use the 
 				ret_code = unlink(filePath);
 				if(ret_code < 0)
 				{
-					// os_printf("Not Deleted  \n");
 					err_count++;
 					return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
 				}
