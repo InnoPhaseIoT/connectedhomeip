@@ -52,7 +52,7 @@ The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_T
 - Run following command to flash gordon.elf
 
           $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
-          $ sudo python3 script/boot.py --device /dev/ttyUSB2 ./apps/gordon.elf
+          $ sudo python3 script/boot.py --device /dev/ttyUSB2 --reset=evk42_bl ./apps/gordon.elf
 - Run the following command to update the partition table
 
           $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
