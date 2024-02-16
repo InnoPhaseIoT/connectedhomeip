@@ -84,7 +84,7 @@ config("ldflags") {
     "fs",
     "osal",
     "components",
-    "mbedtls",
+    "mbedtls_sha256_sw",
     "dragonfly",
     "bt_host",
     "bt_controller",
