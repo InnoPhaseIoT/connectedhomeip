@@ -60,7 +60,7 @@ public class MessagesManagerStub implements MessagesManager {
             responseOptions));
         return true;
     }
-    
+
   @Override
   public boolean cancelMessage(String messageId)
   {

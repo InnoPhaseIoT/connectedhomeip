@@ -31,6 +31,6 @@ public interface MessagesManager {
         int duration,
         String messageText,
         Vector<MessageResponseOption> responseOptions);
-    
+
     boolean cancelMessage(String messageId);
 }
