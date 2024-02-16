@@ -24,7 +24,6 @@
  *      activities within the CHIP stack. This is a singleton object.
  */
 
-#if 1
 
 #pragma once
 
@@ -123,5 +122,3 @@ private:
 
 } // namespace DeviceManager
 } // namespace chip
-
-#endif

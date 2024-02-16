@@ -20,7 +20,7 @@
 
 /**
  *    @file
- *          Utilities for interacting with the the ESP32 "NVS" key-value store.
+ *          Utilities for interacting with the the Talaria KVS file system
  */
 /* this file behaves like a config.h, comes first */
 #include <platform/internal/CHIPDeviceLayerInternal.h>

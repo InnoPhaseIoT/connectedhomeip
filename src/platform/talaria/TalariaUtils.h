@@ -87,16 +87,6 @@ public:
     static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt);
 };
 
-#define ReturnMappedErrorOnFailure(expr)                                                                                           \
-    do                                                                                                                             \
-    {                                                                                                                              \
-        esp_err_t __err = (expr);                                                                                                  \
-        if (__err != ESP_OK)                                                                                                       \
-        {                                                                                                                          \
-            return chip::DeviceLayer::Internal::TalariaUtils::MapError(__err);                                                     \
-        }                                                                                                                          \
-    } while (false)
-
 } // namespace Internal
 } // namespace DeviceLayer
 } // namespace chip

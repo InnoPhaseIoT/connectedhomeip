@@ -20,7 +20,7 @@
 
 /**
  *    @file
- *          Utilities for interacting with the the ESP32 "NVS" key-value store.
+ *          Utilities for interacting with the the Talaria KVS File system
  */
 
 #pragma once

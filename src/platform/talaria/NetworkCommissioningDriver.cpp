@@ -417,12 +417,6 @@ void TalariaWiFiDriver::ScanNetworks(ByteSpan ssid, WiFiDriver::ScanCallback * c
 CHIP_ERROR TalariaWiFiDriver::SetLastDisconnectReason(const ChipDeviceEvent * event)
 {
     /* TODO */
-#if 0 /* Commented as unused */
-    VerifyOrReturnError(event->Type == DeviceEventType::kESPSystemEvent && event->Platform.ESPSystemEvent.Base == WIFI_EVENT &&
-                            event->Platform.ESPSystemEvent.Id == WIFI_EVENT_STA_DISCONNECTED,
-                        CHIP_ERROR_INVALID_ARGUMENT);
-    mLastDisconnectedReason = event->Platform.ESPSystemEvent.Data.WiFiStaDisconnected.reason;
-#endif
     return CHIP_NO_ERROR;
 }
 

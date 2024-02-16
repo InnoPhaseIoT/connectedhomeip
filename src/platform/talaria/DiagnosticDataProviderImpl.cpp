@@ -18,7 +18,7 @@
 /**
  *    @file
  *          Provides an implementation of the DiagnosticDataProvider object
- *          for ESP32 platform.
+ *          for Talaria platform.
  */
 
 #ifdef __cplusplus
@@ -80,9 +80,7 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetCurrentHeapFree(uint64_t & currentHeap
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetCurrentHeapUsed(uint64_t & currentHeapUsed)
 {
-    /* TODO: Yet to implement for Talaria
-    currentHeapUsed = heap_caps_get_total_size(MALLOC_CAP_DEFAULT) - esp_get_free_heap_size();
-    */
+    /* TODO: Yet to implement for Talaria */
     return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 }
 

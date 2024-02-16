@@ -594,7 +594,7 @@ CHIP_ERROR BLEManagerImpl::ConfigureAdvertisingData(void)
     err = MapBLEError(bt_gap_set_adv_data(sizeof(advData), advData));
     if (err != CHIP_NO_ERROR)
     {
-        ChipLogError(DeviceLayer, "esp_ble_gap_config_adv_data_raw(<raw_data>) failed: %s", ErrorStr(err));
+        ChipLogError(DeviceLayer, "bt_gap_set_adv_data failed: %s", ErrorStr(err));
         ExitNow();
     }
 
