@@ -21,10 +21,6 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
 ## Boot arguments
 
--   `matter.discriminator=<value>`
-
-    Setting the discriminator value to identify the device. Unisigned short integer value. Default: 3840.
-
 -   `matter.commissioning.flow_type=<value>`
 
     0: Standard commissioning flow (Default)
@@ -61,14 +57,41 @@ Note: Run the flashing tool with sudo access
 field, click on Program.
 5. Once successfully programmed, press the Reset button on the board. This will display “Recovery
 App V 1.0” and “T2 Program Mode” on the OLED display.
-6. Generate the app.img and app.img.vm from the generated ELF using following command
+6. Generate the factory data image using following commands. To create the factory data follow the steps from FreeRTOS_sdk_3.x_master_matter/matter/README.md #'Generating Factory Configuraion Data' section.
+NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x_master_matter/data' directory.
+
+        $ cd ../
+        FreeRTOS_sdk_3.x_master_matter$ cp -r ./data/* ./root_fs/root/
+        FreeRTOS_sdk_3.x_master_matter$ python3 ./script/build_rootfs_generic.py
+
+        ### Expected output
+        root folder to generate root img is from  root_fs
+        Creating checksum files...
+        creating root img
+        /part.checksum
+        /boot.checksum
+        /boot.json
+        /part.json
+        /chip-factory/discriminator
+        /chip-factory/loc-capability
+        /chip-config/reg-location
+        /fota_config.checksum
+        /dirty
+        /chip-counters/total-hours
+        /chip-counters/up-time
+        /chip-counters/boot-reason
+        /chip-counters/boot-count
+        /fota_config.json
+        copied root.img to root_fs
+7. Generate the app.img and app.img.vm from the generated ELF using following command and program the same
 
          $ cd connectedhomeip/examples/lock-app/talaria/
-         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/boot.py --output ./out/app.img out/test/lock-app.elf hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000 matter.discriminator=1122 matter.commissioning.flow_type=1 matter.factory_reset=0
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/boot.py --output ./out/app.img out/test/lock-app.elf hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000 matter.commissioning.flow_type=1 matter.factory_reset=0
          $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/boot.py --device /dev/ttyACM0 <path to FreeRTOS_sdk_3.0_master_matter>/apps/gordon.elf
          $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 from_json <path to FreeRTOS_sdk_3.0_master_matter>/tools/partition_files/matter_demo_partition.json
          $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x1000 out/app.img
          $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x40000 out/app.img.vm
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x140000 <path to FreeRTOS_sdk_3.0_master_matter>/root_fs/root.img
 7. For information on programming the Host with matter_app.bin, refer section: Using the LPS GUI Flashing
 Tool, of the document: Application_for_Matter.pdf (matter_alpha_v1.0\hosted_matter\doc\application_notes\Application_for_Matter)
 

@@ -20,11 +20,6 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
           $ make clean
 
 ## Boot arguments
-
--   `matter.discriminator=<value>`
-
-    Setting the discriminator value to identify the device. Unisigned short integer value. Default: 3840.
-
 -   `matter.commissioning.flow_type=<value>`
 
     0: Standard commissioning flow (Default)
@@ -65,10 +60,16 @@ The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_T
 - ELF Input: Load the out/test/on-off-light-app.elf by clicking on Select ELF File
 - Boot Arguments: Pass the following boot arguments
 
-          matter.discriminator=1122 matter.commissioning.flow_type=0 suspend=1 matter.factory_reset=0
+          matter.commissioning.flow_type=0 suspend=1 matter.factory_reset=0
 - Programming: Prog RAM or Prog Flash as per requirement.
 **For more details on using the Download tool, refer to the document: UG_Download_Tool.pdf (path:
 FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).**
+
+#### Programming Factory Data
+- To generate the Factory data for application refer steps from FreeRTOS_sdk_3.0_master_matter/matter/README.md #'Generating Factory Configuraion Data'
+- Once the factory data is generated (Considered that it has been generated at FreeRTOS_sdk_3.0_master_matter/data), select the path to the FreeRTOS_sdk_3.0_master_matter/data directory in "Write Files from a Directory:" field
+- Click on "Write Files" Button and wait for the data to be written successfuly
+- Press the "Reset" button to see the effect of the same
 
 ## Commissioning and Controlling the device
 - Run generated chip-tool binary using following commands. Steps to build chip-tool is provided in FreeRTOS_sdk_3.0_master_matter/matter/README.md
