@@ -1,4 +1,4 @@
- /*
+/*
  *   Copyright (c) 2024 Project CHIP Authors
  *   All rights reserved.
  *
@@ -17,20 +17,21 @@
  */
 package com.matter.tv.server.tvapp;
 
-import java.util.Vector;
 import com.matter.tv.server.tvapp.Message.PriorityType;
+import java.util.Vector;
 
 public interface MessagesManager {
 
-    Message[] getMessages();
+  Message[] getMessages();
 
-    boolean presentMessages(String messageId,
-        PriorityType priority,
-        int messageControl,
-        long startTime,
-        int duration,
-        String messageText,
-        Vector<MessageResponseOption> responseOptions);
+  boolean presentMessages(
+      String messageId,
+      PriorityType priority,
+      int messageControl,
+      long startTime,
+      int duration,
+      String messageText,
+      Vector<MessageResponseOption> responseOptions);
 
-    boolean cancelMessage(String messageId);
+  boolean cancelMessage(String messageId);
 }

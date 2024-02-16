@@ -18,13 +18,11 @@
 package com.matter.tv.server.tvapp;
 
 public class MessageResponseOption {
-    public long id;
-    public String label;
+  public long id;
+  public String label;
 
-    public MessageResponseOption(
-        long id,
-        String label) {
-      this.id = id;
-      this.label = label;
-    }
+  public MessageResponseOption(long id, String label) {
+    this.id = id;
+    this.label = label;
   }
+}

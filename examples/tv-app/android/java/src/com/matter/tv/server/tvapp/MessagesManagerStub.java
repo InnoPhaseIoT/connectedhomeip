@@ -18,18 +18,17 @@
 package com.matter.tv.server.tvapp;
 
 import android.util.Log;
+import com.matter.tv.server.tvapp.Message.PriorityType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-
-import com.matter.tv.server.tvapp.Message.PriorityType;
 
 public class MessagesManagerStub implements MessagesManager {
   private static final String TAG = MessagesManagerStub.class.getSimpleName();
 
   private int endpoint;
 
-  private Map<String,Message> messages = new HashMap<String,Message>();
+  private Map<String, Message> messages = new HashMap<String, Message>();
 
   public MessagesManagerStub(int endpoint) {
     this.endpoint = endpoint;
@@ -43,30 +42,33 @@ public class MessagesManagerStub implements MessagesManager {
   }
 
   @Override
-  public boolean presentMessages(String messageId,
-        PriorityType priority,
-        int messageControl,
-        long startTime,
-        int duration,
-        String messageText,
-        Vector<MessageResponseOption> responseOptions) {
-          Log.d(TAG, "presentMessages: at " + this.endpoint + " id:" + messageId+ " text:"+messageText);
-        messages.put(messageId, new Message(messageId,
+  public boolean presentMessages(
+      String messageId,
+      PriorityType priority,
+      int messageControl,
+      long startTime,
+      int duration,
+      String messageText,
+      Vector<MessageResponseOption> responseOptions) {
+    Log.d(
+        TAG, "presentMessages: at " + this.endpoint + " id:" + messageId + " text:" + messageText);
+    messages.put(
+        messageId,
+        new Message(
+            messageId,
             priority,
             messageControl,
             startTime,
             duration,
             messageText,
             responseOptions));
-        return true;
-    }
+    return true;
+  }
 
   @Override
-  public boolean cancelMessage(String messageId)
-  {
-    Log.d(TAG, "cancelMessage: at " + this.endpoint + " messageId:"+messageId);
+  public boolean cancelMessage(String messageId) {
+    Log.d(TAG, "cancelMessage: at " + this.endpoint + " messageId:" + messageId);
     messages.remove(messageId);
     return true; // per spec, succeed unless error
   }
-
 }
