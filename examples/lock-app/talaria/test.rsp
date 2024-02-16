@@ -1,0 +1,2 @@
+-Wl,--start-group out/test/lib/libCHIP1.a libs_link/libwifi.a libs_link/librfdrv.a libs_link/liblwip2.a libs_link/libsupplicant.a libs_link/libfreertos.a libs_link/libc.a libs_link/libinnos.a libs_link/libfs.a libs_link/libosal.a -Wl,--end-group /usr/gcc-arm-none-eabi-10.3-2021.10/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v7-m/nofp/libgcc.a /home/unni/work/git/matter/connectedhomeip/examples/lighting-app/talaria/out/test/obj/chip-lighting-app.main.cpp.o
+

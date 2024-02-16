@@ -36,7 +36,8 @@ assert(lwip_platform == "external" || lwip_platform == "standalone" ||
            lwip_platform == "psoc6" || lwip_platform == "cyw30739" ||
            lwip_platform == "bl602" || lwip_platform == "mw320" ||
            lwip_platform == "bl702" || lwip_platform == "bl702l" ||
-           lwip_platform == "mt793x" || lwip_platform == "asr",
+           lwip_platform == "mt793x" || lwip_platform == "asr" ||
+           lwip_platform == "talaria",
        "Unsupported lwIP platform: ${lwip_platform}")
 
 if (lwip_platform != "external") {
@@ -78,6 +79,8 @@ if (lwip_platform == "cc13xx_26xx") {
   import("//build_overrides/mt793x_sdk.gni")
 } else if (lwip_platform == "asr") {
   import("//build_overrides/asr.gni")
+} else if (lwip_platform == "talaria") {
+
 }
 
 buildconfig_header("lwip_buildconfig") {
@@ -175,7 +178,12 @@ if (current_os == "zephyr" || current_os == "mbed") {
       "${nxp_sdk_build_root}:nxp_lwip",
     ]
   }
-} else {
+} else if (lwip_platform == "talaria") {
+  group("lwip") {
+
+  }
+}
+else {
   config("lwip_config") {
     include_dirs = [ lwip_platform ]
 

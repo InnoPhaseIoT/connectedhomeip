@@ -297,7 +297,11 @@ if (chip_device_platform != "none" && chip_device_platform != "external") {
     } else if (chip_device_platform == "stm32") {
       device_layer_target_define = "STM32"
       defines += [ "CHIP_DEVICE_LAYER_TARGET=stm32" ]
-    } else {
+    } else if (chip_device_platform == "talaria") {
+      device_layer_target_define = "talaria"
+      defines += [ "CHIP_DEVICE_LAYER_TARGET=talaria" ]
+    }
+    else {
       device_layer_target_define = ""
     }
 
@@ -336,6 +340,7 @@ if (chip_device_platform != "none" && chip_device_platform != "external") {
       "OPEN_IOT_SDK",
       "ASR",
       "STM32",
+      "talaria",
     ]
     foreach(possible_device_layer_target_define,
             possible_device_layer_target_defines) {
@@ -559,7 +564,10 @@ if (chip_device_platform != "none") {
       _platform_target = "ASR"
     } else if (chip_device_platform == "stm32") {
       _platform_target = "stm32"
-    } else {
+    } else if (chip_device_platform == "talaria") {
+      _platform_target = "talaria"
+    }
+     else {
       assert(false, "Unknown chip_device_platform: ${chip_device_platform}")
     }
 

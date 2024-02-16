@@ -1,0 +1,194 @@
+# Copyright (c) 2021 Project CHIP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build_overrides/build.gni")
+import("//build_overrides/chip.gni")
+import("//build_overrides/nlassert.gni")
+
+import("${build_root}/config/linux/pkg_config.gni")
+
+import("${chip_root}/src/lib/core/core.gni")
+import("${chip_root}/src/platform/device.gni")
+
+assert(chip_device_platform == "talaria")
+
+if (chip_use_pw_logging) {
+  import("//build_overrides/pigweed.gni")
+}
+
+if (chip_enable_openthread) {
+  import("//build_overrides/openthread.gni")
+  import("//build_overrides/ot_br_posix.gni")
+}
+
+if (chip_mdns == "platform") {
+  pkg_config("avahi_client_config") {
+    packages = [ "avahi-client" ]
+  }
+}
+
+declare_args() {
+  # chip_project_config_include_dirs += ""
+}
+
+config("system_config") {
+  # include_dirs = chip_project_config_include_dirs
+  # test_include_dirs = "test_var"
+}
+
+static_library("talaria") {
+  output_name = "TalariaPlatform"
+
+  configs = [
+    # ":system_config"
+  ]
+
+  # output_dir = ${root_out_dir}/lib
+  sources = [
+    "../SingletonConfigurationManager.cpp",
+    "ConfigurationManagerImpl.cpp",
+    "BLEManagerImpl.cpp",
+    "BLEManagerImpl.h",
+    "Config.cpp",
+    "Config.h",
+    "ConfigurationManagerImpl.h",
+    "ConnectivityManagerImpl.cpp",
+    "ConnectivityManagerImpl.h",
+    "ConnectivityManagerImpl_WiFi.cpp",
+    "NetworkCommissioningDriver.cpp",
+    "NetworkCommissioningDriver.h",
+    "TalariaUtils.cpp",
+    "TalariaUtils.h",
+    "DeviceInfoProviderImpl.cpp",
+    "DeviceInfoProviderImpl.h",
+    "DiagnosticDataProviderImpl.cpp",
+    "DiagnosticDataProviderImpl.h",
+    "KeyValueStoreManagerImpl.cpp",
+    "KeyValueStoreManagerImpl.h",
+    "PlatformManagerImpl.cpp",
+    "PlatformManagerImpl.h",
+    "SystemPlatformConfig.h",
+    "SystemTimeSupport.cpp",
+  ]
+
+  defines = [
+    # "_GLIBCXX_HAVE_WCHAR_H=0",
+    # "CHIP_DEVICE_PLATFORM_CONFIG_INCLUDE=0",
+    "CHIP_SYSTEM_CONFIG_USE_LWIP=1",
+    "CHIP_SYSTEM_CONFIG_USE_OPEN_THREAD_ENDPOINT=0",
+    "CHIP_SYSTEM_CONFIG_POSIX_LOCKING=0",
+    "CHIP_SYSTEM_CONFIG_FREERTOS_LOCKING=1",
+    "CHIP_SYSTEM_LAYER_IMPL_CONFIG_FILE=<system/SystemLayerImplFreeRTOS.h>",
+    "CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE=1",
+  ]
+
+  cflags = [ "-mcpu=cortex-m3" ]
+  cflags += [ "-MD" ]
+  cflags += [ "-MMD" ]
+  cflags += [ "-g" ]
+  cflags += [ "-nostdinc" ]
+  cflags += [ "-Wno-address-of-packed-member" ]
+  cflags += [ "-ffunction-sections" ]
+  cflags += [ "-fdata-sections" ]
+  cflags += [ "-fno-common" ]
+  cflags += [ "-Wshadow" ]
+  cflags += [ "-Wnull-dereference" ]
+  cflags += [ "-Warray-bounds=2" ]
+  cflags += [ "-Os" ]
+  cflags += [ "-Wno-unused-variable" ]
+  cflags += [ "-Wno-unused-function" ]
+  cflags += [ "-fno-exceptions" ]
+  cflags += [ "-Wno-pointer-arith" ]
+  cflags += [ "-fpermissive" ]
+  cflags += [ "-fdiagnostics-color" ]
+
+  defines +=
+      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>" ]
+
+
+  if (!chip_use_external_logging) {
+    sources += [ "Logging.cpp" ]
+  }
+
+  if (chip_enable_openthread) {
+    sources += [ "NetworkCommissioningThreadDriver.cpp" ]
+  }
+
+  include_dirs = [
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
+  ]
+
+  deps = [ "${chip_root}/src/setup_payload" ]
+  deps += [
+    # "${nlassert_root}:nlassert",
+    "${chip_root}/third_party/nlassert:nlassert",
+    "${chip_root}/third_party/nlio:nlio",
+
+    # "${chip_root}/zzz_generated/app-common",
+  ]
+
+  public_deps = [
+    # "${chip_root}/src/app/common:cluster-objects",
+    # "${chip_root}/src/platform:platform_base",
+    # "${chip_root}/third_party/inipp",
+    # "${nlassert_root}:nlassert",
+  ]
+
+  public_configs = []
+
+  if (chip_mdns == "platform") {
+    sources += [
+      "DnssdImpl.cpp",
+      "DnssdImpl.h",
+    ]
+
+    deps += [ "${chip_root}/src/lib/dnssd:platform_header" ]
+
+    public_configs += [ ":avahi_client_config" ]
+  }
+
+  if (chip_enable_ota_requestor) {
+    sources += [
+      "OTAImageProcessorImpl.cpp",
+      "OTAImageProcessorImpl.h",
+    ]
+  }
+
+  if (chip_enable_openthread) {
+    sources += [
+      "GlibTypeDeleter.h",
+      "ThreadStackManagerImpl.cpp",
+      "ThreadStackManagerImpl.h",
+    ]
+
+    public_deps += [ "dbus/openthread" ]
+  }
+
+  if (chip_use_pw_logging) {
+    deps += [ "$dir_pw_log" ]
+  }
+
+  if (chip_enable_wifi) {
+    sources += [
+      "GlibTypeDeleter.h",
+      "NetworkCommissioningWiFiDriver.cpp",
+    ]
+
+    public_deps += [ "dbus/wpa" ]
+  }
+
+  # if (chip_enable_ble) {
+  #   public_deps += [ "dbus/bluez" ]
+  # }
+}
