@@ -102,3 +102,47 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
 
           # Connect the GPIO18 to GND using a jumper to turn off the light
           # Disconnect the GPIO18 from GND to turn on the light
+## Dimmer Switch Usage:
+#### Configuration:
+- To enable the Dimmer Switch functionality, set "ENABLE_DIMMER_SWITCH" to 1 in the "inc/LightSwitch_ProjecConfig.h" configuration file.
+- To Control Level-Control cluster in lighting-application through binding commands, enable the dimmer switch functionality and then set "ENABLE_LEVEL_CONTROL" to 1 in the "inc/LightSwitch_ProjecConfig.h" configuration file.
+- To Control Colour-Control cluster in lighting-application through binding commands, enable the dimmer switch functionality and then set "ENABLE_COLOUR_CONTROL" to 1 in the "inc/LightSwitch_ProjecConfig.h" configuration file.
+
+#### Implementation and Controlling:
+- Implemented Dimmer Switch functionality for 4 switch positions (can be configurable as per requirement).
+- Utilized ADC to get input voltage and map it to switch position values to perform switch actions and for updating current switch position status every 10sec(can be configurable) from software timer callback as actual dimmer switch is not available.
+    - Enable by setting 'SWITCH_CONTROL_USING_ADC' to 1
+    - Maximum ADC input voltage is 1V.
+    - Implemented 4 switch positions as below (can be configurable)
+        - 0V    (Switch Position - 0)
+        - 0.25V (Switch Position - 1)
+        - 0.5V  (Switch Position - 2)
+        - 0.75V (Switch Position - 3)
+        - 1.0V  (Switch Position - 4)
+        - Connect input to ADC PIN and vary the input voltage between 0 and 1V to change the switch positions.
+- Utilized rand function to generate random switch position values from 0 to 4 to perform switch actions and for updating current switch position status every 10sec(can be configurable) from software timer callback as actual Dimmer switch is not available.
+- Dimmer switch utilizes Endpoint ID 2 in Switch Cluster.
+
+                ## Command to read current switch position
+                >>> switch read current-position 2222 2
+                ## Command to read number of switch positions
+                >>> switch read number-of-positions 2222 2
+                ## Command to subscribe for current switch position
+                >>> switch subscribe current-position 10 10 2222 2
+                ## Command to subscribe for number of switch positions
+                >>> switch subscribe number-of-positions 10 10 2222 2
+
+
+- Once the commissioning is completed successfully you can use following commands to create the binding of Light Switch Application and Lighting Application. For the following commands it has been considered that the lighting application is commissioned with node-id 1111 and light-switch application is commissioned with node-id 2222 by the same chip-tool.
+
+          ## Command to give the access to Light-Switch node.
+          >>> accesscontrol write acl '[{"privilege": 5, "authMode": 2, "subjects": [ 112233, 2222 ], "targets": null}]' 1111 0x0
+          ## Command to create binding with Level-Control cluster in lighting application
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":8}]' 2222 0x1
+          ## Command to create binding with Colour-Control cluster in lighting application
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
+          ## Command to create binding with both Level and Colour Control clusters in lighting application
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
+          ## Command to create binding with OnOff, Level and Colour Control clusters in lighting application
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":6}, {"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
+- Once the AccessControl and binding commands are successful, OnOff/ Level-Control/ Color-Control Applications can be controlled by changing the state of Switch in light-switch application based on configuration.
