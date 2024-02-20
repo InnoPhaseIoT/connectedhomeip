@@ -58,9 +58,13 @@ public:
         int retval = 0;
         if (mIternum >= mSize)
         {
+            /* The following memory is allocated from
+               TalariaWiFiDriver::StartScanWiFiNetworks and required to be
+               freed from here as it's not needed anymore */
+            wcm_free_scanresult(mpScanResults, mSize);
+            free(mpScanResults);
             return false;
         }
-
         item.security = ConvertSecurityType(mpScanResults[mIternum]);
         static_assert(chip::DeviceLayer::Internal::kMaxWiFiSSIDLength <= UINT8_MAX, "SSID length might not fit in item.ssidLen");
         /* TODO: The scan sometimes gives the ssids with no entry for ssid. Observed the same with using_wifi/wif_scan.elf also */

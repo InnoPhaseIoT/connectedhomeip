@@ -336,19 +336,25 @@ CHIP_ERROR TalariaWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
         return;
     }
 
+    /* Allocated scan results are getting freed after the Iterator has
+       parsed the content insied NetworkCommissioningDriver.h->
+       TalariaScanResponseIterator */
     scan_result = malloc(MAX_NW_SCANS * sizeof(void *));
     if (scan_result == NULL) {
         ChipLogError(DeviceLayer, "Failed to allocate memory");
         return;
     }
 
-    TalariaUtils::ScanWiFiNetwork(scan_result, &scanres_cnt);
+    TalariaUtils::ScanWiFiNetwork(scan_result, &scanres_cnt, ssid);
     if (scanres_cnt < 0) {
         ChipLogProgress(DeviceLayer, "No AP found");
         mpScanCallback->OnFinished(Status::kSuccess, CharSpan(), nullptr);
         mpScanCallback = nullptr;
+        wcm_free_scanresult(scan_result, scanres_cnt);
+        free(scan_result);
         goto exit;
     }
+
     if (CHIP_NO_ERROR == DeviceLayer::SystemLayer().ScheduleLambda([scanres_cnt, scan_result]() {
         TalariaScanResponseIterator iter(scanres_cnt, scan_result);
         if (GetInstance().mpScanCallback)
@@ -362,8 +368,6 @@ CHIP_ERROR TalariaWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
         }
     }))
 exit:
-    wcm_free_scanresult(scan_result, scanres_cnt);
-    free(scan_result);
     return CHIP_NO_ERROR;
 }
 

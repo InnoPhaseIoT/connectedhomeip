@@ -411,13 +411,16 @@ void TalariaUtils::RegisterTalariaErrorFormatter()
     RegisterErrorFormatter(&sErrorFormatter);
 }
 
-void TalariaUtils::ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt)
+void TalariaUtils::ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt, ByteSpan ssid)
 {
     struct wifi_scan_param scanparam;
 
     /* Init default scan parameters */
     wifi_init_scan_default(&scanparam);
+    if (!ssid.empty()) {
+        memcpy(scanparam.ssid.ws_ssid, ssid.data(), ssid.size());
+        scanparam.ssid.ws_len = ssid.size();
+    }
 
     *scanres_cnt = wcm_scan(wcm_handle, &scanparam, scan_result, MAX_NW_SCANS);
-    os_printf("\r\n scan:%d", *scanres_cnt);
 }
