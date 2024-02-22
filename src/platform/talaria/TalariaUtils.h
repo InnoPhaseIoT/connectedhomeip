@@ -85,6 +85,7 @@ public:
     static bool FormatError(char * buf, uint16_t bufSize, CHIP_ERROR err);
     static CHIP_ERROR RequestSEDActive(uint32_t listern_interval, uint32_t traffic_tmo);
     static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt, ByteSpan ssid);
+    static CHIP_ERROR GetWiFiInterfaceMAC(uint8_t *mac_addr);
 };
 
 } // namespace Internal

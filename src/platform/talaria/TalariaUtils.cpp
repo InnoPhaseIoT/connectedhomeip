@@ -424,3 +424,12 @@ void TalariaUtils::ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanr
 
     *scanres_cnt = wcm_scan(wcm_handle, &scanparam, scan_result, MAX_NW_SCANS);
 }
+
+CHIP_ERROR TalariaUtils::GetWiFiInterfaceMAC(uint8_t *mac_addr)
+{
+    if (wcm_handle == NULL) {
+        return CHIP_ERROR_INCORRECT_STATE;
+    }
+    memcpy(mac_addr, wcm_get_hwaddr(wcm_handle), IEEE80211_ADDR_LEN);
+    return CHIP_NO_ERROR;
+}

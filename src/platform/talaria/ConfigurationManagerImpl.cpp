@@ -24,25 +24,16 @@
  */
 
 #include <app-common/zap-generated/cluster-objects.h>
-// #include <ifaddrs.h>
 #include <lib/core/CHIPVendorIdentifiers.hpp>
 #include <lib/support/CodeUtils.h>
 #include <lib/support/logging/CHIPLogging.h>
-// #include <netpacket/packet.h>
 #include <platform/CHIPDeviceConfig.h>
 #include <platform/ConfigurationManager.h>
 #include <platform/DiagnosticDataProvider.h>
 #include <platform/KeyValueStoreManager.h>
-// #include <platform/Linux/PosixConfig.h>
 #include <platform/internal/GenericConfigurationManagerImpl.ipp>
-
+#include <platform/talaria/TalariaUtils.h>
 #include <algorithm>
-
-#ifdef __cplusplus
-extern "C" {
-#include <kernel/hwaddr.h>
-}
-#endif /* __cplusplus */
 
 namespace chip {
 namespace DeviceLayer {
@@ -134,8 +125,7 @@ CHIP_ERROR ConfigurationManagerImpl::GetSecondaryPairingInstruction(char * buf, 
 
 CHIP_ERROR ConfigurationManagerImpl::GetPrimaryWiFiMACAddress(uint8_t * buf)
 {
-    os_hwaddr_get(HWADDR_SCOPE_WIFI, buf);
-    return CHIP_NO_ERROR;
+    return TalariaUtils::GetWiFiInterfaceMAC(buf);
 }
 
 bool ConfigurationManagerImpl::CanFactoryReset()
@@ -286,13 +276,26 @@ CHIP_ERROR ConfigurationManagerImpl::StoreBootReason(uint32_t bootReason)
 
 CHIP_ERROR ConfigurationManagerImpl::GetRegulatoryLocation(uint8_t & location)
 {
-    return TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_RegulatoryLocation, location);
+    CHIP_ERROR error = CHIP_NO_ERROR;
+    error = TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_RegulatoryLocation, location) ;
+    if (error != CHIP_NO_ERROR) {
+        /* If the config is not there in the file system,
+           then provide the default value to avoid commissioning failures*/
+        location = 0;
+    }
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetLocationCapability(uint8_t & location)
 {
-
-    return TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_LocationCapability, location);
+    CHIP_ERROR error = CHIP_NO_ERROR;
+    error = TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_LocationCapability, location);
+    if (error != CHIP_NO_ERROR) {
+        /* If the config is not there in the file system,
+           then provide the default value to avoid commissioning failures*/
+        location = 0;
+    }
+    return CHIP_NO_ERROR;
 }
 
 ConfigurationManager & ConfigurationMgrImpl()
