@@ -23,6 +23,21 @@
 #include <platform/talaria/TalariaUtils.h>
 
 #include "OTAImageProcessorImpl.h"
+#include <unistd.h>
+
+// /*fota code start*/
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <hio/matter.h>
+#include <hio/matter_hio.h>
+#ifdef __cplusplus
+}
+#endif
+// /*fota code end*/
+
 
 char *fw_name = "matter_lighting_app";
 char *fw_hash;
@@ -83,11 +98,13 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
 #if (CHIP_ENABLE_SECUREBOOT == true)
     imageProcessor->mOTAUpdateparam = ota_secure_enable_matter();
 #endif
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     imageProcessor->mOTAUpdateHandle = ota_init_matter(&imageProcessor->mOTAUpdateparam);
     if (!imageProcessor->mOTAUpdateHandle) {
         ChipLogError(SoftwareUpdate, "[APP]Error: Initialising fota");
         return;
     }
+#endif
     ChipLogProgress(SoftwareUpdate, "[APP]Perform Fota");
     imageProcessor->mHeaderParser.Init();
     imageProcessor->mDownloader->OnPreparedForDownload(CHIP_NO_ERROR);
@@ -148,17 +165,24 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     ByteSpan blockToWrite = block;
     imageProcessor->mOTAfwinfo.data = blockToWrite.data();
     imageProcessor->mOTAfwinfo.data_len = blockToWrite.size();
-#ifdef CHIP_ENABLE_OTA_STORAGE_ON_HOST
-
-#else
-    err = ota_perform_matter(imageProcessor->mOTAUpdateHandle, imageProcessor->mOTAfwinfo, imageProcessor->mParams.totalFileBytes);
-#endif
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    err = matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_ANNOUNCE_OTAPROVIDER, blockToWrite.size(), (char *)blockToWrite.data());
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
         imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
         return;
     }
+    vTaskDelay(500);
+#else
+    err = ota_perform_matter(imageProcessor->mOTAUpdateHandle, imageProcessor->mOTAfwinfo, imageProcessor->mParams.totalFileBytes);
+    if (err != 0)
+    {
+        ChipLogError(SoftwareUpdate, "T2_ota_write failed");
+        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+        return;
+    }
+#endif
     imageProcessor->mParams.downloadedBytes += blockToWrite.size();
     imageProcessor->mDownloader->FetchNextData();
 }
@@ -182,10 +206,9 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->mHeaderParser.Clear();
     ChipLogProgress(SoftwareUpdate, "Commit Done!. de-init OTA");
-#ifdef CHIP_ENABLE_OTA_STORAGE_ON_HOST
-
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_ANNOUNCE_OTAPROVIDER, 0, NULL);
 #endif
-
 }
 
 CHIP_ERROR OTAImageProcessorImpl::SetBlock(ByteSpan & block)
@@ -228,7 +251,6 @@ CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
         // Need more data to decode the header
         ReturnErrorCodeIf(error == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_NO_ERROR);
         ReturnErrorOnFailure(error);
-
         fw_hash = pvPortMalloc(header.mImageDigest.size());
         if (fw_hash == NULL) {
 		    free(fw_hash);

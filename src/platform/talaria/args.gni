@@ -16,3 +16,4 @@ import("${chip_root}/config/talaria/common.gni")
 
 chip_device_platform = "talaria"
 chip_enable_secureboot = "false"
+chip_enable_ota_storage_on_host = "false"

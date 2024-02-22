@@ -167,7 +167,9 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     time.unlock_time_out = 1000;
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
-    matter_doorlock_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    int ret = matter_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    if(ret != 0)
+        return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
     return true;
 }
@@ -179,9 +181,11 @@ void emberAfPluginDoorLockOnAutoRelock(chip::EndpointId endpointId)
     time.unlock_time_out = 1000;
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
-    matter_doorlock_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    int ret = matter_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    if(ret != 0)
+        return;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
-    return true;
+    return;
 }
 
 // bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const Optional<ByteSpan> & pinCode,
@@ -195,7 +199,9 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     time.unlock_time_out = 1000;
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
-    matter_doorlock_notify(DOOR_LOCK, UNLOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    int ret = matter_notify(DOOR_LOCK, UNLOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
+    if(ret != 0)
+        return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
     return true;
 }
@@ -260,8 +266,9 @@ bool emberAfPluginDoorLockSetUser(chip::EndpointId endpointId, uint16_t userInde
     }
 
     payload = sizeof(struct dl_set_get_user);
-    matter_doorlock_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_user *) setUser);
-
+    int ret = matter_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_user *) setUser);
+    if(ret != 0)
+        return false;
     ChipLogProgress(Zcl, "Successfully set the user [mEndpointId=%d,index=%d] operationtype: %d", endpointId, userIndex,
                     setUser->operationtype);
 
@@ -342,7 +349,9 @@ bool emberAfPluginDoorLockSetCredential(chip::EndpointId endpointId, uint16_t cr
     setCredential->usertype   = (uint8_t) credentialType;
     memcpy(setCredential->credentialdata, credentialData.data(), min(credentialData.size(), sizeof(setCredential->credentialdata)));
 
-    matter_doorlock_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_credential *) setCredential);
+    int ret = matter_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_credential *) setCredential);
+    if(ret != 0)
+        return false;
     ChipLogProgress(Zcl, "Successfully set the Credential [mEndpointId=%d,index=%d] operationType: %d", endpointId, credentialIndex,
                     setCredential->operationtype);
     return true;
@@ -443,7 +452,9 @@ void load_stored_info_from_host()
         memset(getUser, 0, sizeof(struct dl_set_get_user));
         getUser->userindex = i + 1;
         payload            = sizeof(struct dl_set_get_user);
-        matter_doorlock_notify(DOOR_LOCK, GET_USER, payload, (struct dl_set_get_user *) getUser);
+        int ret = matter_notify(DOOR_LOCK, GET_USER, payload, (struct dl_set_get_user *) getUser);
+        if(ret != 0)
+            return;
         if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
         {
             os_printf("Unable to wait on semaphore...!!\n");
@@ -457,7 +468,9 @@ void load_stored_info_from_host()
         memset(getCredential, 0, sizeof(struct dl_set_get_credential));
         getCredential->userindex = i + 1;
         payload                  = sizeof(struct dl_set_get_credential);
-        matter_doorlock_notify(DOOR_LOCK, GET_CREDENTIAL_STATUS, payload, (struct dl_set_get_credential *) getCredential);
+        int ret = matter_notify(DOOR_LOCK, GET_CREDENTIAL_STATUS, payload, (struct dl_set_get_credential *) getCredential);
+        if(ret != 0)
+            return;
         if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
         {
             os_printf("Unable to wait on semaphore...!!\n");
@@ -546,9 +559,13 @@ int main(void)
         {
             setUser.userindex       = i;
             setCredential.userindex = i;
-            matter_doorlock_notify(DOOR_LOCK, CLEAR_USER, sizeof(setUser), &setUser);
+            int ret = matter_notify(DOOR_LOCK, CLEAR_USER, sizeof(setUser), &setUser);
+            if(ret != 0)
+                return -1;
             os_printf(".");
-            matter_doorlock_notify(DOOR_LOCK, CLEAR_CREDENTIAL, sizeof(setCredential), &setCredential);
+            ret = matter_notify(DOOR_LOCK, CLEAR_CREDENTIAL, sizeof(setCredential), &setCredential);
+            if(ret != 0)
+                return -1;
             os_printf(".");
         }
 

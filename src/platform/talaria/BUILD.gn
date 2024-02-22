@@ -42,7 +42,7 @@ if (chip_mdns == "platform") {
 declare_args() {
   # chip_project_config_include_dirs += ""
   chip_enable_secureboot = false
-  chip_enable_ota_storage_on_host = flase
+  chip_enable_ota_storage_on_host = false
 }
 
 config("system_config") {
@@ -119,7 +119,7 @@ static_library("talaria") {
   defines +=
       [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>",
         "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
-        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}, ]
+        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}", ]
 
 
   if (!chip_use_external_logging) {
@@ -132,6 +132,7 @@ static_library("talaria") {
 
   include_dirs = [
     "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
+    "${chip_root}/examples/lock-app/talaria",
   ]
 
   deps = [ "${chip_root}/src/setup_payload" ]

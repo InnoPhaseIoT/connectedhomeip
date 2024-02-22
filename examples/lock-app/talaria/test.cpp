@@ -76,6 +76,88 @@ static void InitServer(intptr_t context);
 extern SemaphoreHandle_t ServerInitDone;
 bool CommissioningFlowTypeHost = false;
 
+/*fota code start*/
+#include "hio/matter.h"
+#include "hio/matter_hio.h"
+
+
+#include <app/clusters/ota-requestor/BDXDownloader.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestor.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestorStorage.h>
+#include <app/clusters/ota-requestor/ExtendedOTARequestorDriver.h>
+#include <platform/talaria/OTAImageProcessorImpl.h>
+#include <system/SystemEvent.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestorUserConsent.h>
+static void InitOTARequestor();
+
+constexpr uint16_t requestedOtaBlockSize = 4096;
+
+namespace chip {
+namespace Shell {
+class OTARequestorCommands
+{
+public:
+    // delete the copy constructor
+    OTARequestorCommands(const OTARequestorCommands &) = delete;
+    // delete the move constructor
+    OTARequestorCommands(OTARequestorCommands &&) = delete;
+    // delete the assignment operator
+    OTARequestorCommands & operator=(const OTARequestorCommands &) = delete;
+
+    static OTARequestorCommands & GetInstance()
+    {
+        static OTARequestorCommands instance;
+        return instance;
+    }
+
+    // Register the OTA requestor commands
+    void Register();
+
+private:
+    OTARequestorCommands() {}
+};
+}
+}
+
+
+class CustomOTARequestorDriver : public DeviceLayer::ExtendedOTARequestorDriver
+{
+public:
+    bool CanConsent() override;
+};
+
+namespace {
+DefaultOTARequestor gRequestorCore;
+DefaultOTARequestorStorage gRequestorStorage;
+CustomOTARequestorDriver gRequestorUser;
+BDXDownloader gDownloader;
+chip::Optional<bool> gRequestorCanConsent;
+OTAImageProcessorImpl gImageProcessor;
+chip::ota::DefaultOTARequestorUserConsent gUserConsentProvider;
+
+} // namespace
+
+bool CustomOTARequestorDriver::CanConsent()
+{
+    return gRequestorCanConsent.ValueOr(DeviceLayer::ExtendedOTARequestorDriver::CanConsent());
+}
+
+void InitOTARequestor(void)
+{
+    if (!GetRequestorInstance())
+    {
+        SetRequestorInstance(&gRequestorCore);
+        gRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
+        gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
+        gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
+        gImageProcessor.SetOTADownloader(&gDownloader);
+        gDownloader.SetImageProcessorDelegate(&gImageProcessor);
+        gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
+    }
+}
+/*fota code end*/
+
+
 static void OpenUserIntentCommissioningWindow(intptr_t arg)
 {
 
@@ -193,6 +275,10 @@ void app_test()
     Credentials::SetDeviceAttestationCredentialsProvider(get_dac_provider());
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+
+    err = chip::DeviceLayer::PlatformMgrImpl().AddEventHandler(InitOTARequestor, reinterpret_cast<intptr_t>(nullptr));
+    os_printf("\nOTA::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+
 }
 
 /*-----------------------------------------------------------*/
