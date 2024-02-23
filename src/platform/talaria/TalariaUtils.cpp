@@ -45,6 +45,10 @@ bool TalariaUtils::wcm_conn_status;
 char TalariaUtils::wcm_WiFiSSID[kMaxWiFiSSIDLength + 1];
 static SemaphoreHandle_t wifi_disconnect_sem = NULL;
 
+static struct wifi_counters base_count;
+static uint32_t base_becont_rx_count;
+static uint32_t base_becont_loss_count;
+
 static void TalariaUtils::wcm_notifier(void * ctx, struct os_msg * msg)
 {
     ChipDeviceEvent event;
@@ -287,7 +291,7 @@ uint32_t TalariaUtils::Get_unicast_rx_pkt_count(void)
      struct wifi_counters out;
 
      wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
-     return out.rxframe;
+     return (out.rxframe - base_count.rxframe);
 }
 
 uint32_t TalariaUtils::Get_unicast_tx_pkt_count(void)
@@ -295,7 +299,7 @@ uint32_t TalariaUtils::Get_unicast_tx_pkt_count(void)
      struct wifi_counters out;
 
      wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
-     return out.txframe;
+     return (out.txframe - base_count.txframe);
 }
 
 uint32_t TalariaUtils::Get_multicast_rx_pkt_count(void)
@@ -303,7 +307,7 @@ uint32_t TalariaUtils::Get_multicast_rx_pkt_count(void)
      struct wifi_counters out;
 
      wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
-     return out.rxmframe;
+     return (out.rxmframe - base_count.rxmframe);
 }
 
 uint32_t TalariaUtils::Get_multicast_tx_pkt_count(void)
@@ -311,7 +315,7 @@ uint32_t TalariaUtils::Get_multicast_tx_pkt_count(void)
      struct wifi_counters out;
 
      wcm_get_counters(wcm_handle, &out, sizeof(struct wifi_counters));
-     return out.txmframe;
+     return (out.txmframe - base_count.txmframe);
 }
 
 uint32_t TalariaUtils::Get_overrun_count(void)
@@ -321,12 +325,23 @@ uint32_t TalariaUtils::Get_overrun_count(void)
 
 uint32_t TalariaUtils::Get_wifi_beacon_rx_count(void)
 {
-     return wcm_get_wifi_beacon_rx_count(wcm_handle);
+     return (wcm_get_wifi_beacon_rx_count(wcm_handle) - base_becont_rx_count);
 }
 
 uint32_t TalariaUtils::Get_wifi_beacon_lost_count(void)
 {
-     return wcm_get_wifi_beacon_miss_count(wcm_handle);
+     return (wcm_get_wifi_beacon_miss_count(wcm_handle) - base_becont_loss_count);
+}
+
+void TalariaUtils::Reset_wifi_diagnostics_counter(void)
+{
+    /* Workaround: We don't have the sdk api to reset the counters
+        Store the base values from counters and deduct while the counters
+        are read from actual values
+    */
+    base_becont_rx_count = wcm_get_wifi_beacon_rx_count(wcm_handle);
+    base_becont_loss_count = wcm_get_wifi_beacon_miss_count(wcm_handle);
+    wcm_get_counters(wcm_handle, &base_count, sizeof(struct wifi_counters));
 }
 
 void TalariaUtils::GetBssid(uint8_t * bssid)

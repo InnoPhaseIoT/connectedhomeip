@@ -68,6 +68,7 @@ public:
     static uint32_t Get_overrun_count(void);
     static uint32_t Get_wifi_beacon_rx_count(void);
     static uint32_t Get_wifi_beacon_lost_count(void);
+    static void Reset_wifi_diagnostics_counter(void);
     static void GetChannel(struct wcm_status * wcmstat);
     static int GetRssi();
     static bool GetAddr6(struct wcm_in6_addr * wcm_addr6, int addr6_idx);
