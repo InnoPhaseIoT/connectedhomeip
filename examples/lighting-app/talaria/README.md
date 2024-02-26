@@ -82,3 +82,6 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> onoff on 1111 1     ## To Turn on the LED
           >>> onoff off 1111 1     ## To Turn off the LED
           >>> onoff toggle 1111 1     ## To toggle the LED
+          >>> identify read identify-type 1111 1 # To know the identify-type our case it is light output
+          >>> identify write identify-time <seconds-to-blink> 1111 1 # This command is used to blink led to identify itself for <senonds-to-blink> seconds
+	  >>> identify read identify-time 1111 1 # This command is used to know the seconds left to blink the led. 

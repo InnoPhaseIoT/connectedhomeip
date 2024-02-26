@@ -68,6 +68,7 @@ public:
     static uint32_t Get_overrun_count(void);
     static uint32_t Get_wifi_beacon_rx_count(void);
     static uint32_t Get_wifi_beacon_lost_count(void);
+    static void Reset_wifi_diagnostics_counter(void);
     static void GetChannel(struct wcm_status * wcmstat);
     static int GetRssi();
     static bool GetAddr6(struct wcm_in6_addr * wcm_addr6, int addr6_idx);
@@ -84,7 +85,8 @@ public:
     static void RegisterTalariaErrorFormatter();
     static bool FormatError(char * buf, uint16_t bufSize, CHIP_ERROR err);
     static CHIP_ERROR RequestSEDActive(uint32_t listern_interval, uint32_t traffic_tmo);
-    static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt);
+    static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt, ByteSpan ssid);
+    static CHIP_ERROR GetWiFiInterfaceMAC(uint8_t *mac_addr);
 };
 
 } // namespace Internal

@@ -50,6 +50,7 @@ void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 // #include <platform/talaria/TalariaDeviceInfoProvider.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/server/Server.h>
+#include <app-common/zap-generated/attributes/Accessors.h>
 
 #include <common/Utils.h>
 #include <platform/ConnectivityManager.h>
@@ -65,6 +66,7 @@ using namespace chip::talaria;
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 #define LED_PIN 14
+#define IDENTIFY_TIMER_DELAY_MS  1000
 
 /*-----------------------------------------------------------*/
 void test_fn_1();
@@ -75,9 +77,51 @@ void test_suit_proc();
 void app_test();
 
 int main_TestInetLayer(int argc, char * argv[]);
+static uint32_t identifyTimerCount = 0;
 
 /* Function Declarations */
 static void CommonDeviceEventHandler(const chip::DeviceLayer::ChipDeviceEvent * event, intptr_t arg);
+
+
+static void Toggle(EndpointId endpointId )
+{
+    bool value;
+    chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpointId , &value);
+    if(value)
+    {
+        os_gpio_clr_pin(1 << LED_PIN);
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, false);
+    }
+    else
+    {
+        os_gpio_set_pin(1 << LED_PIN);
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, true);
+    }
+
+}
+
+static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
+{
+    if (identifyTimerCount > 0)
+    {
+        /* Decrement the timer count. */ 
+        identifyTimerCount--;
+        Toggle( endpointId );
+        chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpointId, identifyTimerCount );
+    }
+}   
+
+static void OnIdentifyPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    identifyTimerCount = (*value);
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, endpointId);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, endpointId);
+
+exit:
+    return;
+}
+
+
 
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,
                                         uint16_t size, uint8_t * value)
@@ -107,6 +151,9 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
             os_gpio_clr_pin(1 << LED_PIN);
         }
         break;
+    case app::Clusters::Identify::Id:
+        OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
+        break;
 
     default:
         // ChipLogDetail(AppServer, "Unhandled cluster ID: %" PRIu32, clusterId);
@@ -135,6 +182,13 @@ exit:
 void emberAfOnOffClusterInitCallback(EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfOnOffClusterInitCallback");
+}
+
+void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
+{
+    chip::app::Clusters::Identify::Attributes::IdentifyType::Set(endpoint, chip::app::Clusters::Identify::IdentifyTypeEnum::kLightOutput);
+    chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpoint, 0);
+    ChipLogDetail(AppServer, "emberAfIdentifyClusterInitCallback");
 }
 
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & path, uint8_t type, uint16_t size, uint8_t * value)
