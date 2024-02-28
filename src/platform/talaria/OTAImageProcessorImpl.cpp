@@ -38,7 +38,7 @@ extern "C" {
 #endif
 // /*fota code end*/
 
-
+int ext_flash_en = 0;
 char *fw_name = "matter_lighting_app";
 char *fw_hash;
 
@@ -98,8 +98,13 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
 #if (CHIP_ENABLE_SECUREBOOT == true)
     imageProcessor->mOTAUpdateparam = ota_secure_enable_matter();
 #endif
+
+#if (CHIP_ENABLE_EXT_FLASH == true)
+    ext_flash_en = 1;
+#endif
+
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
-    imageProcessor->mOTAUpdateHandle = ota_init_matter(&imageProcessor->mOTAUpdateparam);
+    imageProcessor->mOTAUpdateHandle = ota_init_matter(&imageProcessor->mOTAUpdateparam, ext_flash_en);
     if (!imageProcessor->mOTAUpdateHandle) {
         ChipLogError(SoftwareUpdate, "[APP]Error: Initialising fota");
         return;

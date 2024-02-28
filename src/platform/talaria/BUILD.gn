@@ -43,6 +43,7 @@ declare_args() {
   # chip_project_config_include_dirs += ""
   chip_enable_secureboot = false
   chip_enable_ota_storage_on_host = false
+  chip_enable_ext_flash = false
 }
 
 config("system_config") {
@@ -119,7 +120,8 @@ static_library("talaria") {
   defines +=
       [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>",
         "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
-        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}", ]
+        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}",
+        "CHIP_ENABLE_EXT_FLASH=${chip_enable_ext_flash}", ]
 
 
   if (!chip_use_external_logging) {
