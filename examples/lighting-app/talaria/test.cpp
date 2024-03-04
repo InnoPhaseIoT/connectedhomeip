@@ -25,10 +25,6 @@
 #include "semphr.h"
 #include <talaria_two.h>
 
-void print_faults();
-int
-filesystem_util_mount_data_if(const char* path);
-
 #ifdef __cplusplus
     }
 #endif
@@ -139,6 +135,7 @@ bool CustomOTARequestorDriver::CanConsent()
 
 // static AppDeviceCallbacks EchoCallbacks;
 static void InitServer(intptr_t context);
+int SoftwareTimer_Init(void);
 
 // static AppDeviceCallbacks EchoCallbacks;
 static void InitOTARequestor();
@@ -163,6 +160,14 @@ void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
     if (event->Type == DeviceLayer::DeviceEventType::kCHIPoBLEConnectionEstablished)
     {
         ChipLogProgress(DeviceLayer, "Receive kCHIPoBLEConnectionEstablished");
+    }
+    if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete)
+    {
+        ChipLogProgress(DeviceLayer, "Receive kCommissioningComplete");
+        if (SoftwareTimer_Init() != 0)
+        {
+            ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
+        }
     }
 }
 
@@ -198,6 +203,13 @@ void InitServer(intptr_t context)
     /* Trigger Connect WiFi Network if the Device is already Provisioned */
     if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
         chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
+    }
+    if (matterutils::IsNodeCommissioned() == true)
+    {
+        if (SoftwareTimer_Init() != 0)
+        {
+            ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
+        }
     }
 }
 
@@ -236,9 +248,6 @@ void app_test()
     err = DeviceLayer::PlatformMgr().InitChipStack();
     os_printf("\nInitChipStack err %d, %s", err.AsInteger(), err.AsString());
 
-    //ConnectivityMgr().SetBLEAdvertisingEnabled(true);
-    // PlatformMgr().AddEventHandler(CHIPDeviceManager::CommonDeviceEventHandler, reinterpret_cast<intptr_t>(nullptr));
-    
     err = PlatformMgr().StartEventLoopTask();
     os_printf("\nStartEventLoopTaks err %d, %s", err.AsInteger(), err.AsString());
 

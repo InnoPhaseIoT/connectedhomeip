@@ -27,10 +27,8 @@ extern "C" {
 #include "task.h"
 #include <kernel/gpio.h>
 #include <talaria_two.h>
+#include <kernel/pwm.h>
 
-void print_faults();
-int filesystem_util_mount_data_if(const char * path);
-void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 
 #ifdef __cplusplus
 }
@@ -44,10 +42,8 @@ void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 #include <lib/support/CHIPMem.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/PlatformManager.h>
-// #include <lib/support/CodeUtils.h>
 #include <lib/support/UnitTestRegistration.h>
 #include <platform/talaria/DeviceInfoProviderImpl.h>
-// #include <platform/talaria/TalariaDeviceInfoProvider.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/server/Server.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
@@ -55,6 +51,7 @@ void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 #include <common/Utils.h>
 #include <platform/ConnectivityManager.h>
 #include <platform/talaria/TalariaUtils.h>
+#include <math.h>
 
 using namespace chip;
 using namespace chip::Platform;
@@ -62,42 +59,49 @@ using namespace chip::DeviceLayer;
 using namespace chip::Credentials;
 using namespace chip::app::Clusters;
 using namespace chip::talaria;
+using namespace chip::app::Clusters::ColorControl;
+using namespace chip::app::Clusters::LevelControl;
+using namespace chip::app::Clusters::OccupancySensing;
 
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
-#define LED_PIN 14
+#define PWM_PIN 14
+#define PWM_PERIOD 1000
+#define OCCUPANCY_SENSOR_PERIODIC_TIME_OUT_MS 20000
 #define IDENTIFY_TIMER_DELAY_MS  1000
 
 /*-----------------------------------------------------------*/
-void test_fn_1();
-int TestBitMask();
-int chip::RunRegisteredUnitTests();
 void print_test_results(nlTestSuite * tSuite);
-void test_suit_proc();
 void app_test();
 
 int main_TestInetLayer(int argc, char * argv[]);
 static uint32_t identifyTimerCount = 0;
+static struct pwm_output_cfg cfg;
 
 /* Function Declarations */
 static void CommonDeviceEventHandler(const chip::DeviceLayer::ChipDeviceEvent * event, intptr_t arg);
 
+static void SetPWMdutyCycle(uint8_t dutycycle)
+{
+    cfg.duty_cycle = dutycycle;
+    pwm_output_cfg_set(&cfg);
+}
 
+/* The Toggle API is used to control LED for Identify Cluster Commands. */
 static void Toggle(EndpointId endpointId )
 {
     bool value;
     chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpointId , &value);
     if(value)
     {
-        os_gpio_clr_pin(1 << LED_PIN);
+        SetPWMdutyCycle(0);
         chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, false);
     }
     else
     {
-        os_gpio_set_pin(1 << LED_PIN);
+        SetPWMdutyCycle(100);
         chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, true);
     }
-
 }
 
 static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
@@ -121,7 +125,140 @@ exit:
     return;
 }
 
+static void ConfigurePWM(void)
+{
+    /* Set the default port to operate with 0% duty cycle. */
+    cfg = { .port = 0, .duty_cycle = 0 };
 
+    /* Set PWM_PIN as pwm */
+    os_gpio_request(PWM_PIN);
+
+    /* Set the operational mode of the pins to FUNCTION, as PWM will
+     * operate them instead of the default GPIO block. */
+    os_gpio_set_mode(PWM_PIN, GPIO_FUNCTION_MODE);
+
+    /* Re-route the default pin to the selected pin. */
+    os_gpio_mux_sel(GPIO_MUX_SEL_PWM_0, PWM_PIN);
+
+    /* Create a 1000ns (1Mhz) long PWM signal */
+    pwm_enable(PWM_PERIOD);
+
+    /* Configure the channel to be enabled */
+    if (pwm_channel_cfg_set(0, PWM_CTRL_ENABLE)) {
+        ChipLogError(AppServer, "Failed to enable PWM channel 0!\n");
+    }
+}
+
+static void SetBrightnessLevel(uint8_t value)
+{
+    /* Brightness level value received from user will be in rage of [0, 254] as per matter spec.
+     * Converting [0, 254] range to [0, 100] as PWM duty cycle accepts between 0 to 100 percent. */
+
+    float actual_brightness = value;
+    uint8_t brightness = ceil(actual_brightness * 100 / 254);
+
+    /* Setting Brightness Level of light using PWM dutycycle. */
+    if (brightness >= 0 && brightness <= 100)
+    {
+	    ChipLogProgress(AppServer, "Setting Brightness Level to :%d", value);
+	    SetPWMdutyCycle(brightness);
+    }
+}
+
+static void SetColor(uint8_t hue, uint8_t saturation)
+{
+    ChipLogProgress(AppServer, "Color Control command received, hue: %d, saturation:%d", hue, saturation);
+
+    /* PlaceHolder: To call vendor-specific APIs to handle color control commands. */
+
+}
+
+static void UpdateCurrentOccupancyStatus(intptr_t arg)
+{
+    bool OccupancyStatus = false;
+
+    /* PlaceHolder: To call vendor-specific API to get the current occupency status
+     * from occupancy sensor inplace of Random function.
+     * Return status as true if occupied or false if not occupied. */
+
+    OccupancyStatus = rand() % 2;
+    if (OccupancyStatus)
+	    OccupancySensing::Attributes::Occupancy::Set(1, OccupancyBitmap::kOccupied);
+    else
+	    OccupancySensing::Attributes::Occupancy::Set(1, 0);
+}
+
+static void OnLevelControlAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    bool onoff_value;
+    chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpointId , &onoff_value);
+    if (attributeId == LevelControl::Attributes::CurrentLevel::Id && onoff_value == true)
+    {
+	    SetBrightnessLevel(*value);
+    }
+}
+
+static void OnColorControlAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    uint8_t hue, saturation;
+
+    if (attributeId == ColorControl::Attributes::CurrentHue::Id)
+    {
+	    hue = *value;
+            ColorControl::Attributes::CurrentSaturation::Get(endpointId, &saturation);
+            SetColor(hue, saturation);
+    }
+    if (attributeId == ColorControl::Attributes::CurrentSaturation::Id)
+    {
+	    saturation = *value;
+            ColorControl::Attributes::CurrentHue::Get(endpointId, &hue);
+            SetColor(hue, saturation);
+    }
+}
+
+static void OnOccupancySensingAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    if (attributeId == OccupancySensing::Attributes::Occupancy::Id)
+    {
+	    if (*value)
+	    {
+		    ChipLogProgress(AppServer, "OccupancySensing status: Occupancy detected");
+	    }
+	    else
+	    {
+		    ChipLogProgress(AppServer, "OccupancySensing status: Occupancy not detected");
+	    }
+    }
+}
+
+/* occupancy sensing values are polling-based. Depending on the sensor type,
+ * implementation needs to be changed to interrupt-based sensing.*/
+static void vTimerCallback_Occupancy_Status(TimerHandle_t xTimer)
+{
+    DeviceLayer::PlatformMgr().ScheduleWork(UpdateCurrentOccupancyStatus, reinterpret_cast<intptr_t>(nullptr));
+}
+
+int SoftwareTimer_Init()
+{
+    static TimerHandle_t xTimer = NULL;
+
+    if (xTimer != NULL)
+            return 0;
+
+    xTimer = xTimerCreate("Occupancy_sensor_timer", pdMS_TO_TICKS(OCCUPANCY_SENSOR_PERIODIC_TIME_OUT_MS),
+                          pdTRUE, (void *) 0, vTimerCallback_Occupancy_Status);
+    if (xTimer == NULL)
+    {
+            ChipLogError(AppServer, "Occupancy_sensor_timer creation failed");
+            return -1;
+    }
+    if (xTimerStart(xTimer, 0) != pdPASS)
+    {
+            ChipLogError(AppServer, "Occupancy_sensor_timer start failed");
+            return -1;
+    }
+    return 0;
+}
 
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,
                                         uint16_t size, uint8_t * value)
@@ -144,19 +281,29 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
 
         if (*value == 1)
         {
-            os_gpio_set_pin(1 << LED_PIN);
+	     /* LevelControl cluster command will be triggered, where we will be setting the brightness of the LED */
         }
         else
         {
-            os_gpio_clr_pin(1 << LED_PIN);
+	     SetPWMdutyCycle(0);
         }
         break;
     case app::Clusters::Identify::Id:
         OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
         break;
-
+    case app::Clusters::LevelControl::Id:
+        VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+        OnLevelControlAttributeChangeCallback(endpointId, attributeId, value);
+        break;
+    case app::Clusters::ColorControl::Id:
+        VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+        OnColorControlAttributeChangeCallback(endpointId, attributeId, value);
+        break;
+    case app::Clusters::OccupancySensing::Id:
+        VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+        OnOccupancySensingAttributeChangeCallback(endpointId, attributeId, value);
+        break;
     default:
-        // ChipLogDetail(AppServer, "Unhandled cluster ID: %" PRIu32, clusterId);
         break;
     }
 
@@ -202,6 +349,13 @@ void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
     chip::app::Clusters::Identify::Attributes::IdentifyType::Set(endpoint, chip::app::Clusters::Identify::IdentifyTypeEnum::kLightOutput);
     chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpoint, 0);
     ChipLogDetail(AppServer, "emberAfIdentifyClusterInitCallback");
+}
+
+void emberAfOccupancySensingClusterInitCallback(EndpointId endpoint)
+{
+    /* Initialize Occupancy Sensor type as PIR sensor. */
+    OccupancySensing::Attributes::OccupancySensorTypeBitmap::Set(endpoint, OccupancySensorTypeBitmap::kPir);
+    ChipLogDetail(AppServer, "emberAfOccupancySensingClusterInitCallback");
 }
 
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & path, uint8_t type, uint16_t size, uint8_t * value)
@@ -271,10 +425,7 @@ int main(void)
 
     talariautils::ApplicationInitLog("matter lighting app");
     talariautils::EnableSuspend();
-    int led_pin = 1 << LED_PIN;
-    os_gpio_request(led_pin);
-    os_gpio_set_output(led_pin);
-    os_gpio_clr_pin(led_pin);
+    ConfigurePWM();
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 

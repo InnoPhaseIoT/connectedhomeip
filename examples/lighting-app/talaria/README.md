@@ -99,3 +99,52 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> identify read identify-type 1111 1 # To know the identify-type our case it is light output
           >>> identify write identify-time <seconds-to-blink> 1111 1 # This command is used to blink led to identify itself for <senonds-to-blink> seconds
 	  >>> identify read identify-time 1111 1 # This command is used to know the seconds left to blink the led. 
+
+
+#### Level Control Commands:
+
+
+          ## Command to set the brightness level without transition
+          >>> levelcontrol move-to-level <Level> <TransitionTime> <OptionsMask> <OptionsOverride> <destination-id> <endpoint-id>
+          e.g. levelcontrol move-to-level 100 0 1 1 1111 1
+          ## Command to set the brightness level with on-off command
+          >>> levelcontrol move-to-level-with-on-off <Level> <TransitionTime> <OptionsMask> <OptionsOverride> <destination-id> <endpoint-id>
+          e.g. levelcontrol move-to-level-with-on-off 100 0 1 1 1111 1
+          ## Command to read the current level
+          >>> levelcontrol read <attribute-name> <destination-id> <endpoint-id>
+          e.g. levelcontrol read current-level 1111 1
+          ## Command to subscribe for current level
+          >>> levelcontrol subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
+          e.g. levelcontrol subscribe current-level 5 10 1111 1
+
+
+#### Color Control Commands:
+
+
+          ## Command to set the hue level
+          >>> colorcontrol move-to-hue <Hue> <Direction TransitionTime> <OptionsMask> <OptionsOverride> <destination-id> <endpoint-id>
+          e.g. colorcontrol move-to-hue 40 1 1 1 1 1111 1
+          ## Command to set the saturation level
+          >>> colorcontrol move-to-saturation <Saturation> <TransitionTime> <OptionsMask> <OptionsOverride>  <destination-id> <endpoint-id>
+          e.g. colorcontrol move-to-saturation 60 1 1 1 1111 1
+           ## Command to set both hue and saturation levels
+          >>> colorcontrol move-to-hue-and-saturation <Hue> <Saturation> <TransitionTime> <OptionsMask> <OptionsOverride>  <destination-id> <endpoint-id>
+          e.g. colorcontrol move-to-hue-and-saturation 40 60 1 1 1 1111 1
+          ## Command to read the current hue/saturaion
+          >>> colorcontrol read <attribute-name> <destination-id> <endpoint-id>
+          e.g. colorcontrol read current-hue 1111 1
+          e.g. colorcontrol read current-saturation 1111 1
+          ## Command to subscribe for current hue/saturaion
+          >>> colorcontrol subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
+          e.g. colorcontrol subscribe current-hue 5 10 1111 1
+          e.g. colorcontrol subscribe current-saturation 5 10 1111 1
+
+#### Occupancy-Sensor Commands:
+
+
+          ## Command to read the current occupancy status
+          >>> occupancysensing read <attribute-name> <destination-id> <endpoint-id>
+          e.g. occupancysensing read occupancy 1111 1
+          ## Command to subscribe for current occupancy status
+          >>> occupancysensing subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
+          e.g. occupancysensing subscribe occupancy 5 10 1111 1
