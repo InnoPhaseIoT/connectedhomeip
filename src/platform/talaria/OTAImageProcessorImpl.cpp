@@ -178,7 +178,6 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
         imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
         return;
     }
-    vTaskDelay(500);
 #else
     err = ota_perform_matter(imageProcessor->mOTAUpdateHandle, imageProcessor->mOTAfwinfo, imageProcessor->mParams.totalFileBytes);
     if (err != 0)
