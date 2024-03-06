@@ -84,6 +84,8 @@ static_library("talaria") {
     "PlatformManagerImpl.h",
     "SystemPlatformConfig.h",
     "SystemTimeSupport.cpp",
+    "FactoryDataProvider.cpp",
+    "FactoryDataProvider.h",
   ]
 
   defines = [

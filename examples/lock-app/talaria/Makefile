@@ -20,6 +20,9 @@ TARGET_ENC := $(TARGET).enc
 ENCRYPT_SECTIONS := text data
 ENCRYPT_FILES := $(foreach sect,$(ENCRYPT_SECTIONS),$(sect).bin $(sect).enc.bin)
 endif
+FACTORY_DATA_PROVIDER ?= false
+DEVICE_INSTANCE_INFO_PROVIDER ?= false
+CHIP_ENABLE_OTA_STORAGE_ON_HOST ?= false
 
 CFLAGS += -I$(COMPONENTS_DIR)
 
@@ -49,12 +52,8 @@ $(TARGET_STRIP): $(OUT_DIR)/build.ninja FORCE
 	ninja -C $(OUT_DIR) -j 4
 
 $(OUT_DIR)/build.ninja:
+	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_ota_storage_on_host=$(CHIP_ENABLE_OTA_STORAGE_ON_HOST) config_enable_talaria_factory_data_provider=$(FACTORY_DATA_PROVIDER) config_enable_talaria_device_instance_info_provider=$(DEVICE_INSTANCE_INFO_PROVIDER)"
 
-ifdef CHIP_ENABLE_OTA_STORAGE_ON_HOST
-	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_ota_storage_on_host=$(CHIP_ENABLE_OTA_STORAGE_ON_HOST)"
-else
-	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_ota_storage_on_host=false"
-endif
 ifdef KEY
 	$(info KEY=$(KEY))
 endif

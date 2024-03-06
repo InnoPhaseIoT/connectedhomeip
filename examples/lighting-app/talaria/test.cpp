@@ -40,21 +40,21 @@ filesystem_util_mount_data_if(const char* path);
 #include <platform/PlatformManager.h>
 #include <lib/core/CHIPError.h>
 #include <lib/support/CHIPMem.h>
-// #include <lib/support/CodeUtils.h>
 #include <lib/support/UnitTestRegistration.h>
-// #include <DeviceInfoProviderImpl.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/server/Server.h>
 #include <platform/CommissionableDataProvider.h>
 #include <platform/DeviceInstanceInfoProvider.h>
 #include <credentials/DeviceAttestationCredsProvider.h>
 #include <credentials/examples/DeviceAttestationCredsExample.h>
+#include <platform/talaria/FactoryDataProvider.h>
 #include <platform/talaria/NetworkCommissioningDriver.h>
 #include <platform/talaria/TalariaUtils.h>
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
+#include <CHIPProjectAppConfig.h>
 
 #include <app/clusters/ota-requestor/BDXDownloader.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestor.h>
@@ -82,6 +82,9 @@ constexpr uint16_t requestedOtaBlockSize = MATTER_OTA_ALLOWED_BLOCKSIZE;
 constexpr chip::EndpointId kNetworkCommissioningEndpointWiFi = 0;
 chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
+#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
+DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
+#endif
 
 namespace chip {
 namespace Shell {
@@ -215,7 +218,11 @@ void InitOTARequestor(void)
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
+#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
+    return &sFactoryDataProvider;
+#else
     return chip::Credentials::Examples::GetExampleDACProvider();
+#endif
 }
 
 void app_test()
@@ -244,6 +251,12 @@ void app_test()
     CommissioningInterface::Init(GetCommissioningParam(param));
 
     Credentials::SetDeviceAttestationCredentialsProvider(get_dac_provider());
+#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
+    SetCommissionableDataProvider(&sFactoryDataProvider);
+#if CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER
+    SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
+#endif
+#endif
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 
