@@ -20,6 +20,7 @@
 
 #include <platform/CHIPDeviceConfig.h>
 #include <platform/ConnectivityManager.h>
+#include <inet/InetBuildConfig.h>
 
 #include <platform/internal/GenericConnectivityManagerImpl.h>
 #include <platform/internal/GenericConnectivityManagerImpl_UDP.h>
@@ -98,6 +99,9 @@ class ConnectivityManagerImpl final : public ConnectivityManager,
                                       public Internal::GenericConnectivityManagerImpl_WiFi<ConnectivityManagerImpl>,
                                       public Internal::GenericConnectivityManagerImpl_NoThread<ConnectivityManagerImpl>,
                                       public Internal::GenericConnectivityManagerImpl_UDP<ConnectivityManagerImpl>,
+#if INET_CONFIG_ENABLE_TCP_ENDPOINT
+                                      public Internal::GenericConnectivityManagerImpl_TCP<ConnectivityManagerImpl>,
+#endif
                                       public Internal::GenericConnectivityManagerImpl_BLE<ConnectivityManagerImpl>
 {
     // Allow the ConnectivityManager interface class to delegate method calls to

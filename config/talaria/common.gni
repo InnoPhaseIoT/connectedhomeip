@@ -42,7 +42,7 @@ declare_args() {
   chip_external_mbedtls = true
   optimize_for_size = true
   chip_system_config_freertos_locking=true
-  chip_inet_config_enable_tcp_endpoint = false
+  chip_inet_config_enable_tcp_endpoint = true
   chip_inet_config_enable_udp_endpoint = true
   chip_inet_config_enable_ipv4 = false
   chip_config_enable_arg_parser = false

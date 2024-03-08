@@ -17,6 +17,7 @@
  */
 
 #include <platform/internal/CHIPDeviceLayerInternal.h>
+#include <inet/InetBuildConfig.h>
 
 #include <system/SystemClock.h>
 
@@ -24,6 +25,9 @@
 #include <platform/talaria/ConnectivityManagerImpl.h>
 
 #include <platform/internal/GenericConnectivityManagerImpl_UDP.ipp>
+#if INET_CONFIG_ENABLE_TCP_ENDPOINT
+#include <platform/internal/GenericConnectivityManagerImpl_TCP.ipp>
+#endif
 #include <platform/internal/GenericConnectivityManagerImpl_BLE.ipp>
 #include <platform/internal/BLEManager.h>
 
