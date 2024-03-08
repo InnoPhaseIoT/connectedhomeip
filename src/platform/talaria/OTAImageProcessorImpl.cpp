@@ -184,6 +184,9 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
         imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+        ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+        imageProcessor->mOTAUpdateHandle = NULL;
+        imageProcessor->mHeaderParser.Clear();
         return;
     }
 #endif
@@ -199,6 +202,8 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
         ChipLogError(SoftwareUpdate, "ImageProcessor context is null");
         return;
     }
+    if (imageProcessor->mOTAUpdateHandle == NULL)
+        return;
 
     /* fota commit.  This will reset the system */
     if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
