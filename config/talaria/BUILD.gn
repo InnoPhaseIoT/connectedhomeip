@@ -70,7 +70,6 @@ config("ldflags") {
     "${chip_root}/third_party/talaria/repo/freertos_sdk/components",
     "${chip_root}/third_party/talaria/repo/freertos_sdk/libs/arm",
     "${chip_root}/third_party/talaria/repo/freertos_sdk/build",
-    "${chip_root}/examples/lighting-app/talaria/out/test/lib",
   ]
 
   libs = [
