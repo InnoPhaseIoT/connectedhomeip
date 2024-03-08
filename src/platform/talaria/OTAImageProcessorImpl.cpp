@@ -39,7 +39,7 @@ extern "C" {
 // /*fota code end*/
 
 int ext_flash_en = 0;
-char *fw_name = "matter_lighting_app";
+char *fw_name;
 char *fw_hash;
 
 using namespace ::chip::DeviceLayer::Internal;
@@ -218,6 +218,16 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
     matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_ANNOUNCE_OTAPROVIDER, 0, NULL);
 #endif
+}
+
+void OTAImageProcessorImpl::ota_get_firmware_name(char *str)
+{
+    if (str == NULL) {
+        ChipLogError(SoftwareUpdate, "APP NAME is null");
+        return;
+    }
+
+    fw_name = str;
 }
 
 CHIP_ERROR OTAImageProcessorImpl::SetBlock(ByteSpan & block)

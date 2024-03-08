@@ -76,6 +76,7 @@ using namespace chip::talaria::DeviceCommissioning;
 
 #define USER_INTENDED_COMMISSIONING_TRIGGER_GPIO 3;
 #define MATTER_OTA_ALLOWED_BLOCKSIZE 4096;
+char *app_name = "matter_lighting_app";
 
 constexpr uint16_t requestedOtaBlockSize = MATTER_OTA_ALLOWED_BLOCKSIZE;
 
@@ -209,6 +210,7 @@ void InitOTARequestor(void)
         gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
         gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
         gImageProcessor.SetOTADownloader(&gDownloader);
+        gImageProcessor.ota_get_firmware_name(app_name);
         gDownloader.SetImageProcessorDelegate(&gImageProcessor);
         gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
     }
