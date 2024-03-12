@@ -182,6 +182,19 @@ exit:
 void emberAfOnOffClusterInitCallback(EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfOnOffClusterInitCallback");
+    /* OnOff value is stored in persistant storage hence we retrive,
+       from it and setting the value of the LED in T2 Device.
+    */
+    bool value;
+    chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpoint, &value);
+    if( value )
+    {
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpoint, true);
+    }
+    else
+    {
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpoint, false);
+    }
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
