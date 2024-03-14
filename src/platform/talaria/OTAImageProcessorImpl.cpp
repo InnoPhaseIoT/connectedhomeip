@@ -31,8 +31,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <hio/matter.h>
-#include <hio/matter_hio.h>
+#include "hio/matter.h"
+#include "hio/matter_hio.h"
 #ifdef __cplusplus
 }
 #endif

@@ -28,8 +28,8 @@ extern "C" {
 #include <kernel/gpio.h>
 #include <talaria_two.h>
 // #include <stw_multi_proto/matter_hio.h>
-#include "hio/matter.h"
-#include "hio/matter_hio.h"
+#include <hio/matter.h>
+#include <hio/matter_hio.h>
 #include <talaria_two.h>
 
 void print_faults();

@@ -19,7 +19,6 @@ executable("lock-app.elf") {
   sources = [
     "custom_msg_exchange_group.c",
     "custom_msg_exchange_group.h",
-    "hio/matter_hio.c",
     "main.cpp",
     "test.cpp",
   ]
@@ -32,6 +31,7 @@ executable("lock-app.elf") {
 
   include_dirs = [ 
     "${chip_root}/examples/platform/talaria",
+    "${chip_root}/src/platform/talaria",
   ]
 
   output_dir = root_out_dir

@@ -86,6 +86,9 @@ static_library("talaria") {
     "SystemTimeSupport.cpp",
     "FactoryDataProvider.cpp",
     "FactoryDataProvider.h",
+    "hio/matter_hio.c",
+    "hio/matter_hio.h",
+    "hio/matter.h",
   ]
 
   defines = [
@@ -136,7 +139,7 @@ static_library("talaria") {
 
   include_dirs = [
     "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
-    "${chip_root}/examples/lock-app/talaria",
+    "${chip_root}/examples/platform/talaria",
   ]
 
   deps = [ "${chip_root}/src/setup_payload" ]
