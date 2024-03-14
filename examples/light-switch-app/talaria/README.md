@@ -32,6 +32,19 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
     0: Disable suspend (Default)
     1: Enable suspend
 
+-   `matter.enable_factory_data_provider=<value>`
+
+    To enable usage of generated certificates. Make sure the certificates are pushed in the data partition. For more information on certificate generate refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses chip example certificate (Default)
+    1: Uses configured generated certificates
+
+-   `matter.enable_device_instance_info_provider=<value>`
+
+    To enable configuration of vendor-id and product-id etc. through filesystem. This option will have effect only if matter.enable_factory_data_provider boot argument value is set to 1.
+    To generate the data parition content refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses default vendor-id and product-id details (Default)
+    1: Uses configured vendor-id and product-id details
+
 -   `matter.factory_reset=<value>`
 
     To enable/disable the flow for factory resetting the device.

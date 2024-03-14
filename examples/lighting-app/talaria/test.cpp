@@ -82,9 +82,7 @@ constexpr uint16_t requestedOtaBlockSize = MATTER_OTA_ALLOWED_BLOCKSIZE;
 constexpr chip::EndpointId kNetworkCommissioningEndpointWiFi = 0;
 chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
-#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
 DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
-#endif
 
 namespace chip {
 namespace Shell {
@@ -218,11 +216,12 @@ void InitOTARequestor(void)
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
-#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
-    return &sFactoryDataProvider;
-#else
-    return chip::Credentials::Examples::GetExampleDACProvider();
-#endif
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        return &sFactoryDataProvider;
+    } else {
+        return chip::Credentials::Examples::GetExampleDACProvider();
+    }
 }
 
 void app_test()
@@ -251,12 +250,16 @@ void app_test()
     CommissioningInterface::Init(GetCommissioningParam(param));
 
     Credentials::SetDeviceAttestationCredentialsProvider(get_dac_provider());
-#if CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
-    SetCommissionableDataProvider(&sFactoryDataProvider);
-#if CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER
-    SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
-#endif
-#endif
+
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    int enable_device_instance_info_provider = os_get_boot_arg_int("matter.enable_device_instance_info_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        SetCommissionableDataProvider(&sFactoryDataProvider);
+        if (enable_device_instance_info_provider == 1) {
+            SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
+        }
+    }
+
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 
