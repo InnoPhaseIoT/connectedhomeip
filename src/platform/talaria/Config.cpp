@@ -91,18 +91,9 @@ const TalariaConfig::Key TalariaConfig::kConfigKey_PairedAccountId    = { kConfi
 const TalariaConfig::Key TalariaConfig::kConfigKey_ServiceId          = { kConfigNamespace_ChipConfig, "service-id" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_LastUsedEpochKeyId = { kConfigNamespace_ChipConfig, "last-ek-id" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_FailSafeArmed      = { kConfigNamespace_ChipConfig, "fail-safe-armed" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_WiFiStationSecType = { kConfigNamespace_ChipConfig, "sta-sec-type" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_RegulatoryLocation = { kConfigNamespace_ChipConfig, "reg-location" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_CountryCode        = { kConfigNamespace_ChipConfig, "country-code" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_UniqueId           = { kConfigNamespace_ChipConfig, "unique-id" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_LockUser           = { kConfigNamespace_ChipConfig, "lock-user" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_Credential         = { kConfigNamespace_ChipConfig, "credential" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_LockUserName       = { kConfigNamespace_ChipConfig, "lock-user-name" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_CredentialData     = { kConfigNamespace_ChipConfig, "credential-data" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_UserCredentials    = { kConfigNamespace_ChipConfig, "user-credential" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_WeekDaySchedules   = { kConfigNamespace_ChipConfig, "week-day-sched" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_YearDaySchedules   = { kConfigNamespace_ChipConfig, "year-day-sched" };
-const TalariaConfig::Key TalariaConfig::kConfigKey_HolidaySchedules   = { kConfigNamespace_ChipConfig, "holiday-sched" };
 
 // Keys stored in the Chip-counters namespace
 const TalariaConfig::Key TalariaConfig::kCounterKey_RebootCount           = { kConfigNamespace_ChipCounters, "reboot-count" };
@@ -338,6 +329,28 @@ CHIP_ERROR TalariaConfig::ClearConfigValue(Key key)
 bool TalariaConfig::ConfigValueExists(Key key)
 {
     return ConfigExistsInFS(key);
+}
+
+void TalariaConfig::FactoryDefaultConfigCotunters()
+{
+    CHIP_ERROR err = CHIP_NO_ERROR;
+
+    /* Set of Config and Counters to be removed at the time of Setting Factory Defaults */
+    const Key *clear_key_set[] = { &kConfigKey_ServiceConfig, &kConfigKey_PairedAccountId, &kConfigKey_ServiceId,
+                                  &kConfigKey_LastUsedEpochKeyId, &kConfigKey_FailSafeArmed, &kConfigKey_RegulatoryLocation,
+                                  &kConfigKey_CountryCode, &kConfigKey_UniqueId, &kCounterKey_UpTime,
+                                  &kCounterKey_TotalOperationalHours, &kCounterKey_BootReason };
+    for (int i = 0; i < sizeof(clear_key_set) / sizeof(clear_key_set[0]); i++) {
+        err = ClearConfigValue(*clear_key_set[i]);
+        if (err != CHIP_NO_ERROR) {
+            ChipLogDetail(DeviceLayer, "Failed to clear %s", clear_key_set[i].Name);
+        }
+    }
+
+    err = WriteConfigValue(kCounterKey_RebootCount, (uint16_t) 0);
+    if (err != CHIP_NO_ERROR) {
+        ChipLogDetail(DeviceLayer, "Failed to reset %s", kCounterKey_RebootCount.Name);
+    }
 }
 
 // void TalariaConfig::RunConfigUnitTest() {}

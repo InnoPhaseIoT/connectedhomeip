@@ -545,9 +545,9 @@ int main(void)
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1)
+    if (FactoryReset == 1 || FactoryReset == 2)
     {
-        talariautils::FactoryReset();
+        talariautils::FactoryReset(FactoryReset);
 
         /* Factory Reset the host side data as well */
         struct dl_set_get_user setUser;

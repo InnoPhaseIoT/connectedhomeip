@@ -36,7 +36,8 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
     To enable/disable the flow for factory resetting the device.
     0: Disable Factory Reset (Default)
-    1: Enable factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
+    1: Reset to Factory Defaults (e.g. chip-counters and chip-config content will be reset)
+    2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
        Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
 
 -   `hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000`

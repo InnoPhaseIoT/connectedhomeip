@@ -8,7 +8,7 @@ namespace talariautils {
 void ApplicationInitLog(char * str);
 void HeapAvailableLog();
 void EnableSuspend();
-void FactoryReset();
+void FactoryReset(int factory_reset_level);
 
 } // namespace talariautils
 
