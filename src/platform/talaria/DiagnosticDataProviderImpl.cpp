@@ -139,7 +139,8 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetTotalOperationalHours(uint32_t & total
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetBootReason(BootReasonType & bootReason)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    bootReason = BootReasonType::kUnspecified;
+    return CHIP_NO_ERROR;
 #if 0 /* os_get_reset_reason() not implemented in current sdk */
     bootReason = BootReasonType::kUnspecified;
     uint32_t reason;
