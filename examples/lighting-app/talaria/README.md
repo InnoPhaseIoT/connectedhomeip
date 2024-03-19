@@ -12,7 +12,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
-          $ make
+          $ make EXT_FLASH=true
 
 -   To delete generated executable, libraries and object files use:
 
