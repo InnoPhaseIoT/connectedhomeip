@@ -51,6 +51,7 @@ extern "C" {
 #include <app/server/OnboardingCodesUtil.h>
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
+#include <platform/talaria/FactoryDataProvider.h>
 #include "LightSwitch_ProjecConfig.h"
 
 #define os_avail_heap xPortGetFreeHeapSize

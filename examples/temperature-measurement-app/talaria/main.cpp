@@ -179,10 +179,11 @@ int main(void)
 {
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1)
+    if (FactoryReset == 1 || FactoryReset == 2)
     {
-        talariautils::FactoryReset();
-        vTaskSuspend(NULL);
+        talariautils::FactoryReset(FactoryReset);
+        while (1)
+            vTaskDelay(100000);
     }
 #ifdef UNIT_TEST
     run_unit_test();
