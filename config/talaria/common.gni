@@ -54,6 +54,7 @@ declare_args() {
   chip_error_logging = true
   chip_detail_logging = false
   chip_progress_logging = true
+  chip_automation_logging = false
 
   # config_device_layer
   # chip_build_tests
