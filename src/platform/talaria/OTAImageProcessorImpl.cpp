@@ -139,8 +139,9 @@ void OTAImageProcessorImpl::HandleAbort(intptr_t context)
     ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->ReleaseBlock();
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     free(fw_hash);
-
+#endif
 }
 
 void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
@@ -204,7 +205,7 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     }
     if (imageProcessor->mOTAUpdateHandle == NULL)
         return;
-
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     /* fota commit.  This will reset the system */
     if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
         ChipLogError(SoftwareUpdate,"[APP]Error: FOTA commit failed");
@@ -212,6 +213,7 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     }
     /* Deinitialize fota */
     ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+#endif
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->mHeaderParser.Clear();
     ChipLogProgress(SoftwareUpdate, "Commit Done!. de-init OTA");
@@ -270,6 +272,7 @@ CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
         // Need more data to decode the header
         ReturnErrorCodeIf(error == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_NO_ERROR);
         ReturnErrorOnFailure(error);
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
         fw_hash = pvPortMalloc(header.mImageDigest.size());
         if (fw_hash == NULL) {
 		    free(fw_hash);
@@ -280,6 +283,7 @@ CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
         mOTAfwinfo.hash_len = static_cast<decltype(mOTAfwinfo.hash_len)>(header.mImageDigest.size());
         mOTAfwinfo.hash_str = fw_hash;
         mOTAfwinfo.fw_name = fw_name;
+#endif
         ChipLogProgress(SoftwareUpdate, "Image Header software version: %d payload size: %lu", header.mSoftwareVersion,
                         (long unsigned int) header.mPayloadSize);
         mParams.totalFileBytes = header.mPayloadSize;
