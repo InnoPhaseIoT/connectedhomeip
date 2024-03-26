@@ -92,6 +92,7 @@ bool CommissioningFlowTypeHost = false;
 static void InitOTARequestor();
 
 constexpr uint16_t requestedOtaBlockSize = 4096;
+char *app_name = "matter_lock_app";
 
 namespace chip {
 namespace Shell {
@@ -152,6 +153,7 @@ void InitOTARequestor(void)
         gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
         gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
         gImageProcessor.SetOTADownloader(&gDownloader);
+        gImageProcessor.ota_get_firmware_name(app_name);
         gDownloader.SetImageProcessorDelegate(&gImageProcessor);
         gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
     }
