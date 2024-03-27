@@ -71,7 +71,13 @@ void FactoryReset(int factory_reset_level)
     if (factory_reset_level == 2) {
         chip::Server::GetInstance().ScheduleFactoryReset();
     }
-
+    /*
+       Wait Until the FacbricCount becomes 0, so that the data is deleted completely
+     */
+    while(chip::talaria::matterutils::FabricCount() != 0)
+    {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
     os_printf("\n%s is completed ...........", (factory_reset_level == 1)? "Factory Default": "Full Factory Reset");
     os_printf("\nProgram T2 elf without FactoryReset to commission the device \n");
     os_printf("\n*******************************");
