@@ -15,6 +15,7 @@
 import("//build_overrides/build.gni")
 import("//build_overrides/chip.gni")
 import("//build_overrides/nlassert.gni")
+import("//out/test/args.gn")
 
 import("${build_root}/config/linux/pkg_config.gni")
 
@@ -40,6 +41,9 @@ if (chip_mdns == "platform") {
 
 declare_args() {
   # chip_project_config_include_dirs += ""
+  chip_enable_secureboot = false
+  chip_enable_ota_storage_on_host = false
+  chip_enable_ext_flash = false
 }
 
 config("system_config") {
@@ -80,6 +84,11 @@ static_library("talaria") {
     "PlatformManagerImpl.h",
     "SystemPlatformConfig.h",
     "SystemTimeSupport.cpp",
+    "FactoryDataProvider.cpp",
+    "FactoryDataProvider.h",
+    "hio/matter_hio.c",
+    "hio/matter_hio.h",
+    "hio/matter.h",
   ]
 
   defines = [
@@ -114,7 +123,10 @@ static_library("talaria") {
   cflags += [ "-fdiagnostics-color" ]
 
   defines +=
-      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>" ]
+      [ "INET_UDP_END_POINT_IMPL_CONFIG_FILE=<inet/UDPEndPointImplLwIP.h>",
+        "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
+        "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}",
+        "CHIP_ENABLE_EXT_FLASH=${chip_enable_ext_flash}", ]
 
 
   if (!chip_use_external_logging) {
@@ -127,6 +139,7 @@ static_library("talaria") {
 
   include_dirs = [
     "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
+    "${chip_root}/examples/platform/talaria",
   ]
 
   deps = [ "${chip_root}/src/setup_payload" ]

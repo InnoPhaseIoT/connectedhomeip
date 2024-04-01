@@ -40,23 +40,29 @@ filesystem_util_mount_data_if(const char* path);
 #include <platform/PlatformManager.h>
 #include <lib/core/CHIPError.h>
 #include <lib/support/CHIPMem.h>
-// #include <lib/support/CodeUtils.h>
 #include <lib/support/UnitTestRegistration.h>
-// #include <DeviceInfoProviderImpl.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/server/Server.h>
 #include <platform/CommissionableDataProvider.h>
 #include <platform/DeviceInstanceInfoProvider.h>
 #include <credentials/DeviceAttestationCredsProvider.h>
 #include <credentials/examples/DeviceAttestationCredsExample.h>
+#include <platform/talaria/FactoryDataProvider.h>
 #include <platform/talaria/NetworkCommissioningDriver.h>
 #include <platform/talaria/TalariaUtils.h>
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
+#include <CHIPProjectAppConfig.h>
 
-#define USER_INTENDED_COMMISSIONING_TRIGGER_GPIO 3;
+#include <app/clusters/ota-requestor/BDXDownloader.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestor.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestorStorage.h>
+#include <app/clusters/ota-requestor/ExtendedOTARequestorDriver.h>
+#include <platform/talaria/OTAImageProcessorImpl.h>
+#include <system/SystemEvent.h>
+#include <app/clusters/ota-requestor/DefaultOTARequestorUserConsent.h>
 
 using namespace chip;
 using namespace chip::Platform;
@@ -68,12 +74,74 @@ using namespace chip::DeviceLayer;
 using namespace chip::talaria;
 using namespace chip::talaria::DeviceCommissioning;
 
+#define USER_INTENDED_COMMISSIONING_TRIGGER_GPIO 3;
+#define MATTER_OTA_ALLOWED_BLOCKSIZE 4096;
+char *app_name = "matter_lighting_app";
+
+constexpr uint16_t requestedOtaBlockSize = MATTER_OTA_ALLOWED_BLOCKSIZE;
+
 constexpr chip::EndpointId kNetworkCommissioningEndpointWiFi = 0;
 chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
+DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
+
+namespace chip {
+namespace Shell {
+class OTARequestorCommands
+{
+public:
+    // delete the copy constructor
+    OTARequestorCommands(const OTARequestorCommands &) = delete;
+    // delete the move constructor
+    OTARequestorCommands(OTARequestorCommands &&) = delete;
+    // delete the assignment operator
+    OTARequestorCommands & operator=(const OTARequestorCommands &) = delete;
+
+    static OTARequestorCommands & GetInstance()
+    {
+        static OTARequestorCommands instance;
+        return instance;
+    }
+
+    // Register the OTA requestor commands
+    void Register();
+
+private:
+    OTARequestorCommands() {}
+};
+}
+}
+
+
+class CustomOTARequestorDriver : public DeviceLayer::ExtendedOTARequestorDriver
+{
+public:
+    bool CanConsent() override;
+};
+
+
+namespace {
+DefaultOTARequestor gRequestorCore;
+DefaultOTARequestorStorage gRequestorStorage;
+CustomOTARequestorDriver gRequestorUser;
+BDXDownloader gDownloader;
+chip::Optional<bool> gRequestorCanConsent;
+OTAImageProcessorImpl gImageProcessor;
+chip::ota::DefaultOTARequestorUserConsent gUserConsentProvider;
+
+} // namespace
+
+bool CustomOTARequestorDriver::CanConsent()
+{
+    return gRequestorCanConsent.ValueOr(DeviceLayer::ExtendedOTARequestorDriver::CanConsent());
+}
+
 
 // static AppDeviceCallbacks EchoCallbacks;
 static void InitServer(intptr_t context);
+
+// static AppDeviceCallbacks EchoCallbacks;
+static void InitOTARequestor();
 
 CommissioningInterface::CommissioningParam& GetCommissioningParam(CommissioningInterface::CommissioningParam &param)
 {
@@ -133,9 +201,29 @@ void InitServer(intptr_t context)
     }
 }
 
+void InitOTARequestor(void)
+{
+    if (!GetRequestorInstance())
+    {
+        SetRequestorInstance(&gRequestorCore);
+        gRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
+        gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
+        gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
+        gImageProcessor.SetOTADownloader(&gDownloader);
+        gImageProcessor.ota_get_firmware_name(app_name);
+        gDownloader.SetImageProcessorDelegate(&gImageProcessor);
+        gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
+    }
+}
+
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
-    return chip::Credentials::Examples::GetExampleDACProvider();
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        return &sFactoryDataProvider;
+    } else {
+        return chip::Credentials::Examples::GetExampleDACProvider();
+    }
 }
 
 void app_test()
@@ -147,7 +235,6 @@ void app_test()
 
     err = DeviceLayer::PlatformMgr().InitChipStack();
     os_printf("\nInitChipStack err %d, %s", err.AsInteger(), err.AsString());
-
 
     //ConnectivityMgr().SetBLEAdvertisingEnabled(true);
     // PlatformMgr().AddEventHandler(CHIPDeviceManager::CommonDeviceEventHandler, reinterpret_cast<intptr_t>(nullptr));
@@ -165,8 +252,22 @@ void app_test()
     CommissioningInterface::Init(GetCommissioningParam(param));
 
     Credentials::SetDeviceAttestationCredentialsProvider(get_dac_provider());
+
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    int enable_device_instance_info_provider = os_get_boot_arg_int("matter.enable_device_instance_info_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        SetCommissionableDataProvider(&sFactoryDataProvider);
+        if (enable_device_instance_info_provider == 1) {
+            SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
+        }
+    }
+
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+
+    err = chip::DeviceLayer::PlatformMgrImpl().AddEventHandler(InitOTARequestor, reinterpret_cast<intptr_t>(nullptr));
+    os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+
 }
 
 /*-----------------------------------------------------------*/

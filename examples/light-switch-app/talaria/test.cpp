@@ -40,9 +40,7 @@ int filesystem_util_mount_data_if(const char * path);
 #include <lib/support/CHIPMem.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/PlatformManager.h>
-// #include <lib/support/CodeUtils.h>
 #include <lib/support/UnitTestRegistration.h>
-// #include <DeviceInfoProviderImpl.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/server/Server.h>
 #include <credentials/DeviceAttestationCredsProvider.h>
@@ -56,6 +54,7 @@ int filesystem_util_mount_data_if(const char * path);
 #include <app/server/OnboardingCodesUtil.h>
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
+#include <platform/talaria/FactoryDataProvider.h>
 
 #define os_avail_heap xPortGetFreeHeapSize
 
@@ -78,6 +77,7 @@ using namespace chip::talaria::DeviceCommissioning;
 constexpr chip::EndpointId kNetworkCommissioningEndpointWiFi = 0;
 chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
+DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
 
 // static AppDeviceCallbacks EchoCallbacks;
 static void InitServer(intptr_t context);
@@ -145,7 +145,12 @@ void InitServer(intptr_t context)
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
-    return chip::Credentials::Examples::GetExampleDACProvider();
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        return &sFactoryDataProvider;
+    } else {
+        return chip::Credentials::Examples::GetExampleDACProvider();
+    }
 }
 
 void app_test()
@@ -175,6 +180,16 @@ void app_test()
     CommissioningInterface::Init(GetCommissioningParam(param));
 
     Credentials::SetDeviceAttestationCredentialsProvider(get_dac_provider());
+
+    int enable_factory_data_provider = os_get_boot_arg_int("matter.enable_factory_data_provider", 0);
+    int enable_device_instance_info_provider = os_get_boot_arg_int("matter.enable_device_instance_info_provider", 0);
+    if (enable_factory_data_provider == 1) {
+        SetCommissionableDataProvider(&sFactoryDataProvider);
+        if (enable_device_instance_info_provider == 1) {
+            SetDeviceInstanceInfoProvider(&sFactoryDataProvider);
+        }
+    }
+
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 }

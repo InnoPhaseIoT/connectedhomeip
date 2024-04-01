@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("//out/test/args.gn")
 
 executable("on-off-light-app.elf") {
   sources = [
@@ -28,10 +29,20 @@ executable("on-off-light-app.elf") {
 
   include_dirs = [ 
     "${chip_root}/examples/platform/talaria",
+    "${chip_root}/examples/platform/talaria/include",
   ]
 
   output_dir = root_out_dir
   # output_name = "application.elf"
+
+  defines = []
+  if (config_enable_talaria_factory_data_provider == true) {
+    defines += ["CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER=1",]
+  }
+
+  if (config_enable_talaria_device_instance_info_provider == true) {
+    defines += ["CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER=1",]
+  }
 
   ldflags = [  ]
   lib_dirs = [  ]

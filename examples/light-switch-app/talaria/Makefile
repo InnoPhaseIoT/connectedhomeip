@@ -1,4 +1,7 @@
 
+FACTORY_DATA_PROVIDER ?= false
+DEVICE_INSTANCE_INFO_PROVIDER ?= false
+
 all: out/test/build.ninja out/test/light-switch-app.elf
 
 out/test/light-switch-app.elf: FORCE
@@ -9,7 +12,7 @@ out/test/light-switch-app.elf: FORCE
 	cksum out/test/light-switch-app.elf.strip
 
 out/test/build.ninja:
-	gn gen out/test --args="is_debug=false"
+	gn gen out/test --args="is_debug=false config_enable_talaria_factory_data_provider=$(FACTORY_DATA_PROVIDER) config_enable_talaria_device_instance_info_provider=$(DEVICE_INSTANCE_INFO_PROVIDER)"
 
 clean:
 	rm -rf out/

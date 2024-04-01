@@ -130,8 +130,14 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetTotalOperationalHours(uint32_t & total
         {
             VerifyOrReturnError(upTime / 3600 <= UINT32_MAX, CHIP_ERROR_INVALID_INTEGER_VALUE);
             totalOperationalHours = totalHours + static_cast<uint32_t>(upTime / 3600);
-            return CHIP_NO_ERROR;
+            ConfigurationMgr().StoreTotalOperationalHours(totalOperationalHours);
+        } else {
+            /* If the TotalOperationalHours is not found, then write fresh value */
+            VerifyOrReturnError(upTime / 3600 <= UINT32_MAX, CHIP_ERROR_INVALID_INTEGER_VALUE);
+            totalOperationalHours = static_cast<uint32_t>(upTime / 3600);
+            ConfigurationMgr().StoreTotalOperationalHours(totalOperationalHours);
         }
+        return CHIP_NO_ERROR;
     }
 
     return CHIP_ERROR_INVALID_TIME;
@@ -139,7 +145,8 @@ CHIP_ERROR DiagnosticDataProviderImpl::GetTotalOperationalHours(uint32_t & total
 
 CHIP_ERROR DiagnosticDataProviderImpl::GetBootReason(BootReasonType & bootReason)
 {
-    return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    bootReason = BootReasonType::kUnspecified;
+    return CHIP_NO_ERROR;
 #if 0 /* os_get_reset_reason() not implemented in current sdk */
     bootReason = BootReasonType::kUnspecified;
     uint32_t reason;

@@ -39,10 +39,27 @@
 
 #define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DEVICE_TYPE 1
 
-#define CHIP_DEVICE_CONFIG_DEVICE_TYPE 257 // 0x0101 = 257 = Dimmable Bulb
+#define CHIP_DEVICE_CONFIG_DEVICE_TYPE 0x0A // 0x0A = 10 = Door Lock
 
 #define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DEVICE_NAME 1
 
 #define CHIP_DEVICE_ENABLE_PORT_PARAMS 1
 
-#define CHIP_DEVICE_CONFIG_DEVICE_NAME "Test Bulb"
+#define CHIP_DEVICE_CONFIG_DEVICE_NAME "Test Lock"
+
+#define CHIP_CONFIG_MAX_FABRICS 8
+
+/* This Macro is to enable the Factory Data provider through the file system.
+   Default value is 0, hence the Example certificate will be used.
+   e.g. DAC certificate and key, PAI certificate, Certificate Declaration,
+        pin-code, discriminator, verifier, iteration-count etc. */
+#ifndef CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER
+#define CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER 0
+#endif
+
+/* This Macro is to enable the Device Instance info provider through the
+   file system. Default value is defined in the CHIP config header files.
+   e.g. vendor-id, product-id, product-appearance etc. */
+#ifndef CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER
+#define CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER 0
+#endif

@@ -82,6 +82,7 @@ unsigned char BLEManagerImpl::subscribe_data[MAX_ADV_DATA_LEN];
 int BLEManagerImpl::secured;
 uint16_t BLEManagerImpl::mNumGAPCons;
 static uint8_t indicate_count = 0;
+SemaphoreHandle_t ble_mutex;
 
 /* GAP option object to be passed to GAP functions */
 const gap_ops_t BLEManagerImpl::gap_ops = {
@@ -100,7 +101,7 @@ const smp_ops_t BLEManagerImpl::smp_ops = {
 CHIP_ERROR BLEManagerImpl::_Init()
 {
     CHIP_ERROR err;
-
+    ble_mutex = xSemaphoreCreateMutex();
     if (ConnectivityMgr().IsWiFiStationProvisioned())
     {
         ChipLogDetail(DeviceLayer, "WiFi station already provisioned, not initializing BLE");
@@ -347,6 +348,10 @@ CHIP_ERROR BLEManagerImpl::MapBLEError(int bleErr)
 
 void BLEManagerImpl::DriveBLEState(void)
 {
+    if ( xSemaphoreTake(ble_mutex, portMAX_DELAY) != pdTRUE)
+    {
+       ChipLogError(DeviceLayer, "Unbale to get Semaphore to Start BLE Advertisement")
+    }
     CHIP_ERROR err = CHIP_NO_ERROR;
 
     // Perform any initialization actions that must occur after the Chip task is running.
@@ -354,8 +359,6 @@ void BLEManagerImpl::DriveBLEState(void)
     {
         mFlags.Set(Flags::kAsyncInitCompleted);
     }
-    // If there's already a control operation in progress, wait until it completes.
-    VerifyOrExit(!mFlags.Has(Flags::kControlOpInProgress), /* */);
 
     // Initializes the Talaria BLE layer if needed.
     if (mServiceMode == ConnectivityManager::kCHIPoBLEServiceMode_Enabled && !mFlags.Has(Flags::kTalariaBLELayerInitialized))
@@ -436,6 +439,7 @@ void BLEManagerImpl::DriveBLEState(void)
         ExitNow();
     }
 exit:
+    xSemaphoreGive(ble_mutex);
     if (err != CHIP_NO_ERROR)
     {
         ChipLogError(DeviceLayer, "Disabling CHIPoBLE service due to error: %s", ErrorStr(err));

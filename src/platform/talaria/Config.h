@@ -79,18 +79,9 @@ public:
     static const Key kConfigKey_ServiceId;
     static const Key kConfigKey_LastUsedEpochKeyId;
     static const Key kConfigKey_FailSafeArmed;
-    static const Key kConfigKey_WiFiStationSecType;
     static const Key kConfigKey_RegulatoryLocation;
     static const Key kConfigKey_CountryCode;
     static const Key kConfigKey_UniqueId;
-    static const Key kConfigKey_LockUser;
-    static const Key kConfigKey_Credential;
-    static const Key kConfigKey_LockUserName;
-    static const Key kConfigKey_CredentialData;
-    static const Key kConfigKey_UserCredentials;
-    static const Key kConfigKey_WeekDaySchedules;
-    static const Key kConfigKey_YearDaySchedules;
-    static const Key kConfigKey_HolidaySchedules;
 
     // CHIP Counter keys
     static const Key kCounterKey_RebootCount;
@@ -118,6 +109,7 @@ public:
     static CHIP_ERROR WriteConfigValueBin(Key key, const uint8_t * data, size_t dataLen);
     static CHIP_ERROR ClearConfigValue(Key key);
     static bool ConfigValueExists(Key key);
+    static void FactoryDefaultConfigCotunters();
 
     // static void RunConfigUnitTest(void);
 

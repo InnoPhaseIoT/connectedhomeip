@@ -12,7 +12,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
           $ cd connectedhomeip/examples/lock-app/talaria/
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
-          $ make
+          $ make CHIP_ENABLE_OTA_STORAGE_ON_HOST=true
 
 -   To delete generated executable, libraries and object files use:
 
@@ -32,11 +32,25 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
     0: Disable suspend (Default)
     1: Enable suspend
 
+-   `matter.enable_factory_data_provider=<value>`
+
+    To enable usage of generated certificates. Make sure the certificates are pushed in the data partition. For more information on certificate generate refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses chip example certificate (Default)
+    1: Uses configured generated certificates
+
+-   `matter.enable_device_instance_info_provider=<value>`
+
+    To enable configuration of vendor-id and product-id etc. through filesystem. This option will have effect only if matter.enable_factory_data_provider boot argument value is set to 1.
+    To generate the data parition content refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses default vendor-id and product-id details (Default)
+    1: Uses configured vendor-id and product-id details
+
 -   `matter.factory_reset=<value>`
 
     To enable/disable the flow for factory resetting the device.
     0: Disable Factory Reset (Default)
-    1: Enable factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
+    1: Reset to Factory Defaults (e.g. chip-counters and chip-config content will be reset)
+    2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
        Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
 
 -   `hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000`

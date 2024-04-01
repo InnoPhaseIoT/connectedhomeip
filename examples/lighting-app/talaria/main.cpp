@@ -182,6 +182,19 @@ exit:
 void emberAfOnOffClusterInitCallback(EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfOnOffClusterInitCallback");
+    /* OnOff value is stored in persistant storage hence we retrive,
+       from it and setting the value of the LED in T2 Device.
+    */
+    bool value;
+    chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpoint, &value);
+    if( value )
+    {
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpoint, true);
+    }
+    else
+    {
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpoint, false);
+    }
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
@@ -246,9 +259,9 @@ void print_test_results(nlTestSuite * tSuite)
 int main(void)
 {
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1)
+    if (FactoryReset == 1 || FactoryReset == 2)
     {
-        talariautils::FactoryReset();
+        talariautils::FactoryReset(FactoryReset);
         while (1)
             vTaskDelay(100000);
     }

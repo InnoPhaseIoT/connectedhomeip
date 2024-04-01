@@ -42,7 +42,7 @@ declare_args() {
   chip_external_mbedtls = true
   optimize_for_size = true
   chip_system_config_freertos_locking=true
-  chip_inet_config_enable_tcp_endpoint = false
+  chip_inet_config_enable_tcp_endpoint = true
   chip_inet_config_enable_udp_endpoint = true
   chip_inet_config_enable_ipv4 = false
   chip_config_enable_arg_parser = false
@@ -54,6 +54,7 @@ declare_args() {
   chip_error_logging = true
   chip_detail_logging = false
   chip_progress_logging = true
+  chip_automation_logging = false
 
   # config_device_layer
   # chip_build_tests
@@ -92,6 +93,7 @@ declare_args() {
       # "${chip_root}/examples/platform/talaria",
       "${chip_root}/config/talaria",
       # "${chip_root}/.environment/cipd/packages/arm/arm-none-eabi/include",
+      "${chip_root}/third_party/talaria/repo/freertos_sdk/components/fota/inc",
     ]
 
   default_configs_abi = [

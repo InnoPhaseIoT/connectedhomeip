@@ -21,6 +21,7 @@ void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 #include <platform/CommissionableDataProvider.h>
 #include <platform/DeviceInstanceInfoProvider.h>
 #include <platform/PlatformManager.h>
+#include <platform/talaria/Config.h>
 
 namespace chip {
 namespace talaria {
@@ -45,7 +46,7 @@ void EnableSuspend()
     }
 }
 
-void FactoryReset()
+void FactoryReset(int factory_reset_level)
 {
     CHIP_ERROR err = CHIP_NO_ERROR;
 
@@ -60,8 +61,18 @@ void FactoryReset()
     err = DeviceLayer::PlatformMgr().StartEventLoopTask();
     os_printf("\nStartEventLoopTaks err %d, %s", err.AsInteger(), err.AsString());
 
-    chip::Server::GetInstance().ScheduleFactoryReset();
-    os_printf("\nFACTORY RESET is completed ...........");
+    /* The Factory Reset is distributed into 2 levels,
+       level 1: Reset to Factory Default values. e.g. counters and configs
+       level 2: Full factory reset, which removes the kvs and counters and configs
+    */
+    if (factory_reset_level >= 1) {
+        chip::DeviceLayer::Internal::TalariaConfig::FactoryDefaultConfigCotunters();
+    }
+    if (factory_reset_level == 2) {
+        chip::Server::GetInstance().ScheduleFactoryReset();
+    }
+
+    os_printf("\n%s is completed ...........", (factory_reset_level == 1)? "Factory Default": "Full Factory Reset");
     os_printf("\nProgram T2 elf without FactoryReset to commission the device \n");
     os_printf("\n*******************************");
     os_printf("\e[0m");
