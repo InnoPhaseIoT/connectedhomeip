@@ -39,13 +39,13 @@
 
 #define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DEVICE_TYPE 1
 
-#define CHIP_DEVICE_CONFIG_DEVICE_TYPE 257 // 0x0101 = 257 = Dimmable Bulb
+#define CHIP_DEVICE_CONFIG_DEVICE_TYPE 259 // 0x0103 = 259 = On/Off Light Switch
 
 #define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DEVICE_NAME 1
 
 #define CHIP_DEVICE_ENABLE_PORT_PARAMS 1
 
-#define CHIP_DEVICE_CONFIG_DEVICE_NAME "Test Bulb"
+#define CHIP_DEVICE_CONFIG_DEVICE_NAME "On/Off Light Switch"
 
 /* This Macro is to enable the Factory Data provider through the file system.
    Default value is 0, hence the Example certificate will be used.
