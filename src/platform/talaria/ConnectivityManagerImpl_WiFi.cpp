@@ -135,6 +135,7 @@ CHIP_ERROR ConnectivityManagerImpl::InitWiFi()
 
 void ConnectivityManagerImpl::OnWiFiPlatformEvent(const ChipDeviceEvent * event)
 {
+    ChipDeviceEvent eventx;
     if (event->Type == DeviceEventType::kTalariaSystemEvent)
     {
         switch (event->Platform.TalariaSystemEvent.Data)
@@ -143,24 +144,36 @@ void ConnectivityManagerImpl::OnWiFiPlatformEvent(const ChipDeviceEvent * event)
             ChipLogProgress(DeviceLayer, "WCM_NOTIFY_MSG_CONNECTED");
             if (mWiFiStationState == kWiFiStationState_Connecting)
             {
-                ChangeWiFiStationState(kWiFiStationState_Connecting_Succeeded);
+                ChangeWiFiStationState(kWiFiStationState_Connected);
             }
             NetworkCommissioning::TalariaWiFiDriver::GetInstance().OnConnectWiFiNetwork();
 
-            UpdateInternetConnectivityState();
-            /* This Delay is to wait for ipv6 address to be assigned to the netif port */
-            vTaskDelay(pdMS_TO_TICKS(300));
-            chip::app::DnssdServer::Instance().StartServer(); /*MJ-merge*/
-
-            ChipDeviceEvent eventx;
             eventx.Type                          = DeviceEventType::kWiFiConnectivityChange;
             eventx.WiFiConnectivityChange.Result = kConnectivity_Established;
             PlatformMgr().PostEventOrDie(&eventx);
+            break;
+        case WCM_NOTIFY_MSG_ADDRESS:
+            ChipLogProgress(DeviceLayer, "WCM_NOTIFY_MSG_ADDRESS");
+            UpdateInternetConnectivityState();
+            /* This Delay is to wait for ipv6 address to be assigned to the netif port */
+            vTaskDelay(pdMS_TO_TICKS(300));
+            chip::app::DnssdServer::Instance().StartServer();
+
             eventx.Type                           = DeviceEventType::kInterfaceIpAddressChanged;
             eventx.InterfaceIpAddressChanged.Type = InterfaceIpChangeType::kIpV6_Assigned;
             PlatformMgr().PostEventOrDie(&eventx);
             break;
         case WCM_NOTIFY_MSG_DISCONNECT_DONE:
+            ChipLogProgress(DeviceLayer, "WCM_NOTIFY_MSG_DISCONNECT_DONE");
+            if (mWiFiStationState == kWiFiStationState_Connected)
+            {
+                ChangeWiFiStationState(kWiFiStationState_NotConnected);
+            }
+            NetworkCommissioning::TalariaWiFiDriver::GetInstance().OnConnectWiFiNetwork();
+
+            eventx.Type                          = DeviceEventType::kWiFiConnectivityChange;
+            eventx.WiFiConnectivityChange.Result = kConnectivity_Lost;
+            PlatformMgr().PostEventOrDie(&eventx);
             break;
         default:
             ChipLogDetail(DeviceLayer, "Wifi platform Event %d unhandled", event->Platform.TalariaSystemEvent.Data);

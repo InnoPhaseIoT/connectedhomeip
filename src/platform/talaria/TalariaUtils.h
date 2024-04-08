@@ -87,6 +87,7 @@ public:
     static CHIP_ERROR RequestSEDActive(uint32_t listern_interval, uint32_t traffic_tmo);
     static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt, ByteSpan ssid);
     static CHIP_ERROR GetWiFiInterfaceMAC(uint8_t *mac_addr);
+    static void retryConnectWiFi();
 };
 
 } // namespace Internal

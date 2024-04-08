@@ -65,6 +65,7 @@ static void TalariaUtils::wcm_notifier(void * ctx, struct os_msg * msg)
         break;
     case WCM_NOTIFY_MSG_ADDRESS:
         os_printf("WCM_NOTIFY_MSG_ADDRESS");
+        event.Platform.TalariaSystemEvent.Data = WCM_NOTIFY_MSG_ADDRESS;
         break;
     case WCM_NOTIFY_MSG_DISCONNECT_DONE:
         wcm_conn_status = false;
@@ -240,6 +241,21 @@ CHIP_ERROR TalariaUtils::SetWiFiStationProvision(const Internal::DeviceNetworkIn
     ChipLogProgress(DeviceLayer, "WiFi station provision set (SSID: %s)", netInfo.WiFiSSID);
 
     return CHIP_NO_ERROR;
+}
+
+void TalariaUtils::retryConnectWiFi()
+{
+    int retval;
+    if (wcm_conn_status == true) {
+        return;
+    }
+        retval = wcm_auto_connect(wcm_handle, true);
+    if (retval < 0)
+    {
+        ChipLogError(DeviceLayer, "wcm_auto_connect() Failed. Retval: %d", retval);
+        return TalariaUtils::MapError(retval);
+    }
+
 }
 
 CHIP_ERROR TalariaUtils::ClearWiFiStationProvision(void)

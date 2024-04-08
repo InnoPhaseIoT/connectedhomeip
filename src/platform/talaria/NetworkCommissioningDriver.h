@@ -141,6 +141,7 @@ public:
     void OnConnectWiFiNetwork();
     void OnConnectWiFiNetworkFailed();
     static void OnConnectWiFiNetworkFailed(chip::System::Layer * aLayer, void * aAppState);
+    static void retryConnectWiFi(chip::System::Layer * aLayer, void * aAppState);
     void OnScanWiFiNetworkDone();
     void OnNetworkStatusChange();
 
