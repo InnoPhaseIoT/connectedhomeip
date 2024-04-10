@@ -42,6 +42,7 @@ enum matter_clusters
     OTA_SOFTWARE_UPDATE_REQUESTOR,
     THERMOSTAT,
     SPEAKER,
+    BASIC_VIDEO_PLAYER,
     /*USERS CAN ADD CLUSTERS HERE*/
 };
 
@@ -114,6 +115,26 @@ enum thermostat_cluster_cmd
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 40)
+enum basic_video_player_cluster_cmd
+{   
+    MEDIA_PLAYBACK_ON = 1,
+    MEDIA_PLAYBACK_OFF,
+    MEDIA_PLAYBACK_PLAY,
+    MEDIA_PLAYBACK_PAUSE,
+    MEDIA_PLAYBACK_STOP,
+    MEDIA_PLAYBACK_STARTOVER,
+    MEDIA_PLAYBACK_PREVIOUS,
+    MEDIA_PLAYBACK_NEXT,
+    MEDIA_PLAYBACK_REWIND,
+    MEDIA_PLAYBACK_FAST_FORWARD,
+    MEDIA_PLAYBACK_SKIP_FORWARD,
+    MEDIA_PLAYBACK_SKIP_BACKWARD,
+    MEDIA_PLAYBACK_SEEK,
+    KEYPAD_INPUT_SEND_KEY,
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE BASIC VIDEO PLAYER */
+
 struct ota_data
 {
     char fota_img_data[FOTA_BUFF_LEN]; /**< username */
@@ -184,6 +205,22 @@ struct thermostat_get_data
     uint32_t FeatureMap;                /**< Thermostat Features Support */
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 40)
+struct media_playback_set_data
+{
+    uint8_t onoff;         /**< On/Off media player*/
+    uint64_t seek_pos;      /**< seek position interval in milliseconds*/
+    uint64_t skip_forward;  /**< skip forward interval in milliseconds*/
+    uint64_t skip_backward; /**< skip backward interval in milliseconds*/
+};
+
+struct keypad_input_set_data
+{
+    uint8_t KeyCode; /**< Key Code to send */
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE BASIC VIDEO PLAYER */
+
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data);
 void matter_hio_init(void);
