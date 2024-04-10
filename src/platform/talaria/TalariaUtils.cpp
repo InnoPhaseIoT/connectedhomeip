@@ -281,6 +281,12 @@ CHIP_ERROR TalariaUtils::ClearWiFiStationProvision(void)
 CHIP_ERROR TalariaUtils::InitWiFiStack(void)
 {
     wcm_handle = wcm_create(NULL);
+    // Allowing a long msdu lifetime, ensures that packets are not discarded in
+    // congested environments.
+    // Here we override the default value, 512ms, with 4s if boot arg is not specified
+    int msdu_lifetime = os_get_boot_arg_int("wifi.msdu_lifetime", 4000);
+    wcm_set_msdu_lifetime(wcm_handle, msdu_lifetime);
+
 
     wcm_notify_enable(wcm_handle, wcm_notifier, NULL);
     return CHIP_NO_ERROR;
