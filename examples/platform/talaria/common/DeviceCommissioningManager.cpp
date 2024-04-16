@@ -132,6 +132,10 @@ namespace DeviceCommissioning
 
         while(1)
         {
+            /* If the device is already commissioned, this flow is not required and delete the task */
+            if (matterutils::IsNodeCommissioned() == true) {
+                vTaskDelete(NULL);
+            }
             vTaskDelay(300);
             if(chip::Server::GetInstance().GetCommissioningWindowManager().IsCommissioningWindowOpen() == 0 && matterutils::IsNodeCommissioned() == false )
             {
