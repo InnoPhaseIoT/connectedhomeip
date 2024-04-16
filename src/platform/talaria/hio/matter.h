@@ -31,6 +31,7 @@
 #include <kernel/hostio.h>
 #include <stdio.h>
 #include <string.h>
+#include <CHIPProjectAppConfig.h>
 
 #define FOTA_BUFF_LEN 512
 #define DOORLOCK_BUFF_LEN 32
@@ -40,6 +41,7 @@ enum matter_clusters
     DOOR_LOCK = 1,
     OTA_SOFTWARE_UPDATE_REQUESTOR,
     THERMOSTAT,
+    SPEAKER,
     /*USERS CAN ADD CLUSTERS HERE*/
 };
 
@@ -94,6 +96,15 @@ enum doorlock_cluster_cmd
     SUBSCRIBE_EVENT,
 };
 
+#if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 34
+enum speaker_cluster_cmd
+{
+    SPEAKER_UNMUTE = 1,
+    SPEAKER_MUTE,
+    SPEAKER_MOVE_TO_LEVEL,
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SPEAKER */
+
 struct ota_data
 {
     char fota_img_data[FOTA_BUFF_LEN]; /**< username */
@@ -124,6 +135,15 @@ struct dl_set_get_credential
     uint8_t userstatus;                     /**< userstatus */
     uint8_t usertype;                       /**< usertyp*/
 };
+
+#if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 34
+struct speaker_set_data
+{
+    uint8_t onoff; /**< Volume Level*/
+    uint8_t Level; /**< Volume Level*/
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SPEAKER */
+
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data);
 void matter_hio_init(void);
