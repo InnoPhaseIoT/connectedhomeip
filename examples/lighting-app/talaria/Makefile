@@ -23,8 +23,6 @@ CFLAGS += -I$(COMPONENTS_DIR)
 # Default values if not defined
 SECURED ?= false
 EXT_FLASH ?= false
-FACTORY_DATA_PROVIDER ?= false
-DEVICE_INSTANCE_INFO_PROVIDER ?= false
 
 # Targets
 all: check_key libcomponents $(TARGET)
@@ -53,7 +51,7 @@ $(TARGET_STRIP): $(OUT_DIR)/build.ninja FORCE
 	ninja -C $(OUT_DIR) -j 4
 
 $(OUT_DIR)/build.ninja:
-	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH) config_enable_talaria_factory_data_provider=$(FACTORY_DATA_PROVIDER) config_enable_talaria_device_instance_info_provider=$(DEVICE_INSTANCE_INFO_PROVIDER)"
+	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH)"
 
 ifdef KEY
 	$(info KEY=$(KEY))
