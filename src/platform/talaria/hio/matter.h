@@ -105,6 +105,15 @@ enum speaker_cluster_cmd
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SPEAKER */
 
+#if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769
+enum thermostat_cluster_cmd
+{
+    THERMOSTAT_SETPOINT_RAISE_LOWER = 1,
+    THERMOSTAT_READ_TEMPERATURE,
+    THERMOSTAT_GET_DATA,
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
+
 struct ota_data
 {
     char fota_img_data[FOTA_BUFF_LEN]; /**< username */
@@ -144,6 +153,37 @@ struct speaker_set_data
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SPEAKER */
 
+#if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769
+struct thermostat_read_temperature
+{
+    int16_t LocalTemperature;
+};
+
+struct thermostat_set_data
+{
+    uint8_t mode;            /**< Setpoint mode, heating/cooling*/
+    int16_t CoolingSetpoint; /**< Occupied Cooling SetPoint */
+    int16_t HeatingSetpoint; /**< Occupied Heating SetPoint */
+};
+
+struct thermostat_get_data
+{
+    int16_t AbsMinHeatSetpointLimit;    /**< Absolute Minimum Heat SetPoint Limit */
+    int16_t AbsMaxHeatSetpointLimit;    /**< Absolute Maximum Heat SetPoint Limit */
+    int16_t AbsMinCoolSetpointLimit;    /**< Absolute Minimum Cool SetPoint Limit */
+    int16_t AbsMaxCoolSetpointLimit;    /**< Absolute Maximum Cool SetPoint Limit */
+    int16_t OccupiedCoolingSetpoint;    /**< Occupied Cooling SetPoint */
+    int16_t OccupiedHeatingSetpoint;    /**< Occupied Heating SetPoint */
+    int16_t MinHeatSetpointLimit;       /**< Minimum Heat SetPoint Limit */
+    int16_t MaxHeatSetpointLimit;       /**< Maximum Heat SetPoint Limit */
+    int16_t MinCoolSetpointLimit;       /**< Minimum Cool SetPoint Limit */
+    int16_t MaxCoolSetpointLimit;       /**< Maximum Cool SetPoint Limit */
+    int8_t MinSetpointDeadBand;         /**< Minimum Set Point Dead-Band */
+    uint8_t ControlSequenceOfOperation; /**< Current Thermostat Control Operation */
+    uint8_t SystemMode;                 /**< Current Thermostat Operating mode */
+    uint32_t FeatureMap;                /**< Thermostat Features Support */
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data);
 void matter_hio_init(void);
