@@ -14,7 +14,7 @@
 
 import("//build_overrides/chip.gni")
 
-executable("on-off-light-app.elf") {
+executable("lighting-app.elf") {
   sources = [
     "main.cpp",
     "test.cpp",
@@ -39,7 +39,7 @@ executable("on-off-light-app.elf") {
 }
 
 group("talaria") {
-  deps = [ ":on-off-light-app.elf" ]
+  deps = [ ":lighting-app.elf" ]
 }
 
 group("default") {

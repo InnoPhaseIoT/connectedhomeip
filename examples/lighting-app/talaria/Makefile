@@ -10,7 +10,7 @@ include $(TOP)/build.mak
 
 # Variables
 OUT_DIR := out/test
-TARGET := $(OUT_DIR)/on-off-light-app.elf
+TARGET := $(OUT_DIR)/lighting-app.elf
 TARGET_STRIP := $(TARGET).strip
 TARGET_SIGN := $(TARGET).sign
 TARGET_ENC := $(TARGET).enc
