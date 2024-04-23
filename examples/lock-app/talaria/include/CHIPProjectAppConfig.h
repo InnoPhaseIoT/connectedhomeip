@@ -49,7 +49,7 @@
 
 #define CHIP_CONFIG_MAX_FABRICS 8
 
-#define CHIP_DEVICE_CONFIG_CHIP_TASK_PRIORITY 3
+#define CHIP_DEVICE_CONFIG_CHIP_TASK_PRIORITY 2
 
 /* This Macro is to enable the Factory Data provider through the file system.
    Default value is 0, hence the Example certificate will be used.
