@@ -47,6 +47,7 @@
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #include "matter_hio.h"
 #pragma GCC diagnostic pop
+#include <CHIPProjectAppConfig.h>
 
 struct os_semaphore hio_ind_sem;
 
@@ -54,9 +55,12 @@ struct os_semaphore hio_ind_sem;
 static bool hio_matter_thread_init = false;
 TaskHandle_t hio_matter_thread     = NULL;
 QueueHandle_t matter_cmd_queue;
+extern SemaphoreHandle_t Getdata;
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
 extern struct dl_set_get_user revd_user;
 extern struct dl_set_get_credential revd_credential;
-extern SemaphoreHandle_t Getdata;
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 enum
 {
@@ -286,16 +290,18 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
     struct matter_data_send_req * req = packet_data(msg);
     struct packet * rsp_pkt;
 
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
     if (strncmp(req->data, "cm_ok", 5) == 0)
     {
         openCommissionWindow();
     }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
     if (strncmp(req->data, "do_fota", 7) == 0)
     {
         fota_flag_status_set("fota_in_progress", "1");
     }
-
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
     if (req->cmd == GET_USER)
     {
         // os_printf("\r\nget_user\r\n");
@@ -308,6 +314,7 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
         memcpy(&revd_credential, req->data, sizeof(struct dl_set_get_credential));
         xSemaphoreGive(Getdata);
     }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 #ifdef TESTCODE
     os_printf("\r\ncluster: %d\r\n", req->cluster);
