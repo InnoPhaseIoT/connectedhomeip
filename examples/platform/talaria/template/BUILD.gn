@@ -1,0 +1,36 @@
+import("//build_overrides/chip.gni")
+import("//out/test/args.gn")
+
+executable("window-app.elf") { #### PlaceHolder: Change the name of generated elf
+  sources = [
+    "main.cpp",
+  ]
+
+  deps = [
+##### PlaceHolder: Application specific zap dependencies ######################
+### "${chip_root}/examples/window-app/common:window-common",
+###############################################################################
+    "${chip_root}/src/lib",
+    "${chip_root}/examples/platform/talaria/common"
+  ]
+
+  include_dirs = [ 
+    "${chip_root}/examples/platform/talaria",
+    "${chip_root}/examples/platform/talaria/include",
+  ]
+
+  output_dir = root_out_dir
+
+  ldflags = [  ]
+  lib_dirs = [  ]
+  libs = [  ]
+
+}
+
+group("talaria") {
+  deps = [ ":window-app.elf" ] #### PlaceHolder: Change the name of generated elf
+}
+
+group("default") {
+  deps = [ ":talaria" ]
+}
