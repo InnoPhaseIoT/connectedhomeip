@@ -67,6 +67,10 @@ extern struct thermostat_get_data revd_data;
 extern struct thermostat_read_temperature revd_temp;
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+extern struct smoke_co_alarm_get_data revd_smoke_co_alarm_data;
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
+
 enum
 {
     HIO_MATTER_EVT_MSG = 9999,
@@ -338,6 +342,14 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
         os_printf("\r\n [Thermostat] get_temp: temperature received from host...\r\n");
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+    if (req->cmd == SMOKE_CO_ALARM_GET_DATA)
+    {
+        memcpy(&revd_smoke_co_alarm_data, req->data, sizeof(struct smoke_co_alarm_get_data));
+        Smoke_co_alarm_update_status();
+    }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
 #ifdef TESTCODE
     os_printf("\r\ncluster: %d\r\n", req->cluster);

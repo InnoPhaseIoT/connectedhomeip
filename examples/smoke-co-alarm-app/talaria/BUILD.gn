@@ -28,13 +28,17 @@ executable("smoke-co-alarm-app.elf") {
 
   include_dirs = [
     "${chip_root}/examples/platform/talaria",
+    "${chip_root}/src/platform/talaria",
   ]
 
   output_dir = root_out_dir
 
   ldflags = [  ]
   lib_dirs = [  ]
-  libs = [  ]
+  libs = [
+  "hio",
+  ]
+
 
 }
 

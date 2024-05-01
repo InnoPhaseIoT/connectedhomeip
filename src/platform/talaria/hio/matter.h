@@ -43,6 +43,7 @@ enum matter_clusters
     THERMOSTAT,
     SPEAKER,
     BASIC_VIDEO_PLAYER,
+    SMOKE_CO_ALARM,
     /*USERS CAN ADD CLUSTERS HERE*/
 };
 
@@ -135,6 +136,14 @@ enum basic_video_player_cluster_cmd
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE BASIC VIDEO PLAYER */
 
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+enum smoke_co_alarm_cluster_cmd
+{
+    SMOKE_CO_ALARM_SELF_TEST_REQUEST = 1,
+    SMOKE_CO_ALARM_GET_DATA,
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
+
 struct ota_data
 {
     char fota_img_data[FOTA_BUFF_LEN]; /**< username */
@@ -221,6 +230,29 @@ struct keypad_input_set_data
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE BASIC VIDEO PLAYER */
 
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+struct smoke_co_alarm_set_data
+{
+    uint8_t self_test_request;         /**< self_test_request */
+};
+
+struct smoke_co_alarm_get_data
+{
+    uint8_t ExpressedState;         /**< Expressed State */
+    uint8_t SmokeState;             /**< Smoke State */
+    uint8_t COState;	            /**< CO State */
+    uint8_t BatteryAlert;           /**< Battery Alert status */
+    uint8_t DeviceMuted;            /**< Device Muted State */
+    bool TestInProgress;            /**< TestIn Progress status */
+    bool HardwareFaultAlert;        /**< HardwareFault Alert status */
+    uint8_t EndOfServiceAlert;      /**< End Of ServiceAlert status */
+    uint8_t InterconnectSmokeAlarm; /**< InterconnectSmokeAlarm state */
+    uint8_t InterconnectCOAlarm;    /**< InterconnectCOAlarm state */
+    uint8_t ContaminationState;     /**< Contamination State */
+    uint8_t SmokeSensitivityLevel;  /**< SmokeSensitivityLevel State */
+    uint32_t ExpiryDate;            /**< ExpiryDate */
+};
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data);
 void matter_hio_init(void);

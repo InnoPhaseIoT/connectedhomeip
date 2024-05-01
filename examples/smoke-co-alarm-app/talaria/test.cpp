@@ -69,8 +69,6 @@ chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
 DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
 
-int SoftwareTimer_Init(void);
-
 CommissioningInterface::CommissioningParam& GetCommissioningParam(CommissioningInterface::CommissioningParam &param)
 {
     matterutils::CommissioningFlowType Type = matterutils::GetCommissioningFlowType();
@@ -91,14 +89,6 @@ void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
     if (event->Type == DeviceLayer::DeviceEventType::kCHIPoBLEConnectionEstablished)
     {
         ChipLogProgress(DeviceLayer, "Receive kCHIPoBLEConnectionEstablished");
-    }
-    if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete)
-    {
-        ChipLogProgress(DeviceLayer, "Receive kCommissioningComplete");
-	if (SoftwareTimer_Init() != 0)
-	{
-	    ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
-	}
     }
 }
 
@@ -147,14 +137,6 @@ void InitServer(intptr_t context)
     /* Trigger Connect WiFi Network if the Device is already Provisioned */
     if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
         chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
-    }
-
-    if (matterutils::IsNodeCommissioned() == true)
-    {
-	if (SoftwareTimer_Init() != 0)
-	{
-	    ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
-	}
     }
 }
 

@@ -1,7 +1,7 @@
 # CHIP Talaria Smoke-CO-Alarm Sensor Example
 
 An example showing the use of CHIP on the Talaria Two platform. The document will describe how
-to build and run CHIP Smoke-CO-Alarm Sensor Example on Talaria Two platform. In this example, utilized rand function to generate random Smoke-CO-Alarm attribute values  for updating Smoke CO Alarm Sensor status every 5sec (can be configurable) from software timer callback as actual Smoke-CO-Alarm Sensor is not available.
+to build and run CHIP Smoke-CO-Alarm Sensor Example on Talaria Two platform. In this example, T2 sends Smoke-CO-Alarm commands to Host and also receives the Smoke-CO-Alarm status periodically from host and same will be updated to matter attributes.
 
 This doc is tested on **Ubuntu 22.04.3 LTS (x86_64)**
 
@@ -22,10 +22,6 @@ This doc is tested on **Ubuntu 22.04.3 LTS (x86_64)**
 
 ## Boot arguments
 
--   `matter.discriminator=<value>`
-
-    Setting the discriminator value to identify the device. Unisigned short integer value. Default: 3840.
-
 -   `matter.commissioning.flow_type=<value>`
 
     0: Standard commissioning flow (Default)
@@ -37,39 +33,73 @@ This doc is tested on **Ubuntu 22.04.3 LTS (x86_64)**
     0: Disable suspend (Default)
     1: Enable suspend
 
+-   `matter.enable_factory_data_provider=<value>`
+
+    To enable usage of generated certificates. Make sure the certificates are pushed in the data partition. For more information on certificate generate refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses chip example certificate (Default)
+    1: Uses configured generated certificates
+
+-   `matter.enable_device_instance_info_provider=<value>`
+
+    To enable configuration of vendor-id and product-id etc. through filesystem. This option will have effect only if matter.enable_factory_data_provider boot argument value is set to 1.
+    To generate the data parition content refer from FreeRTOS_sdk_x.x/matter/README.md section #Generating Factory Configuraion Data using the generated certificates
+    0: Uses default vendor-id and product-id details (Default)
+    1: Uses configured vendor-id and product-id details
+
 -   `matter.factory_reset=<value>`
 
     To enable/disable the flow for factory resetting the device.
     0: Disable Factory Reset (Default)
-    1: Enable factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
+    1: Reset to Factory Defaults (e.g. chip-counters and chip-config content will be reset)
+    2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
        Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
 
+-   `hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000`
 
-## Programming the Example on Talaria Two Platform
-The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
+    These Boot arguments are mandatory for Smoke-CO-Alarm Sensor to work on the Nuvoton setup for communication with host
 
-#### Updating the partition table of T2 EVB (One Time)
-- Connect T2 EVB with the system
-- Run following command to flash gordon.elf
 
-          $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
-          $ sudo python3 ./script/boot.py --device /dev/ttyUSB2 ./apps/gordon.elf --reset=evk42_bl
-- Run the following command to update the partition table
+## Programming the Example on T2 of Nuvoton Setup
+The Host package for matter is required for the following steps.
 
-          $ cd <FreeRTOS_sdk_3.0_master_matter-root-directory>
-          $ sudo python3 ./script/flash.py --device /dev/ttyUSB2 from_json ./tools/partition_files/matter_demo_partition.json
+#### Programming T2 of LPS setup
+1. Connect the LPS board to PC using USB C-type cable.
+2. Generate the factory data image using following commands. To create the factory data follow the steps from FreeRTOS_sdk_3.x_master_matter/matter/README.md #'Generating Factory Configuraion Data' section.
+NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x_master_matter/data' directory.
 
-#### Programming image elf
-- Connect T2 EVB with the system
-- Run the T2DownloadTool_Linux tool with sudo access from FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/ and select following fields in the GUI tool
-- Boot Target: Select the appropriate EVK from the drop-down
-- ELF Input: Load the out/test/smoke-co-alarm-app.elf by clicking on Select ELF File
-- Boot Arguments: Pass the following boot arguments
+        $ cd ../
+        FreeRTOS_sdk_3.x_master_matter$ cp -r ./data/* ./root_fs/root/
+        FreeRTOS_sdk_3.x_master_matter$ python3 ./script/build_rootfs_generic.py
 
-          matter.discriminator=1122 matter.commissioning.flow_type=0 suspend=1 matter.factory_reset=0
-- Programming: Prog RAM or Prog Flash as per requirement.
-**For more details on using the Download tool, refer to the document: UG_Download_Tool.pdf (path:
-FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).**
+        ### Expected output
+        root folder to generate root img is from  root_fs
+        Creating checksum files...
+        creating root img
+        /part.checksum
+        /boot.checksum
+        /boot.json
+        /part.json
+        /chip-factory/discriminator
+        /chip-factory/loc-capability
+        /chip-config/reg-location
+        /fota_config.checksum
+        /dirty
+        /chip-counters/total-hours
+        /chip-counters/up-time
+        /chip-counters/boot-reason
+        /chip-counters/boot-count
+        /fota_config.json
+        copied root.img to root_fs
+7. Generate the app.img and app.img.vm from the generated ELF using following command and program the same
+
+         $ cd connectedhomeip/examples/smoke-co-alarm-app/talaria/
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/boot.py --output ./out/app.img out/test/smoke-co-alarm-app.elf hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000 matter.commissioning.flow_type=1 matter.factory_reset=0
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/boot.py --device /dev/ttyACM0 <path to FreeRTOS_sdk_3.0_master_matter>/apps/gordon.elf
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 from_json <path to FreeRTOS_sdk_3.0_master_matter>/tools/partition_files/matter_demo_partition.json
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x1000 out/app.img
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x40000 out/app.img.vm
+         $ python3 <path to FreeRTOS_sdk_3.0_master_matter>/script/flash.py --device /dev/ttyACM0 write 0x140000 <path to FreeRTOS_sdk_3.0_master_matter>/root_fs/root.img
+7. For information on programming the Host with matter_app.bin, refer section: document: Application_for_Matter.pdf (host\doc\application_notes\Application_for_Matter.pdf)
 
 ## Commissioning and Controlling the device
 - Run generated chip-tool binary using following commands. Steps to build chip-tool is provided in FreeRTOS_sdk_3.0_master_matter/matter/README.md
