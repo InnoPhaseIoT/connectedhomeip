@@ -133,9 +133,39 @@ static void vTimerCallback_aqs(TimerHandle_t xTimer)
     DeviceLayer::PlatformMgr().ScheduleWork(Update_AirQuality_status, reinterpret_cast<intptr_t>(nullptr));
 }
 
+static void UpdateClusters(int16_t NewUpdatedValue)
+{
+    static int MaxValue = 0, MinimalValue = 100;
+
+    if ( NewUpdatedValue < MinimalValue)
+    {
+        chip::app::Clusters::TemperatureMeasurement::Attributes::MinMeasuredValue::Set( 1, NewUpdatedValue);
+        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Set( 1, NewUpdatedValue);
+        MinimalValue = NewUpdatedValue;
+    }
+    if ( NewUpdatedValue > MaxValue)
+    {
+        chip::app::Clusters::TemperatureMeasurement::Attributes::MaxMeasuredValue::Set( 1, NewUpdatedValue);
+        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Set( 1, NewUpdatedValue);
+        MaxValue = NewUpdatedValue;
+    }
+    chip::app::Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Set( 1, NewUpdatedValue);
+    chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set( 1, NewUpdatedValue + 1);
+}
+
+static void UpdateTimer(TimerHandle_t xTimer)
+{
+    int16_t UpdateClusterValue = rand() % 58;
+    /* Read the value from Temperature Senosor and fetch the data
+       For present application we are using rand() function to generate randon values*/
+
+    chip::DeviceLayer::PlatformMgr().ScheduleWork(UpdateClusters, UpdateClusterValue);
+}
+
 int SoftwareTimer_Init()
 {
     static TimerHandle_t xTimer = NULL;
+    static TimerHandle_t xTimerUpdate = NULL;
 
     if (xTimer != NULL)
 	    return 0;
@@ -147,6 +177,17 @@ int SoftwareTimer_Init()
 	    return -1;
     }
     if (xTimerStart(xTimer, 0) != pdPASS)
+    {
+	    os_printf("\naqs_timer start failed");
+	    return -1;
+    }
+    xTimerUpdate = xTimerCreate("aqs_timer", pdMS_TO_TICKS(AQS_PERIODIC_TIME_OUT_MS), pdTRUE, (void *) 0, UpdateTimer);
+    if (xTimerUpdate == NULL)
+    {
+	    os_printf("\naqs_timer creation failed");
+	    return -1;
+    }
+    if (xTimerStart(xTimerUpdate, 0) != pdPASS)
     {
 	    os_printf("\naqs_timer start failed");
 	    return -1;

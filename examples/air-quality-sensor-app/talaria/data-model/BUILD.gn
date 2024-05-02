@@ -13,35 +13,12 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("${chip_root}/src/app/chip_data_model.gni")
 
-executable("air-quality-sensor-app.elf") {
-  sources = [
-    "main.cpp",
-    "test.cpp",
-  ]
+chip_data_model("air-quality-sensor-common") {
+  zap_file = "air-quality-sensor-app.zap"
 
-  deps = [
-    "${chip_root}/examples/air-quality-sensor-app/talaria/data-model:air-quality-sensor-common",
-    "${chip_root}/src/lib",
-    "${chip_root}/examples/platform/talaria/common"
-  ]
-
-  include_dirs = [
-    "${chip_root}/examples/platform/talaria",
-  ]
-
-  output_dir = root_out_dir
-
-  ldflags = [  ]
-  lib_dirs = [  ]
-  libs = [  ]
-
-}
-
-group("talaria") {
-  deps = [ ":air-quality-sensor-app.elf" ]
-}
-
-group("default") {
-  deps = [ ":talaria" ]
+  zap_pregenerated_dir =
+      "${chip_root}/zzz_generated/air-quality-sensor-app/zap-generated"
+  is_server = true
 }
