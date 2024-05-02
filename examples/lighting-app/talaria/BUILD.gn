@@ -21,7 +21,7 @@ executable("lighting-app.elf") {
   ]
 
   deps = [
-    "${chip_root}/examples/lighting-app/lighting-common",
+    "${chip_root}/examples/lighting-app/talaria/data-model:lighting-common",
     "${chip_root}/src/lib",
     "${chip_root}/examples/platform/talaria/common"
   ]
