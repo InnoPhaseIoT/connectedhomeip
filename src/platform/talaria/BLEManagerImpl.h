@@ -130,7 +130,8 @@ private:
 
     static uint16_t mNumGAPCons;
     // CHIPoBLEConState mCons[kMaxConnections];
-    CHIPoBLEServiceMode mServiceMode;
+    static CHIPoBLEServiceMode mServiceMode;
+    static bool commissioning_completed;
 
     static BitFlags<Flags> mFlags;
     char mDeviceName[kMaxDeviceNameLength + 1];

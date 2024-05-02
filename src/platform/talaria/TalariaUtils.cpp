@@ -65,6 +65,7 @@ static void TalariaUtils::wcm_notifier(void * ctx, struct os_msg * msg)
         break;
     case WCM_NOTIFY_MSG_ADDRESS:
         os_printf("WCM_NOTIFY_MSG_ADDRESS");
+        event.Platform.TalariaSystemEvent.Data = WCM_NOTIFY_MSG_ADDRESS;
         break;
     case WCM_NOTIFY_MSG_DISCONNECT_DONE:
         wcm_conn_status = false;
@@ -242,6 +243,21 @@ CHIP_ERROR TalariaUtils::SetWiFiStationProvision(const Internal::DeviceNetworkIn
     return CHIP_NO_ERROR;
 }
 
+void TalariaUtils::retryConnectWiFi()
+{
+    int retval;
+    if (wcm_conn_status == true) {
+        return;
+    }
+        retval = wcm_auto_connect(wcm_handle, true);
+    if (retval < 0)
+    {
+        ChipLogError(DeviceLayer, "wcm_auto_connect() Failed. Retval: %d", retval);
+        return TalariaUtils::MapError(retval);
+    }
+
+}
+
 CHIP_ERROR TalariaUtils::ClearWiFiStationProvision(void)
 {
     int err;
@@ -265,6 +281,12 @@ CHIP_ERROR TalariaUtils::ClearWiFiStationProvision(void)
 CHIP_ERROR TalariaUtils::InitWiFiStack(void)
 {
     wcm_handle = wcm_create(NULL);
+    // Allowing a long msdu lifetime, ensures that packets are not discarded in
+    // congested environments.
+    // Here we override the default value, 512ms, with 4s if boot arg is not specified
+    int msdu_lifetime = os_get_boot_arg_int("wifi.msdu_lifetime", 4000);
+    wcm_set_msdu_lifetime(wcm_handle, msdu_lifetime);
+
 
     wcm_notify_enable(wcm_handle, wcm_notifier, NULL);
     return CHIP_NO_ERROR;

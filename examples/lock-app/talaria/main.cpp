@@ -605,11 +605,6 @@ int main(void)
     os_printf("After Server initialization completed. os_free_heap(): %d\n", os_avail_heap());
 
     os_printf("\n");
-    while (1)
-    {
-        vTaskDelay(10000);
-        os_printf(".");
-    }
-
+    vTaskSuspend(NULL);
     return 0;
 }

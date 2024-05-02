@@ -72,6 +72,8 @@ const ChipBleUUID ChipUUID_CHIPoBLEChar_TX = { { 0x18, 0xEE, 0x2E, 0xF5, 0x26, 0
 BLEManagerImpl BLEManagerImpl::sInstance;
 BitFlags<BLEManagerImpl::Flags> BLEManagerImpl::mFlags;
 struct gatt_service * BLEManagerImpl::gatt_service;
+using CHIPoBLEServiceMode = ConnectivityManager::CHIPoBLEServiceMode;
+CHIPoBLEServiceMode BLEManagerImpl::mServiceMode;
 struct gatt_char * BLEManagerImpl::chr_rx;
 struct gatt_char * BLEManagerImpl::chr_tx;
 constexpr System::Clock::Timeout BLEManagerImpl::kFastAdvertiseTimeout;
@@ -83,6 +85,7 @@ int BLEManagerImpl::secured;
 uint16_t BLEManagerImpl::mNumGAPCons;
 static uint8_t indicate_count = 0;
 SemaphoreHandle_t ble_mutex;
+static bool BLEManagerImpl::commissioning_completed = false;
 
 /* GAP option object to be passed to GAP functions */
 const gap_ops_t BLEManagerImpl::gap_ops = {
@@ -243,6 +246,10 @@ void BLEManagerImpl::_OnPlatformEvent(const ChipDeviceEvent * event)
     case DeviceEventType::kServiceProvisioningChange:
     case DeviceEventType::kWiFiConnectivityChange:
         /* Nothing to do here */
+        break;
+
+    case DeviceEventType::kCommissioningComplete:
+        commissioning_completed = true;
         break;
 
     default:
@@ -681,6 +688,14 @@ void BLEManagerImpl::prov_ble_disconnected_cb(bt_hci_event_t * hci_event)
     if (mFlags.Has(Flags::kAdvertisingEnabled))
     {
         bt_gap_connectable_mode(GAP_CONNECTABLE_MODE_UNDIRECT, bt_hci_addr_type_random, 0, address_zero, &gap_ops);
+    }
+
+    /* If the commissioning is completed, we don't need the BLE anymore, so freeing up the memory */
+    if (commissioning_completed == true &&
+        !mFlags.Has(Flags::kAdvertisingEnabled) &&
+        mServiceMode == ConnectivityManager::kCHIPoBLEServiceMode_Enabled) {
+        mServiceMode = ConnectivityManager::kCHIPoBLEServiceMode_Disabled;
+        PlatformMgr().ScheduleWork(DriveBLEState, 0);
     }
 }
 

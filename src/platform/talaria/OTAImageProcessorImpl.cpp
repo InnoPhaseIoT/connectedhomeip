@@ -203,9 +203,10 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
         ChipLogError(SoftwareUpdate, "ImageProcessor context is null");
         return;
     }
+    
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     if (imageProcessor->mOTAUpdateHandle == NULL)
         return;
-#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     /* fota commit.  This will reset the system */
     if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
         ChipLogError(SoftwareUpdate,"[APP]Error: FOTA commit failed");

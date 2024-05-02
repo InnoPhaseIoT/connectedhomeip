@@ -243,6 +243,7 @@ CHIP_ERROR TalariaWiFiDriver::ConnectWiFiNetwork(const char * ssid, uint8_t ssid
 void TalariaWiFiDriver::OnConnectWiFiNetwork()
 {
     DeviceLayer::SystemLayer().CancelTimer(OnConnectWiFiNetworkFailed, NULL);
+    DeviceLayer::SystemLayer().CancelTimer(retryConnectWiFi, NULL);
     if (mpConnectCallback)
     {
         DeviceLayer::SystemLayer().CancelTimer(OnConnectWiFiNetworkFailed, NULL);
@@ -253,6 +254,7 @@ void TalariaWiFiDriver::OnConnectWiFiNetwork()
 
 void TalariaWiFiDriver::OnConnectWiFiNetworkFailed()
 {
+    DeviceLayer::SystemLayer().CancelTimer(retryConnectWiFi, NULL);
     if (mpConnectCallback)
     {
         mpConnectCallback->OnResult(Status::kNetworkNotFound, CharSpan(), 0);
@@ -268,6 +270,13 @@ void TalariaWiFiDriver::OnConnectWiFiNetworkFailed(chip::System::Layer * aLayer,
         ChipLogError(DeviceLayer, "ClearWiFiStationProvision failed: %s", chip::ErrorStr(error));
     }
     TalariaWiFiDriver::GetInstance().OnConnectWiFiNetworkFailed();
+}
+
+void TalariaWiFiDriver::retryConnectWiFi(chip::System::Layer * aLayer, void * aAppState)
+{
+    TalariaUtils::retryConnectWiFi();
+    DeviceLayer::SystemLayer().StartTimer(
+        static_cast<System::Clock::Timeout>(2000), retryConnectWiFi, NULL);
 }
 
 void TalariaWiFiDriver::TriggerConnectNetwork()
@@ -307,6 +316,9 @@ void TalariaWiFiDriver::ConnectNetwork(ByteSpan networkId, ConnectCallback * cal
     }
     err = ConnectWiFiNetwork(reinterpret_cast<const char *>(mStagingNetwork.ssid), mStagingNetwork.ssidLen,
                              reinterpret_cast<const char *>(mStagingNetwork.credentials), mStagingNetwork.credentialsLen);
+
+    err = DeviceLayer::SystemLayer().StartTimer(
+        static_cast<System::Clock::Timeout>(2 * secToMiliSec), retryConnectWiFi, NULL);
 
     err = DeviceLayer::SystemLayer().StartTimer(
         static_cast<System::Clock::Timeout>(kWiFiConnectNetworkTimeoutSeconds * secToMiliSec), OnConnectWiFiNetworkFailed, NULL);
