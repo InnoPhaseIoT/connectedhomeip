@@ -14,34 +14,11 @@
 
 import("//build_overrides/chip.gni")
 
-executable("flow-sensor-app.elf") {
-  sources = [
-    "main.cpp",
-    "test.cpp",
-  ]
+import("${chip_root}/src/app/chip_data_model.gni")
 
-  deps = [
-    "${chip_root}/examples/pump-app/talaria/data-model:pump-common",
-    "${chip_root}/src/lib",
-    "${chip_root}/examples/platform/talaria/common"
-  ]
+chip_data_model("pump-common") {
+  zap_file = "pump-app.zap"
 
-  include_dirs = [
-    "${chip_root}/examples/platform/talaria",
-  ]
-
-  output_dir = root_out_dir
-
-  ldflags = [  ]
-  lib_dirs = [  ]
-  libs = [  ]
-
-}
-
-group("talaria") {
-  deps = [ ":flow-sensor-app.elf" ]
-}
-
-group("default") {
-  deps = [ ":talaria" ]
+  zap_pregenerated_dir = "${chip_root}/zzz_generated/pump-app/zap-generated"
+  is_server = true
 }
