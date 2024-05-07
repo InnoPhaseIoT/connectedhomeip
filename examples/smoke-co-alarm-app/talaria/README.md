@@ -141,6 +141,11 @@ NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x
           >>> smokecoalarm subscribe contamination-state 1111 1
           >>> smokecoalarm subscribe smoke-sensitivity-level 1111 1
           >>> smokecoalarm subscribe expiry-date 1111 1
+          ## Identify cluster commands
+          e.g. identify write identify-time 5 1111 1
+          e.g. identify read identify-type 1111 1
+          e.g. identify read identify-time 1111 1
+
 
 ### Enabling test event trigger
 - Enable "TALARIA_TEST_EVENT_TRIGGER_ENABLED" to trigger the test events for Smoke-CO-Alarm Sensor. It is enabled by default.

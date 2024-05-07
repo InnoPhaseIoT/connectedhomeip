@@ -55,6 +55,9 @@ void Smoke_co_alarm_update_status();
 #include <app/clusters/smoke-co-alarm-server/smoke-co-alarm-server.h>
 #include <app/clusters/smoke-co-alarm-server/SmokeCOTestEventTriggerDelegate.h>
 
+#define IDENTIFY_TIMER_DELAY_MS  1000
+#define LED_PIN 14
+
 /* Periodic timeout for Smoke Alaram software timer in ms */
 #define SMOKE_ALARM_ENDPOINT_ID 1
 
@@ -78,6 +81,9 @@ DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 void print_test_results(nlTestSuite * tSuite);
 void app_test();
+
+uint32_t led_pin;
+static uint32_t identifyTimerCount = 0;
 
 /* Function Declarations */
 
@@ -304,6 +310,26 @@ CHIP_ERROR TalariaTestEventTriggerDelegate::HandleEventTrigger(uint64_t eventTri
 }
 #endif /* TALARIA_TEST_EVENT_TRIGGER_ENABLED */
 
+static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
+{
+    if (identifyTimerCount > 0)
+    {
+        /* Decrement the timer count. */
+        identifyTimerCount--;
+
+        /* Toggle LED. */
+        os_gpio_toggle_pin(led_pin);
+        chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpointId, identifyTimerCount);
+    }
+}
+
+static void OnIdentifyPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    identifyTimerCount = (*value);
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, endpointId);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, endpointId);
+}
+
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,
                                         uint16_t size, uint8_t * value)
 {
@@ -359,6 +385,10 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
 	    return;
 	}
     }
+    else if (clusterId == Identify::Id)
+    {
+        OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
+    }
 
     os_printf("\nCluster control command addressed. os_free_heap(): %d", os_avail_heap());
 exit:
@@ -380,6 +410,13 @@ exit:
 void emberAfSmokeCoAlarmClusterInitCallback(EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfSmokeCoAlarmClusterInitCallback");
+}
+
+void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
+{
+    Identify::Attributes::IdentifyType::Set(endpoint, Identify::IdentifyTypeEnum::kLightOutput);
+    Identify::Attributes::IdentifyTime::Set(endpoint, 0);
+    ChipLogDetail(AppServer, "emberAfIdentifyClusterInitCallback");
 }
 
 static void SelfTesting_EventHandler(void)
@@ -477,6 +514,10 @@ int main(void)
     talariautils::EnableSuspend();
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
+    led_pin = GPIO_PIN(LED_PIN);
+    os_gpio_request(led_pin);
+    os_gpio_set_output(led_pin);
+    os_gpio_clr_pin(led_pin);
 
     ServerInitDone = xSemaphoreCreateCounting(1, 0);
     app_test();

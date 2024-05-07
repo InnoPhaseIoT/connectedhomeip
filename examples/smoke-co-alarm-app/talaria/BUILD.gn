@@ -21,7 +21,7 @@ executable("smoke-co-alarm-app.elf") {
   ]
 
   deps = [
-    "${chip_root}/examples/smoke-co-alarm-app/smoke-co-alarm-common",
+    "${chip_root}/examples/smoke-co-alarm-app/talaria/smoke-co-alarm-common",
     "${chip_root}/src/lib",
     "${chip_root}/examples/platform/talaria/common"
   ]
