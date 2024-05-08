@@ -58,6 +58,7 @@ private:
     static void HandleAbort(intptr_t context);
     static void HandleProcessBlock(intptr_t context);
     static void HandleApply(intptr_t context);
+    static void OnOTADowanloadFailure(chip::System::Layer * aLayer, void * aAppState);
 
     CHIP_ERROR SetBlock(ByteSpan & block);
     CHIP_ERROR ReleaseBlock();

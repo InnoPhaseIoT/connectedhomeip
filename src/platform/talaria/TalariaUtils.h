@@ -88,6 +88,8 @@ public:
     static void ScanWiFiNetwork(struct wifi_netinfo **scan_result, int *scanres_cnt, ByteSpan ssid);
     static CHIP_ERROR GetWiFiInterfaceMAC(uint8_t *mac_addr);
     static void retryConnectWiFi();
+    static CHIP_ERROR ConfigWcmPMForFOTA();
+    static CHIP_ERROR RestoreWcmPMConfig();
 };
 
 } // namespace Internal

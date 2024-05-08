@@ -49,6 +49,11 @@ static struct wifi_counters base_count;
 static uint32_t base_becont_rx_count;
 static uint32_t base_becont_loss_count;
 
+/* PM config params */
+static uint32_t listen_interval;
+static uint32_t traffic_tmo;
+static uint32_t pm_flags;
+
 static void TalariaUtils::wcm_notifier(void * ctx, struct os_msg * msg)
 {
     ChipDeviceEvent event;
@@ -468,5 +473,24 @@ CHIP_ERROR TalariaUtils::GetWiFiInterfaceMAC(uint8_t *mac_addr)
         return CHIP_ERROR_INCORRECT_STATE;
     }
     memcpy(mac_addr, wcm_get_hwaddr(wcm_handle), IEEE80211_ADDR_LEN);
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR TalariaUtils::ConfigWcmPMForFOTA()
+{
+    /* Save the PM config for restoring later */
+    ChipLogProgress(DeviceLayer, "Disabling WCM power save");
+    wcm_pm_config_get(wcm_handle, &listen_interval, &traffic_tmo, &pm_flags);
+
+    /* Configure WCM PM for disabling power save */
+    wcm_pm_config(wcm_handle, 1, 0, WIFI_PM_PS_POLL);
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR TalariaUtils::RestoreWcmPMConfig()
+{
+    /* Restore PM config */
+    ChipLogProgress(DeviceLayer, "Enabling WCM power save");
+    wcm_pm_config(wcm_handle, listen_interval, traffic_tmo, pm_flags);
     return CHIP_NO_ERROR;
 }
