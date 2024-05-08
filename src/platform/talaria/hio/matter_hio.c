@@ -48,6 +48,8 @@
 #include "matter_hio.h"
 #pragma GCC diagnostic pop
 
+struct os_semaphore hio_ind_sem;
+
 // #define TESTCODE
 static bool hio_matter_thread_init = false;
 TaskHandle_t hio_matter_thread     = NULL;
@@ -247,6 +249,7 @@ static void hio_matter_data_ind_free(struct packet ** pkt)
 {
     packet_free(*pkt);
     *pkt = NULL;
+    os_sem_post(&hio_ind_sem);
 }
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data)
@@ -264,6 +267,7 @@ int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t pay
         hio_packet_set_free_hook(&pkt, NULL, &hio_matter_data_ind_free);
     }
     hio_write_msg(pkt, HIO_GROUP_MATTER, MATTER_CMD_NOTIFY_IND, 0);
+    os_sem_wait(&hio_ind_sem); /* Wait here until packet is sent */
     return 0;
 }
 
@@ -457,5 +461,6 @@ static void hio_matter_create_thread(void)
 void matter_hio_init(void)
 {
     hio_api_init(&matter_api, NULL);
+    os_sem_init(&hio_ind_sem, 0);
     hio_matter_create_thread();
 }
