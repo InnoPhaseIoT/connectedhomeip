@@ -436,7 +436,7 @@ int main(void)
     matter_hio_init();
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(1800));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)
