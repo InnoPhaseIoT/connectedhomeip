@@ -253,8 +253,6 @@ int main(void)
     run_unit_test();
 #endif
 
-    talariautils::EnableSuspend();
-
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 
     ServerInitDone = xSemaphoreCreateCounting(1, 0);

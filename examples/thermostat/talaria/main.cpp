@@ -460,7 +460,6 @@ int main(void)
         os_printf("Loading Thermostat data from host task created...\n");
     }
 
-    talariautils::EnableSuspend();
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
     led_pin = GPIO_PIN(LED_PIN);
     os_gpio_request(led_pin);

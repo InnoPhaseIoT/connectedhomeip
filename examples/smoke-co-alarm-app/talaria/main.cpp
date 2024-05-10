@@ -511,7 +511,6 @@ int main(void)
 #ifdef UNIT_TEST
     run_unit_test();
 #endif
-    talariautils::EnableSuspend();
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
     led_pin = GPIO_PIN(LED_PIN);
