@@ -44,6 +44,7 @@ enum matter_clusters
     SPEAKER,
     BASIC_VIDEO_PLAYER,
     SMOKE_CO_ALARM,
+    MAX_CLUSTER,
     /*USERS CAN ADD CLUSTERS HERE*/
 };
 

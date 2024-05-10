@@ -102,6 +102,9 @@ void hio_reqmsg_free(struct hio_msg_hdr * msg);
 #define MOUNT_PATH "/data/"
 #define FOTA_CFG_FILE_PATH MOUNT_PATH "fota_config.json"
 #define FOTA_CFG_FLAG_PATH MOUNT_PATH "fota_flag.json"
+#define OPEN_COMMISSIONING_WINDOW "cm_ok"
+#define FOTA_START "do_fota"
+#define FOTA_IN_PROGRESS "fota_in_progress"
 
 enum
 {
@@ -298,56 +301,73 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
     int ok                            = false;
     struct matter_data_send_req * req = packet_data(msg);
     struct packet * rsp_pkt;
-
-#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
-    if (strncmp(req->data, "cm_ok", 5) == 0)
+    if (req->cluster >= MAX_CLUSTER)
     {
-        openCommissionWindow();
+        xSemaphoreGive(Getdata);
+        os_printf("\n Receieved Unsupported Cluster Command \n");
     }
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
+    if (req->cluster == DOOR_LOCK)
+    {
+        if (strncmp(req->data, OPEN_COMMISSIONING_WINDOW, 5) == 0)
+        {
+            openCommissionWindow();
+        }
+    }
+
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
-    if (strncmp(req->data, "do_fota", 7) == 0)
+    if (strncmp(req->data, FOTA_START, 7) == 0)
     {
-        fota_flag_status_set("fota_in_progress", "1");
+        fota_flag_status_set(FOTA_IN_PROGRESS, "1");
     }
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
-    if (req->cmd == GET_USER)
+    if (req->cluster == DOOR_LOCK)
     {
-        // os_printf("\r\nget_user\r\n");
-        memcpy(&revd_user, req->data, sizeof(struct dl_set_get_user));
-        xSemaphoreGive(Getdata);
-    }
-    else if (req->cmd == GET_CREDENTIAL_STATUS)
-    {
-        // os_printf("\r\nget_credential\r\n");
-        memcpy(&revd_credential, req->data, sizeof(struct dl_set_get_credential));
-        xSemaphoreGive(Getdata);
+        if (req->cmd == GET_USER)
+        {
+            // os_printf("\r\nget_user\r\n");
+            memcpy(&revd_user, req->data, sizeof(struct dl_set_get_user));
+            xSemaphoreGive(Getdata);
+        }
+        else if (req->cmd == GET_CREDENTIAL_STATUS)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_credential, req->data, sizeof(struct dl_set_get_credential));
+            xSemaphoreGive(Getdata);
+        }
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
-    if (req->cmd == THERMOSTAT_GET_DATA)
+    if (req->cluster == THERMOSTAT )
     {
-        // os_printf("\r\nget_credential\r\n");
-        memcpy(&revd_data, req->data, sizeof(struct thermostat_get_data));
-        xSemaphoreGive(Getdata);
-        os_printf("\r\n [Thermostat] get_data: data received from host...\r\n");
-    }
-    else if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
-    {
-        // os_printf("\r\nget_credential\r\n");
-        memcpy(&revd_temp, req->data, sizeof(struct thermostat_read_temperature));
-        xSemaphoreGive(Getdata);
-        os_printf("\r\n [Thermostat] get_temp: temperature received from host...\r\n");
+        if (req->cmd == THERMOSTAT_GET_DATA)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_data, req->data, sizeof(struct thermostat_get_data));
+            xSemaphoreGive(Getdata);
+            os_printf("\r\n [Thermostat] get_data: data received from host...\r\n");
+        }
+        else if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_temp, req->data, sizeof(struct thermostat_read_temperature));
+            xSemaphoreGive(Getdata);
+            os_printf("\r\n [Thermostat] get_temp: temperature received from host...\r\n");
+        }
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
-    if (req->cmd == SMOKE_CO_ALARM_GET_DATA)
+    if(req->cluster == SMOKE_CO_ALARM)
     {
-        memcpy(&revd_smoke_co_alarm_data, req->data, sizeof(struct smoke_co_alarm_get_data));
-        Smoke_co_alarm_update_status();
+        if (req->cmd == SMOKE_CO_ALARM_GET_DATA)
+        {
+            memcpy(&revd_smoke_co_alarm_data, req->data, sizeof(struct smoke_co_alarm_get_data));
+            Smoke_co_alarm_update_status();
+        }
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
