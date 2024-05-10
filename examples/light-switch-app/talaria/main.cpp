@@ -27,6 +27,7 @@ extern "C" {
 #include "task.h"
 #include <kernel/gpio.h>
 #include <talaria_two.h>
+#include <time.h>
 
 #ifdef __cplusplus
 }
@@ -176,7 +177,7 @@ void emberAfSwitchClusterInitCallback(EndpointId endpoint)
 
     /* Initialize Type and Number of Positions attributes of Switch */
     Switch::Attributes::NumberOfPositions::Set(SWITCH_ENDPOINT_ID, SWITCH_MAX_POSITIONS);
-    Switch::Attributes::FeatureMap::Set(SWITCH_ENDPOINT_ID, SWITCH_TYPE_MOMENTARY);
+    Switch::Attributes::FeatureMap::Set(SWITCH_ENDPOINT_ID, SWITCH_TYPE_LATCHING);
 }
 
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & path, uint8_t type, uint16_t size, uint8_t * value)
@@ -197,9 +198,9 @@ void PrepareBindingCommand(uint8_t state)
     data->clusterId = chip::app::Clusters::OnOff::Id;
 
     if (state == 0)
-	    data->commandId = chip::app::Clusters::OnOff::Commands::Off::Id;
-    else
 	    data->commandId = chip::app::Clusters::OnOff::Commands::On::Id;
+    else
+	    data->commandId = chip::app::Clusters::OnOff::Commands::Off::Id;
 
     SwitchWorkerFunction(data);
 }
@@ -321,7 +322,7 @@ static void PrepareBindingCommand_Level_Control(uint8_t current_pos)
      * Update the data commandId and arguments as per requirement. */
 
     data->clusterId = app::Clusters::LevelControl::Id;
-    data->commandId = app::Clusters::LevelControl::Commands::MoveToLevelWithOnOff::Id;
+    data->commandId = app::Clusters::LevelControl::Commands::MoveToLevel::Id;
     data->attributeId = app::Clusters::LevelControl::Attributes::CurrentLevel::Id;
     data->args[1] = 0;
     data->args[2] = 1;
@@ -333,15 +334,27 @@ static void PrepareBindingCommand_Level_Control(uint8_t current_pos)
        data->args[0] = 0;
        break;
     case SWITCH_POS_1:
-       data->args[0] = 64;
+       data->args[0] = 32;
        break;
     case SWITCH_POS_2:
-       data->args[0] = 128;
+       data->args[0] = 64;
        break;
     case SWITCH_POS_3:
-       data->args[0] = 192;
+       data->args[0] = 96;
        break;
     case SWITCH_POS_4:
+       data->args[0] = 128;
+       break;
+    case SWITCH_POS_5:
+       data->args[0] = 160;
+       break;
+    case SWITCH_POS_6:
+       data->args[0] = 192;
+       break;
+    case SWITCH_POS_7:
+       data->args[0] = 224;
+       break;
+    case SWITCH_POS_8:
        data->args[0] = 254;
        break;
     default:
@@ -361,61 +374,36 @@ void Retry_PrepareBindingCommand_Level_Control(void)
 #endif /* ENABLE_LEVEL_CONTROL */
 
 #if ENABLE_COLOUR_CONTROL
-static void PrepareBindingCommand_Colour_Control(uint8_t current_pos)
+static void PrepareBindingCommand_Colour_Control(void)
 {
+    srand(time(NULL));
     /* PlaceHolder: Map each switch position to the corresponding colour control cluster command
      * to be sent to the other device to perform the operation.
      * Prepare and send Binding command accordingly. */
 
     BindingCommandData * data = Platform::New<BindingCommandData>();
 
-    /* Command arguments for MoveToHue:
-     * data->args[0] - Hue, data->args[1] - direction
+    /* Command arguments for MoveToColor:
+     * data->args[0] - colorX, data->args[1] - colorY
      * data->args[2] - Transition Time, data->args[3] - Options Mask
      * data->args[4] - Options Override
      *
-     * Command arguments for MoveToSaturation:
-     * data->args[0] - Saturation, data->args[1] - Transition Time
-     * data->args[2] - Options Mask, data->args[3] - Options Override
      * Update the data commandID and arguments as per requirement. */
 
     data->clusterId = app::Clusters::ColorControl::Id;
-    data->commandId = app::Clusters::ColorControl::Commands::MoveToHue::Id;
-    data->args[1] = 1;
-    data->args[2] = 1;
+    data->commandId = app::Clusters::ColorControl::Commands::MoveToColor::Id;
+    data->args[0] = rand() % (COLOR_VALUE_MAX + 1);
+    data->args[1] = rand() % (COLOR_VALUE_MAX + 1);
+    data->args[2] = 0;
     data->args[3] = 1;
     data->args[4] = 1;
-
-    switch (current_pos)
-    {
-    case SWITCH_POS_0:
-       data->args[0] = 0;
-       break;
-    case SWITCH_POS_1:
-       data->args[0] = 64;
-       break;
-    case SWITCH_POS_2:
-       data->args[0] = 128;
-       break;
-    case SWITCH_POS_3:
-       data->args[0] = 192;
-       break;
-    case SWITCH_POS_4:
-       data->args[0] = 254;
-       break;
-    default:
-       ChipLogError(AppServer, "Invalid Switch Position: %d", current_pos);
-       return;
-    }
 
     SwitchWorkerFunction(data);
 }
 
 void Retry_PrepareBindingCommand_Colour_Control(void)
 {
-    uint8_t switch_pos;
-    Switch::Attributes::CurrentPosition::Get(SWITCH_ENDPOINT_ID, &switch_pos);
-    PrepareBindingCommand_Colour_Control(switch_pos);
+    PrepareBindingCommand_Colour_Control();
 }
 #endif /* ENABLE_COLOUR_CONTROL */
 
@@ -433,6 +421,17 @@ static void OnSwitchPositionChanged(uint8_t Switch_Pos)
      * of Switch command to update the switch position attribute. */
     static uint8_t previous_pos;
 
+#if ENABLE_COLOUR_CONTROL
+    static uint8_t timer_count = 0;
+    /* Send color control command to lighting-device for every 120sec. */
+    timer_count++;
+    if (timer_count == 120)
+    {
+	    PrepareBindingCommand_Colour_Control();
+	    timer_count = 0;
+    }
+#endif /* ENABLE_COLOUR_CONTROL */
+
     Switch::Attributes::CurrentPosition::Get(SWITCH_ENDPOINT_ID, &previous_pos);
     if (previous_pos == Switch_Pos)
 	    return;
@@ -440,10 +439,6 @@ static void OnSwitchPositionChanged(uint8_t Switch_Pos)
 #if ENABLE_LEVEL_CONTROL
     PrepareBindingCommand_Level_Control(Switch_Pos);
 #endif /* ENABLE_LEVEL_CONTROL */
-
-#if ENABLE_COLOUR_CONTROL
-    PrepareBindingCommand_Colour_Control(Switch_Pos);
-#endif /* ENABLE_COLOUR_CONTROL */
 
     Update_SwitchPosition_Attribute_Status(Switch_Pos);
 }
@@ -453,14 +448,24 @@ static void OnSwitchPositionChangedHandler_Adc(intptr_t arg)
 {
     uint32_t adc_val = os_adc();
 
-    if (adc_val > ADC_VALUE_0_25_V_MIN && adc_val <= ADC_VALUE_0_25_V_MAX)
+    if (adc_val == ADC_SWITCH_POS_0)
+	    Current_Switch_Pos = SWITCH_POS_0;
+    else if (adc_val > ADC_SWITCH_POS_0 && adc_val <= ADC_SWITCH_POS_1)
 	    Current_Switch_Pos = SWITCH_POS_1;
-    else if (adc_val > ADC_VALUE_0_25_V_MAX && adc_val <= ADC_VALUE_0_5_V_MAX)
+    else if (adc_val > ADC_SWITCH_POS_1 && adc_val <= ADC_SWITCH_POS_2)
 	    Current_Switch_Pos = SWITCH_POS_2;
-    else if (adc_val > ADC_VALUE_0_5_V_MAX && adc_val <= ADC_VALUE_0_75_V_MAX)
+    else if (adc_val > ADC_SWITCH_POS_2 && adc_val <= ADC_SWITCH_POS_3)
 	    Current_Switch_Pos = SWITCH_POS_3;
-    else if (adc_val > ADC_VALUE_0_75_V_MAX && adc_val <= ADC_VALUE_1_V_MAX)
+    else if (adc_val > ADC_SWITCH_POS_3 && adc_val <= ADC_SWITCH_POS_4)
 	    Current_Switch_Pos = SWITCH_POS_4;
+    else if (adc_val > ADC_SWITCH_POS_4 && adc_val <= ADC_SWITCH_POS_5)
+	    Current_Switch_Pos = SWITCH_POS_5;
+    else if (adc_val > ADC_SWITCH_POS_5 && adc_val <= ADC_SWITCH_POS_6)
+	    Current_Switch_Pos = SWITCH_POS_6;
+    else if (adc_val > ADC_SWITCH_POS_6 && adc_val <= ADC_SWITCH_POS_7)
+	    Current_Switch_Pos = SWITCH_POS_7;
+    else if (adc_val > ADC_SWITCH_POS_7 && adc_val <= ADC_SWITCH_POS_8)
+	    Current_Switch_Pos = SWITCH_POS_8;
     else
 	    Current_Switch_Pos = SWITCH_POS_0;
 
