@@ -88,6 +88,7 @@ constexpr EndpointId kThermostatEndpoint = 1;
 
 SemaphoreHandle_t ServerInitDone;
 SemaphoreHandle_t Getdata;
+SemaphoreHandle_t GetTemperatureData;
 
 /* Function Declarations */
 
@@ -235,7 +236,7 @@ static void Update_Thermostat_Temperature_attribute_status(intptr_t arg)
 static void read_temperature_from_host(void)
 {
     struct thermostat_read_temperature *get_temperature;
-    Getdata = xSemaphoreCreateCounting(1, 0);
+    GetTemperatureData = xSemaphoreCreateCounting(1, 0);
 
     while(1)
     {
@@ -246,7 +247,7 @@ static void read_temperature_from_host(void)
 	    if(ret != 0)
 		    return;
 
-	    if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
+	    if (xSemaphoreTake(GetTemperatureData, portMAX_DELAY) == pdFAIL)
 	    {
 		    os_printf("Unable to wait on semaphore...!!\n");
 	    }
