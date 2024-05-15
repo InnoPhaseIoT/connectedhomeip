@@ -76,6 +76,7 @@ void print_test_results(nlTestSuite * tSuite);
 void app_test();
 
 SemaphoreHandle_t ServerInitDone;
+SemaphoreHandle_t Getdata;
 /* Function Declarations */
 
 static void OnOffPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
