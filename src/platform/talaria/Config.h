@@ -39,11 +39,12 @@ class TalariaConfig
 public:
     struct Key;
 
-    static constexpr size_t kMaxConfigKeyNameLength = 15;
+    static constexpr size_t kMaxConfigKeyNameLength = 64;
 
     static const char kConfigNamespace_ChipFactory[];
     static const char kConfigNamespace_ChipConfig[];
     static const char kConfigNamespace_ChipCounters[];
+    static const char kConfigNamespace_KVS[];
 
     static const Key kConfigKey_SerialNum;
     static const Key kConfigKey_MfrDeviceId;
