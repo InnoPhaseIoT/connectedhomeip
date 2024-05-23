@@ -32,7 +32,7 @@
 
 #include <lib/support/CodeUtils.h>
 #include <lib/support/logging/CHIPLogging.h>
-// #include <platform/Linux/CHIPLinuxStorage.h>
+#include <platform/talaria/Config.h>
 
 #define DATA_PART_KEY_STORAGE "/data/kvs"
 
@@ -51,6 +51,9 @@ extern "C" {
 namespace chip {
 namespace DeviceLayer {
 namespace PersistedStorage {
+
+using namespace chip::DeviceLayer::Internal;
+
 int ret_code;
 int replaceSlahWithUnderscore(const char * key, char * configfile)
 {
@@ -58,16 +61,14 @@ int replaceSlahWithUnderscore(const char * key, char * configfile)
 		return -1;
 	}
 
-	memset(configfile, 0, sizeof(configfile));
-	sprintf(configfile, "%s/", DATA_PART_KEY_STORAGE);
-	char *key_place_ptr = configfile + strlen(configfile);
-	strcat(configfile, key);
+	memcpy(configfile, key, strlen(key));
 	for (uint8_t i = 0; i < strlen(key); i++)
 	{
-		if (key_place_ptr[i] == '/') {
-			key_place_ptr[i] = '_';
+		if (configfile[i] == '/') {
+			configfile[i] = '_';
 		}
 	}
+	configfile[strlen(key)] = '\0';
 	return 0;
 }
 
@@ -76,93 +77,63 @@ KeyValueStoreManagerImpl KeyValueStoreManagerImpl::sInstance;
 
 CHIP_ERROR KeyValueStoreManagerImpl::_Put(const char * key, const void * value, size_t value_size)
 {
-	/*
-	 * Storing key-value pair into DATA_PART_KEY_STORAGE partition
-	 *
-	 *  Each Key are hash-value computed using function djb2_order_sensitive_hash
-	 *  This hash-value have been used for file creation and storing
-	 *
-	 *
-	 */
-	char configfile[100];
+	CHIP_ERROR error;
+	char configfile[TalariaConfig::kMaxConfigKeyNameLength];
 	int retval = 0;
 	FILE *sample_file;
     struct stat st = {0};
-
-    if (stat(DATA_PART_KEY_STORAGE, &st) == -1) {
-        mkdir(DATA_PART_KEY_STORAGE, 0666);
-    }
-
 	retval = replaceSlahWithUnderscore(key,configfile);
-	/* TODO: retval unhandled */
-	/* Write to file */
-	if ((sample_file = fopen(configfile, "w")) != NULL)
-	{
-		fwrite(value, 1, value_size, sample_file);
-		fclose(sample_file);
-	}
-	else
-	{
-		// ChipLogError(DeviceLayer, "Cannot open the file to store key");
-		return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
-	}
+	TalariaConfig::Key key_file = {TalariaConfig::kConfigNamespace_KVS, configfile};
 
-	return CHIP_NO_ERROR;
+	/* Write to file */
+	error = TalariaConfig::WriteConfigValueBin(key_file, (const uint8_t *) value, value_size);
+	return error;
 }
 
 CHIP_ERROR KeyValueStoreManagerImpl::_Get(const char * key, void * value, size_t value_size, size_t * read_bytes_size,
 		size_t offset_bytes)
 {
-	int size=0;
-
-	/*
-	 *  Storing key-value pair into /data partition
-	 *
-	 *  Each Key are hash-value computed using function djb2_order_sensitive_hash
-	 *  This hash-value have been used for retrival of value which was Injected from _Put function
-	 *
-	 *
-	 */
-	char configfile[100];
-	int retval = 0;
+	size_t size = 0;
+	char configfile[TalariaConfig::kMaxConfigKeyNameLength];
+	CHIP_ERROR retval = CHIP_NO_ERROR;
 	FILE *sample_file;
-	retval = replaceSlahWithUnderscore(key,configfile);
+	uint8_t *read;
+	replaceSlahWithUnderscore(key,configfile);
+	TalariaConfig::Key key_file = {TalariaConfig::kConfigNamespace_KVS, configfile};
+
 	/* Read File */
-	char * read;
-	sample_file = fopen(configfile, "r");
-	if (sample_file)
-	{
-		read = utils_file_get(configfile, &size);
-		fclose(sample_file);
-		if(size != 0)
-		{
-			if (value_size < (size - 1))
-			{
-				memcpy(value, read + offset_bytes, value_size);
-				*read_bytes_size = value_size;
-				if (read != NULL)
-					free(read);
-
-				return CHIP_ERROR_BUFFER_TOO_SMALL;
-			}
-			/* -1 from read size is for removing EOF
-Check: currently offset_bytes always is 0,
-So does it required to be consided for (size - 1) value? */
-
-		        memcpy(value, read + offset_bytes, size - 1);
-		        *read_bytes_size = size - 1;
-		}
-		else if (size == 0){
-			*read_bytes_size = size ;
-		}
+	read = (uint8_t *) pvPortMalloc(value_size);
+	if (read == NULL) {
+		ChipLogError(DeviceLayer, "Unable to allocate memory");
+		return CHIP_ERROR_NO_MEMORY;
 	}
-	else
-	{
+
+	retval = TalariaConfig::ReadConfigValueBin(key_file, read, value_size, size);
+	if (retval != CHIP_NO_ERROR || size <= 0) {
+		*read_bytes_size = 0;
 		memset(value, 0, value_size);
+		if (read != NULL) {
+			free(read);
+		}
 		return CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
 	}
-	if (read != NULL)
+
+	if (value_size < (size - 1)) {
+		memcpy(value, read + offset_bytes, value_size);
+		*read_bytes_size = value_size;
+		if (read != NULL) {
+			free(read);
+		}
+		return CHIP_ERROR_BUFFER_TOO_SMALL;
+	}
+
+    memcpy(value, read + offset_bytes, size);
+    *read_bytes_size = size;
+
+
+	if (read != NULL) {
 		free(read);
+	}
 	return CHIP_NO_ERROR;
 }
 
@@ -172,21 +143,14 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Delete(const char * key)
 	 *  Each Key are hash computed using function djb2_order_sensitive_hash
 	 *  This hash-value is used here to Delete the file.
 	 */
-	char configfile[100];
+	char configfile[TalariaConfig::kMaxConfigKeyNameLength];
 	int retval = 0;
 	FILE *sample_file;
 	retval = replaceSlahWithUnderscore(key,configfile);
+	TalariaConfig::Key key_file = {TalariaConfig::kConfigNamespace_KVS, configfile};
+
 	/* Delete file */
-	if ((sample_file = fopen(configfile, "r")) != NULL)
-	{
-		fclose(sample_file);
-		ret_code = unlink(configfile);
-		return CHIP_NO_ERROR;
-	}
-	else
-	{
-		return CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
-	}
+	return TalariaConfig::ClearConfigValue(key_file);
 }
 
 CHIP_ERROR KeyValueStoreManagerImpl::EraseAll(void)

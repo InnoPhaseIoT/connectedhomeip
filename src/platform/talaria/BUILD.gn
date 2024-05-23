@@ -139,6 +139,7 @@ static_library("talaria") {
 
   include_dirs = [
     "${chip_root}/third_party/talaria/repo/freertos_sdk/components/utils/inc",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/secureboot/inc/",
     "${chip_root}/examples/platform/talaria",
   ]
 
