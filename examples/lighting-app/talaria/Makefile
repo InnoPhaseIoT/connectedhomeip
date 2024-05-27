@@ -23,6 +23,10 @@ CFLAGS += -I$(COMPONENTS_DIR)
 # Default values if not defined
 SECURED ?= false
 EXT_FLASH ?= false
+ENABLE_HTTP_APP ?= false
+ENABLE_MQTT_APP ?= false
+ENABLE_AWS_IOT_APP ?= false
+ENABLE_OTA_REQUESTOR ?= true
 
 # Targets
 all: check_key libcomponents $(TARGET)
@@ -51,7 +55,7 @@ $(TARGET_STRIP): $(OUT_DIR)/build.ninja FORCE
 	ninja -C $(OUT_DIR) -j 4
 
 $(OUT_DIR)/build.ninja:
-	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH)"
+	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH) config_enable_http_client_app=$(ENABLE_HTTP_APP) config_enable_mqtt_app=$(ENABLE_MQTT_APP) config_enable_aws_iot_app=$(ENABLE_AWS_IOT_APP) chip_enable_ota_requestor=$(ENABLE_OTA_REQUESTOR)"
 
 ifdef KEY
 	$(info KEY=$(KEY))

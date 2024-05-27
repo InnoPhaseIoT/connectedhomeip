@@ -25,6 +25,10 @@
 #include "semphr.h"
 #include <talaria_two.h>
 
+#if CONFIG_ENABLE_HTTP_CLIENT_APP
+int http_client_main(void);
+#endif /* CONFIG_ENABLE_HTTP_CLIENT_APP */
+
 #ifdef __cplusplus
     }
 #endif
@@ -51,14 +55,16 @@
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
 #include <CHIPProjectAppConfig.h>
+#include <system/SystemEvent.h>
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
 #include <app/clusters/ota-requestor/BDXDownloader.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestor.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorStorage.h>
 #include <app/clusters/ota-requestor/ExtendedOTARequestorDriver.h>
 #include <platform/talaria/OTAImageProcessorImpl.h>
-#include <system/SystemEvent.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorUserConsent.h>
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR  */
 
 using namespace chip;
 using namespace chip::Platform;
@@ -70,9 +76,12 @@ using namespace chip::DeviceLayer;
 using namespace chip::talaria;
 using namespace chip::talaria::DeviceCommissioning;
 
+#define os_avail_heap xPortGetFreeHeapSize
 #define USER_INTENDED_COMMISSIONING_TRIGGER_GPIO 3;
 #define MATTER_OTA_ALLOWED_BLOCKSIZE 4096;
 char *app_name = "matter_lighting_app";
+
+#define CONFIG_ANY_EXAMPLE_APP_ENABLED (CONFIG_ENABLE_MQTT_APP || CONFIG_ENABLE_AWS_IOT_APP || CONFIG_ENABLE_HTTP_CLIENT_APP)
 
 constexpr uint16_t requestedOtaBlockSize = MATTER_OTA_ALLOWED_BLOCKSIZE;
 
@@ -81,6 +90,7 @@ chip::app::Clusters::NetworkCommissioning::Instance
     sWiFiNetworkCommissioningInstance(kNetworkCommissioningEndpointWiFi, &(chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance()));
 DeviceLayer::TalariaFactoryDataProvider sFactoryDataProvider;
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
 namespace chip {
 namespace Shell {
 class OTARequestorCommands
@@ -132,13 +142,15 @@ bool CustomOTARequestorDriver::CanConsent()
     return gRequestorCanConsent.ValueOr(DeviceLayer::ExtendedOTARequestorDriver::CanConsent());
 }
 
+// static AppDeviceCallbacks EchoCallbacks;
+static void InitOTARequestor();
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR  */
+
 
 // static AppDeviceCallbacks EchoCallbacks;
 static void InitServer(intptr_t context);
 int SoftwareTimer_Init(void);
 
-// static AppDeviceCallbacks EchoCallbacks;
-static void InitOTARequestor();
 
 CommissioningInterface::CommissioningParam& GetCommissioningParam(CommissioningInterface::CommissioningParam &param)
 {
@@ -154,6 +166,38 @@ CommissioningInterface::CommissioningParam& GetCommissioningParam(CommissioningI
     return param;
 }
 
+#if CONFIG_ANY_EXAMPLE_APP_ENABLED
+static void additaional_app_task(void * pvParameters)
+{
+#if CONFIG_ENABLE_HTTP_CLIENT_APP
+    http_client_main();
+#endif /* CONFIG_ENABLE_HTTP_CLIENT_APP */
+
+    os_printf("\n os_free_heap(): %d", os_avail_heap());
+    vTaskDelete(NULL);
+}
+
+static void create_additional_app_task(void)
+{
+    BaseType_t xReturned;
+    static TaskHandle_t xHandle = NULL;
+    if (matterutils::IsNodeCommissioned() == true && xHandle == NULL)
+    {
+	    xReturned = xTaskCreate(additaional_app_task, "additaional_app_task",
+			            1024, (void *) NULL, tskIDLE_PRIORITY + 2, &xHandle);
+
+	    if (xReturned == pdPASS)
+	    {
+		    os_printf("\napp_thread_new_task created successfully...\n");
+	    }
+	    else
+	    {
+		    os_printf("\napp_thread_new_task create failed...\n");
+	    }
+    }
+}
+#endif /* CONFIG_ANY_EXAMPLE_APP_ENABLED */
+
 void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
 {
     (void) arg;
@@ -168,6 +212,13 @@ void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
         {
             ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
         }
+    }
+    if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete ||
+        event->Type == DeviceLayer::DeviceEventType::kServerReady)
+    {
+#if CONFIG_ANY_EXAMPLE_APP_ENABLED
+	create_additional_app_task();
+#endif /* CONFIG_ANY_EXAMPLE_APP_ENABLED */
     }
 }
 
@@ -213,6 +264,7 @@ void InitServer(intptr_t context)
     }
 }
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
 void InitOTARequestor(void)
 {
     if (!GetRequestorInstance())
@@ -227,6 +279,8 @@ void InitOTARequestor(void)
         gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
     }
 }
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR  */
+
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
 {
@@ -274,9 +328,10 @@ void app_test()
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
     err = chip::DeviceLayer::PlatformMgrImpl().AddEventHandler(InitOTARequestor, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
-
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR  */
 }
 
 /*-----------------------------------------------------------*/

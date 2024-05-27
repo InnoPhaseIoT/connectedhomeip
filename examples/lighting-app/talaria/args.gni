@@ -24,6 +24,10 @@ declare_args() {
   chip_enable_ota_requestor = true
   config_enable_talaria_factory_data_provider = false
   config_enable_talaria_device_instance_info_provider = false
+  config_enable_http_client_app = false
+  config_enable_mqtt_app = false
+  config_enable_aws_iot_app = false
+
 
   default_configs_pie = [ "${chip_root}/config/talaria/:ldflags" ]
 }

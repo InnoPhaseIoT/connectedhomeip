@@ -8,6 +8,8 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
 -   Setup the environment by running the boostrap.sh script as menionend in the FreeRTOS_sdk_3.0_master_matter/matter/README.md **Building the Example application** secion
 
+### Building Matter Lighting Application
+
 -   Build the example application:
 
           $ cd connectedhomeip/examples/lighting-app/talaria
@@ -19,7 +21,29 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ make clean
 
+- FOTA will be enabled by default when building the Matter Lighting Application.
+- To disable FOTA, build the example application with "make ENABLE_OTA_REQUESTOR=false".
+
+### Building Matter Lighting Application + AWS/MQTT/HTTP Application
+
+#### Building Matter Lighting Application + HTTP/HTTPS Application
+-   Build the example application:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make ENABLE_HTTP_APP=true
+
+-   To delete generated executable, libraries and object files use:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ make clean
+
+- FOTA will be disabled when building the Matter lighting application with the HTTP/HTTPS application.
+- Compilation/build will fail if more than one application is enabled.
+
 ## Boot arguments
+
+### Boot arguments for Matter Lighting Application
 -   `matter.commissioning.flow_type=<value>`
 
     0: Standard commissioning flow (Default)
@@ -52,6 +76,11 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
     2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
        Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
 
+### Boot arguments for Matter Lighting Application + AWS/MQTT/HTTP Application
+
+#### Boot arguments for Matter Lighting Application + HTTP/HTTPS Application
+- Refer to the instructions in the Example_using_HTTP_Client.pdf document found in the freertos_sdk_x.y/examples/http_client/doc directory, sections "Running the Application" and "Using the Application."
+- Matter lighting application boot arguments should be passed along with the HTTP/HTTPS application boot arguments.
 
 ## Programming the Example on Talaria Two Platform
 The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
@@ -148,3 +177,8 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           ## Command to subscribe for current occupancy status
           >>> occupancysensing subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
           e.g. occupancysensing subscribe occupancy 5 10 1111 1
+
+### Controlling the device when HTTP/HTTPS App Enabled
+ - HTTP/HTTPS application functionality is enabled only when compiled with ENABLE_HTTP_APP=true.
+ - The HTTP/HTTPS application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
+ - Refer to the instructions in the Example_using_HTTP_Client.pdf document found in the freertos_sdk_x.y/examples/http_client/doc directory, sections "Running the Application" and "Using the Application," for using and controlling the HTTP/HTTPS app functionality.

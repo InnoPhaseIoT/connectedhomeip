@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("//out/test/args.gn")
 
 executable("lighting-app.elf") {
   sources = [
@@ -28,7 +29,47 @@ executable("lighting-app.elf") {
 
   include_dirs = [ 
     "${chip_root}/examples/platform/talaria",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/",
   ]
+
+  defines = [
+  ]
+
+  # Disable FOTA if any of the example apps enabled
+  if ((config_enable_http_client_app && !config_enable_mqtt_app && !config_enable_aws_iot_app) ||
+      (!config_enable_http_client_app && config_enable_mqtt_app && !config_enable_aws_iot_app) ||
+      (!config_enable_http_client_app && !config_enable_mqtt_app && config_enable_aws_iot_app)) {
+
+      chip_enable_ota_requestor = false
+
+  }
+  # Enable/Disable FOTA based on build arguments if none of the example applications enabled
+  else if (!config_enable_http_client_app && !config_enable_mqtt_app && !config_enable_aws_iot_app) {
+
+      # Do nothing, as chip_enable_ota_requestor will be enabled or disabled by the user at compile time
+  }
+  # If it comes to this case then, multiple extra apps are enabled, hence raise the error
+  else {
+        assert(false, "Error: Can not compile more than one example app with lighting-app")
+  }
+
+  if (chip_enable_ota_requestor == true) {
+     defines += [ "CONFIG_ENABLE_OTA_REQUESTOR=1" ]
+  }
+
+  if (config_enable_http_client_app == true) {
+     defines += [ "CONFIG_ENABLE_HTTP_CLIENT_APP=1" ]
+     sources += [
+            "talaria_http_client/http_client_main.c",
+            "talaria_http_client/ca_bundle.o",
+     ]
+  }
+  else if (config_enable_mqtt_app == true) {
+     defines += [ "CONFIG_ENABLE_MQTT_APP=1" ]
+  }
+  else if (config_enable_aws_iot_app == true) {
+     defines += [ "CONFIG_ENABLE_AWS_IOT_APP=1" ]
+  }
 
   output_dir = root_out_dir
 
