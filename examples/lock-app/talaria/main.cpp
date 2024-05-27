@@ -542,7 +542,7 @@ int main(void)
     chk_and_register_pkt_hook();
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(2000));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)
