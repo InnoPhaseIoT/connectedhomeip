@@ -111,12 +111,29 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
     }
 #endif
     ChipLogProgress(SoftwareUpdate, "[APP]Perform Fota");
+    /* Disable power save for FOTA */
+    TalariaUtils::ConfigWcmPMForFOTA();
+    /* Start a timer for restoring the PM config in case the FOTA is stopped in the middle somehow */
+    /* Debug boot argument: matter.max_ota_power_save_disable_time in seconds */
+    int power_save_reenable_timeout = os_get_boot_arg_int("matter.max_ota_power_save_disable_time", 360);
+
+    DeviceLayer::SystemLayer().StartTimer(
+        static_cast<System::Clock::Timeout>(power_save_reenable_timeout * 1000), OnOTADowanloadFailure, NULL);
     imageProcessor->mHeaderParser.Init();
     imageProcessor->mDownloader->OnPreparedForDownload(CHIP_NO_ERROR);
 }
 
+void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, void * aAppState)
+{
+    /* Reenable power save */
+    TalariaUtils::RestoreWcmPMConfig();
+}
+
 void OTAImageProcessorImpl::HandleFinalize(intptr_t context)
 {
+    /* Reenable power save */
+    TalariaUtils::RestoreWcmPMConfig();
+    DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
     auto * imageProcessor = reinterpret_cast<OTAImageProcessorImpl *>(context);
     if (imageProcessor == nullptr)
     {
@@ -136,6 +153,9 @@ void OTAImageProcessorImpl::HandleAbort(intptr_t context)
         return;
     }
     /* Deinitialize fota */
+    /* Reenable power save */
+    TalariaUtils::RestoreWcmPMConfig();
+    DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
     ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->ReleaseBlock();
@@ -164,6 +184,9 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (error != CHIP_NO_ERROR)
     {
         ChipLogError(SoftwareUpdate, "Failed to process OTA image header");
+        /* Reenable power save */
+        TalariaUtils::RestoreWcmPMConfig();
+        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
         imageProcessor->mDownloader->EndDownload(error);
         return;
     }
@@ -176,6 +199,9 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
+        /* Reenable power save */
+        TalariaUtils::RestoreWcmPMConfig();
+        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
         imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
         return;
     }
@@ -186,6 +212,9 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
         imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
         ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+        /* Reenable power save */
+        TalariaUtils::RestoreWcmPMConfig();
+        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
         imageProcessor->mOTAUpdateHandle = NULL;
         imageProcessor->mHeaderParser.Clear();
         return;
