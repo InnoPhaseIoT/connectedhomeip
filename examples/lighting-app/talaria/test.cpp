@@ -27,7 +27,9 @@
 
 #if CONFIG_ENABLE_HTTP_CLIENT_APP
 int http_client_main(void);
-#endif /* CONFIG_ENABLE_HTTP_CLIENT_APP */
+#elif CONFIG_ENABLE_MQTT_APP
+int mqtt_main(void);
+#endif
 
 #ifdef __cplusplus
     }
@@ -171,9 +173,10 @@ static void additaional_app_task(void * pvParameters)
 {
 #if CONFIG_ENABLE_HTTP_CLIENT_APP
     http_client_main();
-#endif /* CONFIG_ENABLE_HTTP_CLIENT_APP */
-
-    os_printf("\n os_free_heap(): %d", os_avail_heap());
+#elif CONFIG_ENABLE_MQTT_APP
+    mqtt_main();
+#endif
+    os_printf("\n After additaional_app_task, os_free_heap(): %d", os_avail_heap());
     vTaskDelete(NULL);
 }
 
@@ -188,11 +191,11 @@ static void create_additional_app_task(void)
 
 	    if (xReturned == pdPASS)
 	    {
-		    os_printf("\napp_thread_new_task created successfully...\n");
+		    os_printf("\nadditaional_app_task created successfully...\n");
 	    }
 	    else
 	    {
-		    os_printf("\napp_thread_new_task create failed...\n");
+		    os_printf("\nadditaional_app_task create failed...\n");
 	    }
     }
 }

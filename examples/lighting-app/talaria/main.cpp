@@ -81,6 +81,17 @@ static struct pwm_output_cfg cfg;
 /* Function Declarations */
 static void CommonDeviceEventHandler(const chip::DeviceLayer::ChipDeviceEvent * event, intptr_t arg);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+struct wcm_handle * get_wcm_handle_for_additional_app(void)
+{
+    return chip::DeviceLayer::Internal::TalariaUtils::Get_wcm_handle();
+}
+#ifdef __cplusplus
+}
+#endif
+
 static void SetPWMdutyCycle(uint8_t dutycycle)
 {
     cfg.duty_cycle = dutycycle;

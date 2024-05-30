@@ -494,3 +494,8 @@ CHIP_ERROR TalariaUtils::RestoreWcmPMConfig()
     wcm_pm_config(wcm_handle, listen_interval, traffic_tmo, pm_flags);
     return CHIP_NO_ERROR;
 }
+
+struct wcm_handle * TalariaUtils::Get_wcm_handle(void)
+{
+     return wcm_handle;
+}

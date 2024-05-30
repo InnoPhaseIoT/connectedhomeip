@@ -41,6 +41,21 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 - FOTA will be disabled when building the Matter lighting application with the HTTP/HTTPS application.
 - Compilation/build will fail if more than one application is enabled.
 
+#### Building Matter Lighting Application + MQTT Application
+-   Build the example application:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make ENABLE_MQTT_APP=true
+
+-   To delete generated executable, libraries and object files use:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ make clean
+
+- FOTA will be disabled when building the Matter lighting application with the MQTT application.
+- Compilation/build will fail if more than one application is enabled.
+
 ## Boot arguments
 
 ### Boot arguments for Matter Lighting Application
@@ -81,6 +96,10 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 #### Boot arguments for Matter Lighting Application + HTTP/HTTPS Application
 - Refer to the instructions in the Example_using_HTTP_Client.pdf document found in the freertos_sdk_x.y/examples/http_client/doc directory, sections "Running the Application" and "Using the Application."
 - Matter lighting application boot arguments should be passed along with the HTTP/HTTPS application boot arguments.
+
+#### Boot arguments for Matter Lighting Application + MQTT Application
+- Refer to the instructions in the Example_for_MQTT.pdf document found in the freertos_sdk_x.y/ examples/mqtt/doc directory, sections "Running the Application using Mosquitto Project’s Test Server and Evaluating the Application using Mosquitto Local Server"
+- Matter lighting application boot arguments should be passed along with the MQTT application boot arguments.
 
 ## Programming the Example on Talaria Two Platform
 The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
@@ -182,3 +201,9 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
  - HTTP/HTTPS application functionality is enabled only when compiled with ENABLE_HTTP_APP=true.
  - The HTTP/HTTPS application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
  - Refer to the instructions in the Example_using_HTTP_Client.pdf document found in the freertos_sdk_x.y/examples/http_client/doc directory, sections "Running the Application" and "Using the Application," for using and controlling the HTTP/HTTPS app functionality.
+ 
+
+### Controlling the device when MQTT App Enabled
+ - MQTT application functionality is enabled only when compiled with ENABLE_MQTT_APP=true.
+ - The MQTT application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
+ - Refer to the instructions in the Example_for_MQTT.pdf document found in the freertos_sdk_x.y/ examples/mqtt/doc directory, sections "Running the Application using Mosquitto Project’s Test Server and Evaluating the Application using Mosquitto Local Server" for using and controlling the MQTT app functionality.

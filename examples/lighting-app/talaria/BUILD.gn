@@ -66,6 +66,10 @@ executable("lighting-app.elf") {
   }
   else if (config_enable_mqtt_app == true) {
      defines += [ "CONFIG_ENABLE_MQTT_APP=1" ]
+     sources += [
+            "talaria_mqtt/main_mqtt.c",
+            "talaria_mqtt/app_mqtt.c",
+     ]
   }
   else if (config_enable_aws_iot_app == true) {
      defines += [ "CONFIG_ENABLE_AWS_IOT_APP=1" ]
