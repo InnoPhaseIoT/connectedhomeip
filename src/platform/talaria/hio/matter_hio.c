@@ -132,9 +132,153 @@ static char confbufgetc(char * buf)
     return ch;
 }
 
+// int fota_flag_status_set(char * param_name, char * param_val)
+// {
+
+//     struct json_parser json;
+
+//     int ch             = 'A';
+//     unsigned int state = JSON_PARSE_STATE_KEY;
+//     int name_found     = 0;
+//     char * finbuff     = NULL;
+//     int retval = -1, cnfDataLen = 0, endposition = 0, startposition = 0;
+//     int index        = 0;
+//     int paramLenDiff = 0;
+
+//     FILE * f_part;
+//     size_t bytesRead;
+//     f_part = fopen(FOTA_CFG_FLAG_PATH, "r+");
+//     if (f_part == NULL)
+//     {
+//         os_printf("Failed to open the file.\n");
+//         return 1;
+//     }
+
+//     confData = pvPortMalloc(MAX_BUFFER_SIZE);
+
+//     os_printf("Contents of the file:\n");
+//     bytesRead = fread(confData, 1, MAX_BUFFER_SIZE, f_part);
+//     if (bytesRead == 0)
+//     {
+//         os_printf("Failed to read from the file.\n");
+//         fclose(f_part);
+//         return 1;
+//     }
+//     confData[bytesRead] = '\0';
+//     json_init(&json);
+//     while (1)
+//     {
+//         if (ch == EOF || ch == '\0')
+//         {
+//             os_printf("\nEOF / End of String reached");
+//             break;
+//         }
+//         ch = confbufgetc(confData);
+//         endposition++;
+//         volatile int t = json_tokenizer(&json, ch);
+//         if (t == JSON_END)
+//             break;
+//         if (t == JSON_BEGIN_ARRAY)
+//         {
+//             state = JSON_PARSE_STATE_KEY;
+//             continue;
+//         }
+
+//         if (JSON_PARSE_STATE_KEY == state && t == JSON_STRING)
+//         {
+//             os_printf("\nKey= %s", json.token);
+//             state = JSON_PARSE_STATE_SEPRATOR;
+
+//             if (strcmp(json.token, param_name) == 0)
+//             {
+//                 name_found = 1;
+//             }
+//             continue;
+//         }
+
+//         if (JSON_PARSE_STATE_SEPRATOR == state && t == JSON_MEMBER_SEPARATOR)
+//         {
+//             state = JSON_PARSE_STATE_VAL;
+//             continue;
+//         }
+
+//         if (state == JSON_PARSE_STATE_VAL)
+//         {
+
+//             if (t == JSON_STRING)
+//             {
+//                 os_printf("\nposition = %d", endposition);
+//                 os_printf("\nVal(str)= %s", json.token);
+//                 if (name_found)
+//                 {
+//                     break;
+//                 }
+//             }
+//             if (t == JSON_STRING || t == JSON_NUMBER)
+//             {
+//                 state = JSON_PARSE_STATE_KEY;
+//             }
+//         }
+//     }
+
+//     endposition   = endposition - 1;
+//     startposition = endposition - strlen(json.token);
+
+//     cnfDataLen   = strlen(confData);
+//     paramLenDiff = strlen(param_val) - strlen(json.token);
+
+//     finbuff = pvPortMalloc(cnfDataLen + paramLenDiff + 1);
+//     if (!finbuff)
+//     {
+//         conf_clear();
+//         return 1;
+//     }
+
+//     index = 0;
+//     memcpy(finbuff, confData, startposition); // copy till the start;
+//     index += startposition;
+//     memcpy(finbuff + index, param_val, strlen(param_val)); // copy new data
+//     index += strlen(param_val);
+//     memcpy(finbuff + index, confData + endposition, (cnfDataLen - endposition)); // copy remaining data
+//     index += (cnfDataLen - endposition);
+//     finbuff[index] = '\0';
+
+//     json_finish(&json);
+//     fseek(f_part, 0, SEEK_SET);
+
+//     if (fputs(finbuff, f_part) == EOF)
+//     {
+//         os_printf("Failed to write to file %s.\n", FOTA_CFG_FLAG_PATH);
+//     }
+//     else
+//     {
+//         os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
+//     }
+//     fclose(f_part);
+
+//     conf_clear();
+//     vPortFree(confData);
+//     return 0;
+// }
+
+#if (CHIP_ENABLE_SECUREBOOT == true)
+
+#define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
+#define SECUREBOOT_SECRET_ADDR_END 0x000B0000
+
+#define CIPHER_KEY_LEN 32
+#define ECDSA_PUBLIC_KEY_LEN 64
+
+static uint32_t * secureboot_secret = (uint32_t *) SECUREBOOT_SECRET_ADDR_START;
+uint8_t app_ecdsa_public_key[ECDSA_PUBLIC_KEY_LEN];
+uint8_t app_signature[ECDSA_PUBLIC_KEY_LEN];
+static uint8_t app_cipher_key[CIPHER_KEY_LEN];
+
+#endif // SECUREBOOT
+
 int fota_flag_status_set(char * param_name, char * param_val)
 {
-
+    os_printf("\n%s:%d\n", __func__, __LINE__);
     struct json_parser json;
 
     int ch             = 'A';
@@ -144,26 +288,55 @@ int fota_flag_status_set(char * param_name, char * param_val)
     int retval = -1, cnfDataLen = 0, endposition = 0, startposition = 0;
     int index        = 0;
     int paramLenDiff = 0;
-
-    FILE * f_part;
     size_t bytesRead;
+
+#if (CHIP_ENABLE_SECUREBOOT == true)
+
+    int tlen         = 0;
+    char * temp_buff = utils_file_secured_get(FOTA_CFG_FLAG_PATH, &tlen, (void *) app_cipher_key);
+    if (NULL == temp_buff)
+    {
+        os_printf("\nCritical Error: Could not open %s file", FOTA_CFG_FLAG_PATH);
+        return 1;
+    }
+#else
+    FILE * f_part;
     f_part = fopen(FOTA_CFG_FLAG_PATH, "r+");
     if (f_part == NULL)
     {
         os_printf("Failed to open the file.\n");
         return 1;
     }
+#endif
 
-    confData = pvPortMalloc(MAX_BUFFER_SIZE);
+    /* MAX_BUFFER_SIZE iS 512Kb */
+    confData = pvPortMalloc(512);
+    if (confData == NULL)
+    {
+        os_printf("Failed to allocate memory\n");
+#if (CHIP_ENABLE_SECUREBOOT == true)
+        vPortFree(temp_buff);
+#else
+        fclose(f_part);
+#endif
+        return 1;
+    }
 
     os_printf("Contents of the file:\n");
-    bytesRead = fread(confData, 1, MAX_BUFFER_SIZE, f_part);
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    memcpy(confData, temp_buff, tlen);
+    bytesRead = tlen;
+    /* Freeing the read buffer as it's not needed anymore */
+    vPortFree(temp_buff);
+#else
+    bytesRead = fread(confData, 1, 512, f_part);
     if (bytesRead == 0)
     {
         os_printf("Failed to read from the file.\n");
         fclose(f_part);
         return 1;
     }
+#endif
     confData[bytesRead] = '\0';
     json_init(&json);
     while (1)
@@ -175,7 +348,7 @@ int fota_flag_status_set(char * param_name, char * param_val)
         }
         ch = confbufgetc(confData);
         endposition++;
-        volatile int t = json_tokenizer(&json, ch);
+        volatile __auto_type t = json_tokenizer(&json, ch);
         if (t == JSON_END)
             break;
         if (t == JSON_BEGIN_ARRAY)
@@ -239,27 +412,42 @@ int fota_flag_status_set(char * param_name, char * param_val)
     index += startposition;
     memcpy(finbuff + index, param_val, strlen(param_val)); // copy new data
     index += strlen(param_val);
-    memcpy(finbuff + index, confData + endposition, (cnfDataLen - endposition)); // copy remaining data
+    memcpy(finbuff + index, confData + endposition,
+           (cnfDataLen - endposition)); // copy remaining data
     index += (cnfDataLen - endposition);
     finbuff[index] = '\0';
 
     json_finish(&json);
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    if (utils_file_secured_store(FOTA_CFG_FLAG_PATH, finbuff, strlen(finbuff), (void *) app_cipher_key) < 0)
+    {
+        os_printf("Failed to write to file %s\n", FOTA_CFG_FLAG_PATH);
+        conf_clear();
+        vPortFree(confData);
+        return 1;
+    }
+#else
     fseek(f_part, 0, SEEK_SET);
 
     if (fputs(finbuff, f_part) == EOF)
     {
         os_printf("Failed to write to file %s.\n", FOTA_CFG_FLAG_PATH);
+        conf_clear();
+        vPortFree(confData);
+        return 1;
     }
     else
     {
         os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
     }
     fclose(f_part);
+#endif
 
     conf_clear();
     vPortFree(confData);
     return 0;
 }
+
 /*fota code end*/
 
 static void hio_matter_data_ind_free(struct packet ** pkt)
@@ -310,8 +498,11 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
     if (req->cluster == DOOR_LOCK)
     {
+        os_printf("\r\n--%d", __LINE__);
+
         if (strncmp(req->data, OPEN_COMMISSIONING_WINDOW, 5) == 0)
         {
+            os_printf("\r\n--%d", __LINE__);
             openCommissionWindow();
         }
     }
@@ -342,7 +533,7 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
-    if (req->cluster == THERMOSTAT )
+    if (req->cluster == THERMOSTAT)
     {
         if (req->cmd == THERMOSTAT_GET_DATA)
         {
@@ -362,7 +553,7 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
-    if(req->cluster == SMOKE_CO_ALARM)
+    if (req->cluster == SMOKE_CO_ALARM)
     {
         if (req->cmd == SMOKE_CO_ALARM_GET_DATA)
         {

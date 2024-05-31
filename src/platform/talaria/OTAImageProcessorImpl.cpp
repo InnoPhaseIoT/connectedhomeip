@@ -302,7 +302,7 @@ CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
         // Need more data to decode the header
         ReturnErrorCodeIf(error == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_NO_ERROR);
         ReturnErrorOnFailure(error);
-#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
+//#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
         fw_hash = pvPortMalloc(header.mImageDigest.size());
         if (fw_hash == NULL) {
 		    free(fw_hash);
@@ -313,7 +313,11 @@ CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
         mOTAfwinfo.hash_len = static_cast<decltype(mOTAfwinfo.hash_len)>(header.mImageDigest.size());
         mOTAfwinfo.hash_str = fw_hash;
         mOTAfwinfo.fw_name = fw_name;
-#endif
+
+
+        matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_HASH, mOTAfwinfo.hash_len, mOTAfwinfo.hash_str);
+        matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_NAME, strlen(mOTAfwinfo.fw_name), mOTAfwinfo.fw_name);
+//#endif
         ChipLogProgress(SoftwareUpdate, "Image Header software version: %d payload size: %lu", header.mSoftwareVersion,
                         (long unsigned int) header.mPayloadSize);
         mParams.totalFileBytes = header.mPayloadSize;

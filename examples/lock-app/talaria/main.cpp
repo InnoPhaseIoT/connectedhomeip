@@ -565,6 +565,7 @@ int main(void)
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
     vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(2500));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)
@@ -614,6 +615,7 @@ int main(void)
         /* The task was created.  Use the task's handle to delete the task. */
         os_printf("Loading user data from host task created...\n");
     }
+
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
     ServerInitDone = xSemaphoreCreateCounting(1, 0);
