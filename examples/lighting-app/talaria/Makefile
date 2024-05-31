@@ -28,6 +28,8 @@ ENABLE_MQTT_APP ?= false
 ENABLE_AWS_IOT_APP ?= false
 ENABLE_OTA_REQUESTOR ?= true
 
+COMPILE_AWS_IOT_SDK_LIBS := talaria_aws_iot/compile_aws_sdk.sh
+
 # Targets
 all: check_key libcomponents $(TARGET)
 
@@ -52,6 +54,13 @@ ifdef KEY
 endif
 
 $(TARGET_STRIP): $(OUT_DIR)/build.ninja FORCE
+	 @if [ "$(ENABLE_AWS_IOT_APP)" = "true" ]; then \
+                echo "Executing $(COMPILE_AWS_IOT_SDK_LIBS)"; \
+                $(COMPILE_AWS_IOT_SDK_LIBS); \
+                if [ $$? -ne 0 ]; then \
+                        exit 1; \
+                fi; \
+        fi
 	ninja -C $(OUT_DIR) -j 4
 
 $(OUT_DIR)/build.ninja:

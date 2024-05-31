@@ -14,7 +14,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
-          $ make EXT_FLASH=true
+          $ make clean && make EXT_FLASH=true
 
 -   To delete generated executable, libraries and object files use:
 
@@ -31,7 +31,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
-          $ make ENABLE_HTTP_APP=true
+          $ make clean && make ENABLE_HTTP_APP=true
 
 -   To delete generated executable, libraries and object files use:
 
@@ -46,7 +46,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
-          $ make ENABLE_MQTT_APP=true
+          $ make clean && make ENABLE_MQTT_APP=true
 
 -   To delete generated executable, libraries and object files use:
 
@@ -55,6 +55,27 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 
 - FOTA will be disabled when building the Matter lighting application with the MQTT application.
 - Compilation/build will fail if more than one application is enabled.
+
+#### Building Matter Lighting Application + AWS-IoT Subscribe and Publish Application
+-   Note: The AWS IoT SDK for Talaria TWO Platform needs be set up before compiling the application,
+    Please refer to the document below for setup instructions for the AWS IoT SDK for Talaria TWO Platform ("talaria_two_aws" repository).
+    (Document: "<freertos_sdk_x.y>/apps/iot_aws/doc/Application_for_IoT_AWS.pdf",
+    Section: "AWS IoT Device SDK Embedded C On Talaria TWO Platform")
+
+-   Build the example application:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make clean && make ENABLE_AWS_IOT_APP=true
+
+-   To delete generated executable, libraries and object files use:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ make clean
+
+- FOTA will be disabled when building the Matter lighting application with the AWS-IoT application.
+- Compilation/build will fail if more than one application is enabled.
+
 
 ## Boot arguments
 
@@ -100,6 +121,10 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 #### Boot arguments for Matter Lighting Application + MQTT Application
 - Refer to the instructions in the Example_for_MQTT.pdf document found in the freertos_sdk_x.y/ examples/mqtt/doc directory, sections "Running the Application using Mosquitto Project’s Test Server and Evaluating the Application using Mosquitto Local Server"
 - Matter lighting application boot arguments should be passed along with the MQTT application boot arguments.
+
+#### Boot arguments for Matter Lighting Application + AWS-IoT Subscribe and Publish Application
+- Refer to the instructions in the Application_for_IoT_AWS.pdf document found in the freertos_sdk_x.y/apps/iot_aws/doc directory, sections "AWS Set-up" and "MQTT Publish and Subscribe"
+- Matter lighting application boot arguments should be passed along with the AWS-IoT subscribe and publish application boot arguments.
 
 ## Programming the Example on Talaria Two Platform
 The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
@@ -208,3 +233,9 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
  - MQTT application functionality is enabled only when compiled with ENABLE_MQTT_APP=true.
  - The MQTT application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
  - Refer to the instructions in the Example_for_MQTT.pdf document found in the freertos_sdk_x.y/ examples/mqtt/doc directory, sections "Running the Application using Mosquitto Project’s Test Server and Evaluating the Application using Mosquitto Local Server" for using and controlling the MQTT app functionality.
+ 
+
+### Controlling the device when AWS-IoT Subscribe and Publish App Enabled
+ - AWS-IoT subscribe and publish application functionality is enabled only when compiled with ENABLE_AWS_IOT_APP=true.
+ - The AWS-IoT Subscribe and Publish application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
+ - Refer to the instructions in the Application_for_IoT_AWS.pdf document found in the freertos_sdk_x.y/apps/iot_aws/doc directory, sections "AWS Set-up" and "MQTT Publish and Subscribe" for using and controlling the AWS-IoT subscribe and publish app functionality.

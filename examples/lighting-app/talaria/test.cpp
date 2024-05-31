@@ -29,6 +29,8 @@
 int http_client_main(void);
 #elif CONFIG_ENABLE_MQTT_APP
 int mqtt_main(void);
+#elif CONFIG_ENABLE_AWS_IOT_APP
+int aws_iot_main(void);
 #endif
 
 #ifdef __cplusplus
@@ -175,6 +177,8 @@ static void additaional_app_task(void * pvParameters)
     http_client_main();
 #elif CONFIG_ENABLE_MQTT_APP
     mqtt_main();
+#elif CONFIG_ENABLE_AWS_IOT_APP
+    aws_iot_main();
 #endif
     os_printf("\n After additaional_app_task, os_free_heap(): %d", os_avail_heap());
     vTaskDelete(NULL);
