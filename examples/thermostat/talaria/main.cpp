@@ -53,7 +53,7 @@ extern "C" {
 #include <app-common/zap-generated/attributes/Accessors.h>
 
 /* Periodic timeout for Thermostat software timer in ms */
-#define THERMOSTAT_PERIODIC_TIME_OUT_MS 30000	//30 sec
+#define THERMOSTAT_PERIODIC_TIME_OUT_MS 5000	//5 sec
 
 #define IDENTIFY_TIMER_DELAY_MS  1000
 #define LED_PIN 14
