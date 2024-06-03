@@ -376,10 +376,9 @@ void Retry_PrepareBindingCommand_Level_Control(void)
 #if ENABLE_COLOUR_CONTROL
 static void PrepareBindingCommand_Colour_Control(void)
 {
-    srand(time(NULL));
-    /* PlaceHolder: Map each switch position to the corresponding colour control cluster command
-     * to be sent to the other device to perform the operation.
-     * Prepare and send Binding command accordingly. */
+    /* Set pre-defined colors RED, GREEN and BLUE */
+    uint16_t colorSet[3][2] = {{0, 254}, {85, 192}, {180, 254}};
+    static int selectColor = 0;
 
     BindingCommandData * data = Platform::New<BindingCommandData>();
 
@@ -391,12 +390,15 @@ static void PrepareBindingCommand_Colour_Control(void)
      * Update the data commandID and arguments as per requirement. */
 
     data->clusterId = app::Clusters::ColorControl::Id;
-    data->commandId = app::Clusters::ColorControl::Commands::MoveToColor::Id;
-    data->args[0] = rand() % (COLOR_VALUE_MAX + 1);
-    data->args[1] = rand() % (COLOR_VALUE_MAX + 1);
+    data->commandId = app::Clusters::ColorControl::Commands::MoveToHueAndSaturation::Id;
+    data->args[0] = colorSet[selectColor][0];
+    data->args[1] = colorSet[selectColor][1];
     data->args[2] = 0;
     data->args[3] = 1;
     data->args[4] = 1;
+    selectColor++;
+    /* Roll over to index 0 */
+    selectColor = (selectColor == 3) ? 0 : selectColor;
 
     SwitchWorkerFunction(data);
 }
