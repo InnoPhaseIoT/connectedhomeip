@@ -56,6 +56,7 @@ void openCommissionWindow();
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
 #include <platform/talaria/FactoryDataProvider.h>
+#include <system/SystemEvent.h>
 
 
 using namespace chip;
@@ -82,12 +83,12 @@ bool CommissioningFlowTypeHost = false;
 #include "hio/matter_hio.h"
 
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
 #include <app/clusters/ota-requestor/BDXDownloader.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestor.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorStorage.h>
 #include <app/clusters/ota-requestor/ExtendedOTARequestorDriver.h>
 #include <platform/talaria/OTAImageProcessorImpl.h>
-#include <system/SystemEvent.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorUserConsent.h>
 static void InitOTARequestor();
 
@@ -159,6 +160,7 @@ void InitOTARequestor(void)
     }
 }
 /*fota code end*/
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR */
 
 
 static void OpenUserIntentCommissioningWindow(intptr_t arg)
@@ -294,8 +296,10 @@ void app_test()
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 
+#if CONFIG_ENABLE_OTA_REQUESTOR
     err = chip::DeviceLayer::PlatformMgrImpl().AddEventHandler(InitOTARequestor, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nOTA::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+#endif /* CONFIG_ENABLE_OTA_REQUESTOR */
 
 }
 
