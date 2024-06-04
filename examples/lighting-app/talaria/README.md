@@ -140,6 +140,7 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> pairing ble-wifi <node-id> <wifi-ssid> <wifi-passwd> 20202021 <discriminator>
           e.g. pairing ble-wifi 1111 tplinkc6_iop InnoQA2023$ 20202021 1122
 - Once the commissioning is completed successfully you can use following commands to control the D1 LED of Talaria Two EVB. Here the 1111 is the node-id given at the time of commissioning to the device
+- Note: Programming T2 EVB with a factory_reset=2, removes the kvs and persisted attributes. On next factory_reset=0 boot, the light will turn on with the brightness set to default value 0. Therefore, set the brightness level first using the level control commands mentioned below, and then turn on the light.
 
           >>> onoff on 1111 1     ## To Turn on the LED
           >>> onoff off 1111 1     ## To Turn off the LED

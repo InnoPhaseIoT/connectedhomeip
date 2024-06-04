@@ -292,7 +292,10 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
 
         if (*value == 1)
         {
-	     /* LevelControl cluster command will be triggered, where we will be setting the brightness of the LED */
+	     /* Turn on the LED with the current brightness level */
+		app::DataModel::Nullable<uint8_t> currentLevel;
+		chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Get(endpointId, currentLevel);
+		SetBrightnessLevel(currentLevel.Value());
         }
         else
         {
@@ -353,6 +356,17 @@ void emberAfOnOffClusterInitCallback(EndpointId endpoint)
     {
         chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpoint, false);
     }
+}
+
+void emberAfLevelControlClusterInitCallback(EndpointId endpoint)
+{
+    ChipLogDetail(AppServer, "emberAfLevelControlClusterInitCallback");
+    /* Current-Level value is stored in persistant storage hence we retrive
+       from it and setting the value of the current level in T2 Device.
+    */
+    app::DataModel::Nullable<uint8_t> currentLevel;
+    chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Get(endpoint, currentLevel);
+    chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Set(endpoint, currentLevel);
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
