@@ -425,9 +425,11 @@ static void OnSwitchPositionChanged(uint8_t Switch_Pos)
 
 #if ENABLE_COLOUR_CONTROL
     static uint8_t timer_count = 0;
-    /* Send color control command to lighting-device for every 120sec. */
+    /* Send color control command to lighting-device for every 120sec if bootarg not specified */
+    int period_send_clr_ctrl = os_get_boot_arg_int("matter.period_to_send_clr_ctrl_secs", 60);
+
     timer_count++;
-    if (timer_count == 120)
+    if (timer_count == period_send_clr_ctrl)
     {
 	    PrepareBindingCommand_Colour_Control();
 	    timer_count = 0;
