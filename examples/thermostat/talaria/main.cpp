@@ -238,6 +238,8 @@ static void read_temperature_from_host(void)
     struct thermostat_read_temperature *get_temperature;
     GetTemperatureData = xSemaphoreCreateCounting(1, 0);
 
+    int period_to_read_temparature_msec = os_get_boot_arg_int("matter.period_read_temperature_msec", THERMOSTAT_PERIODIC_TIME_OUT_MS);
+
     while(1)
     {
 	    get_temperature = &get_temp;
@@ -254,7 +256,7 @@ static void read_temperature_from_host(void)
 	    memcpy(get_temperature, &revd_temp, sizeof(struct thermostat_read_temperature));
 
 	    DeviceLayer::PlatformMgr().ScheduleWork(Update_Thermostat_Temperature_attribute_status, reinterpret_cast<intptr_t>(nullptr));
-	    vTaskDelay(pdMS_TO_TICKS(THERMOSTAT_PERIODIC_TIME_OUT_MS));
+	    vTaskDelay(pdMS_TO_TICKS(period_to_read_temparature_msec));
     }
 }
 
