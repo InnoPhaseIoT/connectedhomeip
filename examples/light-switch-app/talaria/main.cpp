@@ -394,8 +394,8 @@ static void PrepareBindingCommand_Colour_Control(void)
     data->args[0] = colorSet[selectColor][0];
     data->args[1] = colorSet[selectColor][1];
     data->args[2] = 0;
-    data->args[3] = 1;
-    data->args[4] = 1;
+    data->args[3] = 0;
+    data->args[4] = 0;
     selectColor++;
     /* Roll over to index 0 */
     selectColor = (selectColor == 3) ? 0 : selectColor;
