@@ -251,6 +251,12 @@ provisional server cluster Scenes = 5 {
     optional int8u sceneList[] = 3;
   }
 
+  response struct CopySceneResponse = 66 {
+    status status = 0;
+    group_id groupIdentifierFrom = 1;
+    int8u sceneIdentifierFrom = 2;
+  }
+
   fabric command access(invoke: manage) AddScene(AddSceneRequest): AddSceneResponse = 0;
   fabric command ViewScene(ViewSceneRequest): ViewSceneResponse = 1;
   fabric command access(invoke: manage) RemoveScene(RemoveSceneRequest): RemoveSceneResponse = 2;
@@ -295,7 +301,7 @@ server cluster OnOff = 6 {
     kAcceptOnlyWhenOn = 0x1;
   }
 
-  readonly attribute boolean onOff = 0;
+  readonly nosubscribe attribute boolean onOff = 0;
   readonly attribute boolean globalSceneControl = 16384;
   attribute int16u onTime = 16385;
   attribute int16u offWaitTime = 16386;
@@ -1630,11 +1636,18 @@ server cluster ColorControl = 768 {
 
   readonly attribute int8u currentHue = 0;
   readonly attribute int8u currentSaturation = 1;
+  readonly attribute int16u remainingTime = 2;
+  readonly nosubscribe attribute int16u colorTemperatureMireds = 7;
   readonly attribute enum8 colorMode = 8;
   attribute bitmap8 options = 15;
   readonly attribute nullable int8u numberOfPrimaries = 16;
+  readonly attribute int16u enhancedCurrentHue = 16384;
   readonly attribute enum8 enhancedColorMode = 16385;
   readonly attribute bitmap16 colorCapabilities = 16394;
+  readonly attribute int16u colorTempPhysicalMinMireds = 16395;
+  readonly attribute int16u colorTempPhysicalMaxMireds = 16396;
+  readonly attribute int16u coupleColorTempToLevelMinMireds = 16397;
+  attribute access(write: manage) nullable int16u startUpColorTemperatureMireds = 16400;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1695,29 +1708,6 @@ server cluster ColorControl = 768 {
     bitmap8 optionsOverride = 4;
   }
 
-  request struct MoveToColorRequest {
-    int16u colorX = 0;
-    int16u colorY = 1;
-    int16u transitionTime = 2;
-    bitmap8 optionsMask = 3;
-    bitmap8 optionsOverride = 4;
-  }
-
-  request struct MoveColorRequest {
-    int16s rateX = 0;
-    int16s rateY = 1;
-    bitmap8 optionsMask = 2;
-    bitmap8 optionsOverride = 3;
-  }
-
-  request struct StepColorRequest {
-    int16s stepX = 0;
-    int16s stepY = 1;
-    int16u transitionTime = 2;
-    bitmap8 optionsMask = 3;
-    bitmap8 optionsOverride = 4;
-  }
-
   request struct MoveToColorTemperatureRequest {
     int16u colorTemperatureMireds = 0;
     int16u transitionTime = 1;
@@ -1756,12 +1746,26 @@ server cluster ColorControl = 768 {
     bitmap8 optionsOverride = 4;
   }
 
-  request struct ColorLoopSetRequest {
-    ColorLoopUpdateFlags updateFlags = 0;
-    ColorLoopAction action = 1;
-    ColorLoopDirection direction = 2;
-    int16u time = 3;
-    int16u startHue = 4;
+  request struct StopMoveStepRequest {
+    bitmap8 optionsMask = 0;
+    bitmap8 optionsOverride = 1;
+  }
+
+  request struct MoveColorTemperatureRequest {
+    HueMoveMode moveMode = 0;
+    int16u rate = 1;
+    int16u colorTemperatureMinimumMireds = 2;
+    int16u colorTemperatureMaximumMireds = 3;
+    bitmap8 optionsMask = 4;
+    bitmap8 optionsOverride = 5;
+  }
+
+  request struct StepColorTemperatureRequest {
+    HueStepMode stepMode = 0;
+    int16u stepSize = 1;
+    int16u transitionTime = 2;
+    int16u colorTemperatureMinimumMireds = 3;
+    int16u colorTemperatureMaximumMireds = 4;
     bitmap8 optionsMask = 5;
     bitmap8 optionsOverride = 6;
   }
@@ -1773,15 +1777,14 @@ server cluster ColorControl = 768 {
   command MoveSaturation(MoveSaturationRequest): DefaultSuccess = 4;
   command StepSaturation(StepSaturationRequest): DefaultSuccess = 5;
   command MoveToHueAndSaturation(MoveToHueAndSaturationRequest): DefaultSuccess = 6;
-  command MoveToColor(MoveToColorRequest): DefaultSuccess = 7;
-  command MoveColor(MoveColorRequest): DefaultSuccess = 8;
-  command StepColor(StepColorRequest): DefaultSuccess = 9;
   command MoveToColorTemperature(MoveToColorTemperatureRequest): DefaultSuccess = 10;
   command EnhancedMoveToHue(EnhancedMoveToHueRequest): DefaultSuccess = 64;
   command EnhancedMoveHue(EnhancedMoveHueRequest): DefaultSuccess = 65;
   command EnhancedStepHue(EnhancedStepHueRequest): DefaultSuccess = 66;
   command EnhancedMoveToHueAndSaturation(EnhancedMoveToHueAndSaturationRequest): DefaultSuccess = 67;
-  command ColorLoopSet(ColorLoopSetRequest): DefaultSuccess = 68;
+  command StopMoveStep(StopMoveStepRequest): DefaultSuccess = 71;
+  command MoveColorTemperature(MoveColorTemperatureRequest): DefaultSuccess = 75;
+  command StepColorTemperature(StepColorTemperatureRequest): DefaultSuccess = 76;
 }
 
 /** Attributes and commands for configuring occupancy sensing, and reporting occupancy status. */
@@ -2123,7 +2126,7 @@ endpoint 0 {
   }
 }
 endpoint 1 {
-  device type ma_onofflight = 256, version 1;
+  device type ma_colortemperaturelight = 268, version 1;
 
 
   server cluster Identify {
@@ -2193,6 +2196,7 @@ endpoint 1 {
     handle command EnhancedAddScene;
     handle command EnhancedViewScene;
     handle command CopyScene;
+    handle command CopySceneResponse;
   }
 
   server cluster OnOff {
@@ -2227,7 +2231,7 @@ endpoint 1 {
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
-    ram      attribute featureMap default = 0;
+    ram      attribute featureMap default = 3;
     ram      attribute clusterRevision default = 5;
 
     handle command MoveToLevel;
@@ -2257,16 +2261,23 @@ endpoint 1 {
   server cluster ColorControl {
     ram      attribute currentHue default = 0x00;
     ram      attribute currentSaturation default = 0x00;
+    ram      attribute remainingTime default = 0x0000;
+    ram      attribute colorTemperatureMireds default = 0x00FA;
     ram      attribute colorMode default = 0x01;
     ram      attribute options default = 0x00;
     ram      attribute numberOfPrimaries;
+    ram      attribute enhancedCurrentHue default = 0x0000;
     ram      attribute enhancedColorMode default = 0x01;
     ram      attribute colorCapabilities default = 0x0000;
+    ram      attribute colorTempPhysicalMinMireds default = 0x0000;
+    ram      attribute colorTempPhysicalMaxMireds default = 0xFEFF;
+    ram      attribute coupleColorTempToLevelMinMireds;
+    ram      attribute startUpColorTemperatureMireds;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
-    ram      attribute featureMap default = 0;
+    ram      attribute featureMap default = 19;
     ram      attribute clusterRevision default = 6;
 
     handle command MoveToHue;
@@ -2276,15 +2287,14 @@ endpoint 1 {
     handle command MoveSaturation;
     handle command StepSaturation;
     handle command MoveToHueAndSaturation;
-    handle command MoveToColor;
-    handle command MoveColor;
-    handle command StepColor;
     handle command MoveToColorTemperature;
     handle command EnhancedMoveToHue;
     handle command EnhancedMoveHue;
     handle command EnhancedStepHue;
     handle command EnhancedMoveToHueAndSaturation;
-    handle command ColorLoopSet;
+    handle command StopMoveStep;
+    handle command MoveColorTemperature;
+    handle command StepColorTemperature;
   }
 
   server cluster OccupancySensing {
