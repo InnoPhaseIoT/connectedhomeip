@@ -9,20 +9,40 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 -   Setup the environment by running the boostrap.sh script as menionend in the FreeRTOS_sdk_3.0_master_matter/matter/README.md **Building the Example application** secion
 
 ### Building Matter Lighting Application
+The lighting application can be built in multiple modes as per the use case for Talaria TWO EVB:
 
--   Build the example application:
+- Standalone app without SSBL (Second Stage Boot Loader): For non FOTA support usecase
+- Lighting application for non-secure SSBL mode: FOTA support with SSBL with non-secureboot
+- Lighting application for secure SSBL mode: FOTA support with SSBL with secureboot
+
+Common make command usage with this application:
+-   To delete generated executable, libraries and object files use. Cleaning is must when you are planning tobuild application with different compile time flags:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ make clean
+- FOTA will be enabled by default when building the Matter Lighting Application. To disable FOTA, build the example application with "make ENABLE_OTA_REQUESTOR=false".
+
+#### Standalone app without SSBL
+-   Build the example application to be used without SSBL:
+
+          $ cd connectedhomeip/examples/lighting-app/talaria
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make clean && make
+
+#### Lighting application for non-secure SSBL mode
+-   Build the example application to be used with non secure SSBL:
 
           $ cd connectedhomeip/examples/lighting-app/talaria
           $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
           $ make clean && make EXT_FLASH=true
 
--   To delete generated executable, libraries and object files use:
+#### Lighting application for secure SSBL mode
+-   Build the example application to be used with secure SSBL:
 
           $ cd connectedhomeip/examples/lighting-app/talaria
-          $ make clean
+          $ source third_party/connectedhomeip/scripts/activate.sh ## If not activated already
+          $ make clean && make EXT_FLASH=true SECURED=true
 
-- FOTA will be enabled by default when building the Matter Lighting Application.
-- To disable FOTA, build the example application with "make ENABLE_OTA_REQUESTOR=false".
 
 ### Building Matter Lighting Application + AWS/MQTT/HTTP Application
 
@@ -127,6 +147,7 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
 - Matter lighting application boot arguments should be passed along with the AWS-IoT subscribe and publish application boot arguments.
 
 ## Programming the Example on Talaria Two Platform
+### Programming steps for Standalone app without SSBL
 The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
 
 #### Updating the partition table of T2 EVB (One Time)
@@ -153,10 +174,14 @@ The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_T
 FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).**
 
 #### Programming Factory Data
-- To generate the Factory data for application refer steps from FreeRTOS_sdk_3.0_master_matter/matter/README.md #'Generating Factory Configuraion Data'
+- To generate the Factory data for application refer steps from connectedhomeip/docs/guides/talaria/README.md #'Generating Factory Configuraion Data'
 - Once the factory data is generated (Considered that it has been generated at FreeRTOS_sdk_3.0_master_matter/data), select the path to the FreeRTOS_sdk_3.0_master_matter/data directory in "Write Files from a Directory:" field
 - Click on "Write Files" Button and wait for the data to be written successfuly
 - Press the "Reset" button to see the effect of the same
+
+### Programming steps for App with secureboot and non-secureboot SSBL
+- Refer to the steps from FreeRTOS_sdk/apps/ssbl_spi_ext_flash/README.md
+- Generating Facory Data steps can be referred from connectedhomeip/docs/guides/talaria/README.md #'Generating Factory Configuraion Data' section
 
 ## Commissioning and Controlling the device
 - Run generated chip-tool binary using following commands. Steps to build chip-tool is provided in FreeRTOS_sdk_3.0_master_matter/matter/README.md
