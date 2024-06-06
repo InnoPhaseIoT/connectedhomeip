@@ -73,6 +73,7 @@ DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 #define LED_PIN 14
 #define MAX_USERS 5
+#define IDENTIFY_TIMER_DELAY_MS 1000
 
 struct dl_set_get_user revd_user;
 struct dl_set_get_credential revd_credential;
@@ -92,12 +93,34 @@ SemaphoreHandle_t Getdata;
 static struct dl_set_get_user userList[MAX_USERS];
 static struct dl_set_get_credential credentialsList[MAX_USERS];
 static CredentialStruct mCredentials[MAX_USERS][1];
+static uint32_t identifyTimerCount = 0;
 
 int main_TestInetLayer(int argc, char * argv[]);
 
 /* Function Declarations */
 static void CommonDeviceEventHandler(const chip::DeviceLayer::ChipDeviceEvent * event, intptr_t arg);
 CHIP_ERROR InitWifiStack();
+
+static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
+{
+    if (identifyTimerCount > 0)
+    {
+        /* Decrement the timer count. */
+        identifyTimerCount--;
+        /* Place Holder to blink the LED in Device to Indentify itself */
+        chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpointId, identifyTimerCount);
+    }
+}
+
+static void OnIdentifyPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    identifyTimerCount = (*value);
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, endpointId);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, endpointId);
+
+exit:
+    return;
+}
 
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,
                                         uint16_t size, uint8_t * value)
@@ -121,6 +144,9 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
         /* TODO: Use LED control api call to T2
         AppLED.Set(*value);
         */
+        break;
+    case app::Clusters::Identify::Id:
+        OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
         break;
     default:
         // ChipLogDetail(AppServer, "Unhandled cluster ID: %" PRIu32, clusterId);
@@ -156,10 +182,8 @@ void emberAfDoorLockClusterInitCallback(EndpointId endpoint)
     ChipLogDetail(AppServer, "emberAfDoorLockClusterInitCallback");
 }
 
-//bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const Optional<ByteSpan> & pinCode,
-  //                                          OperationErrorEnum & err)
-bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const Nullable<chip::FabricIndex> & fabricIdx, const Nullable<chip::NodeId> & nodeId, 
-                                            const Optional<chip::ByteSpan> & pinCode,
+bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const Nullable<chip::FabricIndex> & fabricIdx,
+                                            const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                             OperationErrorEnum & err)
 {
     ChipLogProgress(Zcl, "Door Lock App: lock Command endpoint=%d", endpointId);
@@ -168,7 +192,7 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
     int ret = matter_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
-    if(ret != 0)
+    if (ret != 0)
         return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
     return true;
@@ -182,14 +206,12 @@ void emberAfPluginDoorLockOnAutoRelock(chip::EndpointId endpointId)
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
     int ret = matter_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
-    if(ret != 0)
+    if (ret != 0)
         return;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
     return;
 }
 
-// bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const Optional<ByteSpan> & pinCode,
-//                                               OperationErrorEnum & err)
 bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const Nullable<chip::FabricIndex> & fabricIdx,
                                               const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                               OperationErrorEnum & err)
@@ -200,7 +222,7 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     int payload          = sizeof(struct dl_unlock_with_timeout);
 
     int ret = matter_notify(DOOR_LOCK, UNLOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
-    if(ret != 0)
+    if (ret != 0)
         return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
     return true;
@@ -267,7 +289,7 @@ bool emberAfPluginDoorLockSetUser(chip::EndpointId endpointId, uint16_t userInde
 
     payload = sizeof(struct dl_set_get_user);
     int ret = matter_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_user *) setUser);
-    if(ret != 0)
+    if (ret != 0)
         return false;
     ChipLogProgress(Zcl, "Successfully set the user [mEndpointId=%d,index=%d] operationtype: %d", endpointId, userIndex,
                     setUser->operationtype);
@@ -350,7 +372,7 @@ bool emberAfPluginDoorLockSetCredential(chip::EndpointId endpointId, uint16_t cr
     memcpy(setCredential->credentialdata, credentialData.data(), min(credentialData.size(), sizeof(setCredential->credentialdata)));
 
     int ret = matter_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_credential *) setCredential);
-    if(ret != 0)
+    if (ret != 0)
         return false;
     ChipLogProgress(Zcl, "Successfully set the Credential [mEndpointId=%d,index=%d] operationType: %d", endpointId, credentialIndex,
                     setCredential->operationtype);
@@ -452,8 +474,8 @@ void load_stored_info_from_host()
         memset(getUser, 0, sizeof(struct dl_set_get_user));
         getUser->userindex = i + 1;
         payload            = sizeof(struct dl_set_get_user);
-        int ret = matter_notify(DOOR_LOCK, GET_USER, payload, (struct dl_set_get_user *) getUser);
-        if(ret != 0)
+        int ret            = matter_notify(DOOR_LOCK, GET_USER, payload, (struct dl_set_get_user *) getUser);
+        if (ret != 0)
             return;
         if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
         {
@@ -469,7 +491,7 @@ void load_stored_info_from_host()
         getCredential->userindex = i + 1;
         payload                  = sizeof(struct dl_set_get_credential);
         int ret = matter_notify(DOOR_LOCK, GET_CREDENTIAL_STATUS, payload, (struct dl_set_get_credential *) getCredential);
-        if(ret != 0)
+        if (ret != 0)
             return;
         if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
         {
@@ -559,12 +581,12 @@ int main(void)
         {
             setUser.userindex       = i;
             setCredential.userindex = i;
-            int ret = matter_notify(DOOR_LOCK, CLEAR_USER, sizeof(setUser), &setUser);
-            if(ret != 0)
+            int ret                 = matter_notify(DOOR_LOCK, CLEAR_USER, sizeof(setUser), &setUser);
+            if (ret != 0)
                 return -1;
             os_printf(".");
             ret = matter_notify(DOOR_LOCK, CLEAR_CREDENTIAL, sizeof(setCredential), &setCredential);
-            if(ret != 0)
+            if (ret != 0)
                 return -1;
             os_printf(".");
         }
