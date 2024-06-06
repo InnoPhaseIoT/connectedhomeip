@@ -260,7 +260,57 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
  - Refer to the instructions in the Example_for_MQTT.pdf document found in the freertos_sdk_x.y/ examples/mqtt/doc directory, sections "Running the Application using Mosquitto Project’s Test Server and Evaluating the Application using Mosquitto Local Server" for using and controlling the MQTT app functionality.
  
 
-### Controlling the device when AWS-IoT Subscribe and Publish App Enabled
+
+### Controlling the device using AWS-IoT Subscribe and Publish
  - AWS-IoT subscribe and publish application functionality is enabled only when compiled with ENABLE_AWS_IOT_APP=true.
  - The AWS-IoT Subscribe and Publish application will start only after successful commissioning and Wi-Fi connectivity is established, i.e., the server is ready.
  - Refer to the instructions in the Application_for_IoT_AWS.pdf document found in the freertos_sdk_x.y/apps/iot_aws/doc directory, sections "AWS Set-up" and "MQTT Publish and Subscribe" for using and controlling the AWS-IoT subscribe and publish app functionality.
+    - Note: Follow the AWS-IoT subscribe and publish message formats mentioned in the sections below, not as per the above document.
+ - The lighting device can be controlled by sending commands using AWS-IoT Publish.
+   [AWS server will publish the commands --> T2 will subscribe to these commands]
+ - The lighting device can update its status using AWS-IoT Subscribe.
+   [T2 will publish the status updates --> AWS server will subscribe to the status updates]
+
+
+#### Send Lighting Commands: [AWS server will publish the commands --> T2 will subscribe to these commands]
+ - Users can turn the light ON or OFF by sending commands from the AWS-IoT server.
+
+        $ Command to Turn ON Light:
+
+        {
+        "from": "AWS IoT console"
+        "to": "T2"
+        "msg": "Turn On Light"
+        }
+
+        $ Command to Turn OFF Light:
+
+        {
+        "from": "AWS IoT console"
+        "to": "T2"
+        "msg": "Turn Off Light"
+        }
+
+ - Upon receiving the command from the AWS-IoT server, T2 will perform the light turn ON/OFF and the status will be published to the AWS-IoT server as described below.
+
+
+#### Update Lighting Status [T2 will publish the status updates --> AWS server will subscribe to the status updates]
+ - T2 will send lighting turn ON/OFF status updates to the AWS-IoT server as follows:
+
+        $ Status of Turn ON Light:
+
+        {
+        "from": "Talaria T2",
+        "to": "AWS",
+        "msg": "Light status On",
+        "msg_id": 1
+        }
+
+        $ Status of Turn OFF Light:
+
+        {
+        "from": "Talaria T2",
+        "to": "AWS",
+        "msg": "Light status Off",
+        "msg_id": 2
+        }

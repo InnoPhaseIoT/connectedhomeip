@@ -30,7 +30,7 @@ int http_client_main(void);
 #elif CONFIG_ENABLE_MQTT_APP
 int mqtt_main(void);
 #elif CONFIG_ENABLE_AWS_IOT_APP
-int aws_iot_main(void);
+#include "talaria_aws_iot/aws_iot.h"
 #endif
 
 #ifdef __cplusplus

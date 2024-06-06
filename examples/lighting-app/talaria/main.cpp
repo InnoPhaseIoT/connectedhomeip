@@ -29,6 +29,9 @@ extern "C" {
 #include <talaria_two.h>
 #include <kernel/pwm.h>
 
+#if CONFIG_ENABLE_AWS_IOT_APP
+#include "talaria_aws_iot/aws_iot.h"
+#endif /* CONFIG_ENABLE_AWS_IOT_APP */
 
 #ifdef __cplusplus
 }
@@ -87,6 +90,9 @@ struct Identify gIdentify = {
 /*-----------------------------------------------------------*/
 void print_test_results(nlTestSuite * tSuite);
 void app_test();
+#if CONFIG_ENABLE_AWS_IOT_APP
+void execute_lighting_cmd(bool value);
+#endif /* CONFIG_ENABLE_AWS_IOT_APP */
 
 int main_TestInetLayer(int argc, char * argv[]);
 static uint32_t identifyTimerCount = 0;
@@ -102,9 +108,29 @@ struct wcm_handle * get_wcm_handle_for_additional_app(void)
 {
     return chip::DeviceLayer::Internal::TalariaUtils::Get_wcm_handle();
 }
+
+#if CONFIG_ENABLE_AWS_IOT_APP
+void execute_lighting_cmd_from_aws_server(bool value)
+{
+    DeviceLayer::PlatformMgr().ScheduleWork(execute_lighting_cmd, value);
+}
+#endif /* CONFIG_ENABLE_AWS_IOT_APP */
+
 #ifdef __cplusplus
 }
 #endif
+
+#if CONFIG_ENABLE_AWS_IOT_APP
+static void post_lighting_status_to_aws_server(uint8_t value)
+{
+    DeviceLayer::PlatformMgr().ScheduleWork(post_lighting_status, value);
+}
+
+void execute_lighting_cmd(bool value)
+{
+    chip::app::Clusters::OnOff::Attributes::OnOff::Set(1, value);
+}
+#endif /* CONFIG_ENABLE_AWS_IOT_APP */
 
 static void SetPWMdutyCycle(uint8_t dutycycle)
 {
@@ -315,7 +341,11 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
         {
 	     SetPWMdutyCycle(0);
         }
-        break;
+
+#if CONFIG_ENABLE_AWS_IOT_APP
+	post_lighting_status_to_aws_server(*value);
+#endif /* CONFIG_ENABLE_AWS_IOT_APP */
+	break;
     case app::Clusters::Identify::Id:
         OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
         break;

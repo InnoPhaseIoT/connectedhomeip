@@ -71,11 +71,18 @@
 
 #define AWS_IOT_MY_THING_NAME os_get_boot_arg_str(INPUT_PARAMETER_AWS_THING_NAME)
 
+#define AWS_IOT_TURN_ON_LIGHT_CMD "Turn On Light"
+#define AWS_IOT_TURN_OFF_LIGHT_CMD "Turn Off Light"
+#define AWS_IOT_TURN_ON_LIGHT_STATUS "Light status On"
+#define AWS_IOT_TURN_OFF_LIGHT_STATUS "Light status Off"
+
 static struct wcm_handle *h = NULL;
 static bool ap_link_up = false;
 static bool ap_got_ip = false;
 
 OS_APPINFO {.stack_size=4096};
+QueueHandle_t aws_iot_light_status_queue = NULL;
+uint8_t light_status;
 
 static int init_platform();
 static AWS_IoT_Client *pmqttClient;
@@ -84,6 +91,29 @@ char *aws_root_ca;
 char *aws_device_pkey;
 char *aws_device_cert;
 static int parse_received_message(char *msg_received, int payloadLen);
+
+static void Parse_and_execute_light_cmd(char *start_addr, uint8_t length) {
+
+	if (strncmp(start_addr, AWS_IOT_TURN_ON_LIGHT_CMD, length) == 0) {
+		os_printf("[Matter_AWS_IoT Subscribe] \"Turn On Light\" Command Received...\n");
+		execute_lighting_cmd_from_aws_server(true);
+	}
+	else if (strncmp(start_addr, AWS_IOT_TURN_OFF_LIGHT_CMD, length) == 0) {
+		os_printf("[Matter_AWS_IoT Subscribe] \"Turn Off Light\" Command Received...\n");
+		execute_lighting_cmd_from_aws_server(false);
+	}
+}
+
+void post_lighting_status(uint8_t value)
+{
+    if (aws_iot_light_status_queue != NULL) {
+	    light_status = value;
+	    if (xQueueSend(aws_iot_light_status_queue, (void *)&light_status, (TickType_t) 0) != pdPASS) {
+		    os_printf("Error: Failed to send light_status to queue.\n");
+	    }
+    }
+}
+
 
 /**
  * @brief This parameter will avoid infinite loop of publish and exit the program after certain number of publishes
@@ -131,6 +161,7 @@ int aws_iot_main(int argc, char **argv) {
 	bool infinitePublishFlag = true;
 	char cPayload[100];
 	IoT_Error_t rc = FAILURE;
+	uint8_t status;
 
 	IoT_Publish_Message_Params paramsQOS0;
 	IoT_Publish_Message_Params paramsQOS1;
@@ -227,10 +258,6 @@ int aws_iot_main(int argc, char **argv) {
 	paramsQOS0.payload = (void *) cPayload;
 	paramsQOS0.isRetained = 0;
 
-	paramsQOS1.qos = QOS1;
-	paramsQOS1.payload = (void *) cPayload;
-	paramsQOS1.isRetained = 0;
-
 	if(publishCount != 0) {
 		infinitePublishFlag = false;
 	}
@@ -241,53 +268,34 @@ int aws_iot_main(int argc, char **argv) {
 		//Max time the yield function will wait for read messages
 		rc = aws_iot_mqtt_yield(pmqttClient, 100);
 		if(NETWORK_ATTEMPTING_RECONNECT == rc) {
-            vTaskDelay(100);
+			vTaskDelay(100);
 
 			// If the client is attempting to reconnect we will skip the rest of the loop.
 			continue;
 		}
 
-		os_printf("sleep\n");
-        vTaskDelay(10000);
+		if (xQueueReceive(aws_iot_light_status_queue, &status, 0) != pdPASS) {
+			continue;
+		}
+		os_printf("[Matter_AWS_IoT Publish] Light Status Publish Request Received.\n");
 
 		paramsQOS0.payloadLen = snprintf(cPayload, sizeof(cPayload),
-										"{\"from\":\"Talaria T2\",\"to\":\"AWS\",\"msg\":\"Howdy Ho\",\"msg_id\":%d}",
-										++message_id);
+				                 "{\"from\":\"Talaria T2\",\"to\":\"AWS\",\"msg\":\"%s\",\"msg_id\":%d}",
+						 status ? AWS_IOT_TURN_ON_LIGHT_STATUS : AWS_IOT_TURN_OFF_LIGHT_STATUS,
+						 ++message_id);
 
 		os_printf("\n---> Publishing with 'Message QoS0' to Topic [%s]\n", publish_topic);
 		os_printf("msg[%s]\n", cPayload);
 		rc = aws_iot_mqtt_publish(pmqttClient, publish_topic, strlen(publish_topic), &paramsQOS0);
 
 		os_printf("\nQoS0 Message Publish %s for \"msg_id\":%d. Return Status [%d]\n",
-						rc ? "Failure" : "Successful", message_id, rc);
+			  rc ? "Failure" : "Successful", message_id, rc);
 
-		if(publishCount > 0) {
-			publishCount--;
-		}
-
-		if(publishCount == 0 && !infinitePublishFlag) {
-			break;
-		}
-
-		paramsQOS1.payloadLen = snprintf(cPayload, sizeof(cPayload),
-										"{\"from\":\"Talaria T2\",\"to\":\"AWS\",\"msg\":\"Howdy Ho\",\"msg_id\":%d}",
-										++message_id);
-
-		os_printf("\n---> Publishing with 'Message QoS1' to Topic [%s]\n", publish_topic);
-		os_printf("msg[%s]\n", cPayload);
-		rc = aws_iot_mqtt_publish(pmqttClient, publish_topic, strlen(publish_topic), &paramsQOS1);
-
-		os_printf("\nQoS1 Message Publish %s for \"msg_id\":%d. Return Status [%d]\n",
-						rc ? "Failure" : "Successful", message_id, rc);
 		if (rc == MQTT_REQUEST_TIMEOUT_ERROR) {
-			// if PUBACK is not recieved for a QOS1 msg before a timeout, the stack will re-publish it again. 
+			// if PUBACK is not recieved for a QOS1 msg before a timeout, the stack will re-publish it again.
 			// so, lets not treat 'MQTT_REQUEST_TIMEOUT_ERROR' as a critical error which breaks the loop.
-			os_printf("QOS1 publish ack not received. \n");
+			os_printf("QOS0 publish ack not received. \n");
 			rc = SUCCESS;
-		}
-
-		if(publishCount > 0) {
-			publishCount--;
 		}
 	}
 
@@ -332,6 +340,8 @@ static int parse_received_message(char *msg_received, int payloadLen) {
 		} else if (jsoneq(msg_received, &t[i], "msg") == 0) {
 			os_printf("- message: %.*s\n", t[i + 1].end - t[i + 1].start,
 					msg_received + t[i + 1].start);
+
+			Parse_and_execute_light_cmd(msg_received + t[i + 1].start, t[i + 1].end - t[i + 1].start);
 			i++;
 		} else
 			i++;
@@ -482,6 +492,13 @@ static int validate_inputs() {
 int init_platform() {
 
 	int rc = 0;
+
+	aws_iot_light_status_queue = xQueueCreate(4, sizeof(uint8_t*));
+	if(aws_iot_light_status_queue == NULL)
+	{
+		os_printf("Error: aws_iot_light_status_queue create failed.\n");
+		return -1;
+	}
 
 	rc = read_certs();
 	if(rc < 0) {
