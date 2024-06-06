@@ -672,50 +672,6 @@ server cluster NetworkCommissioning = 49 {
   command access(invoke: administer) ReorderNetwork(ReorderNetworkRequest): NetworkConfigResponse = 8;
 }
 
-/** The cluster provides commands for retrieving unstructured diagnostic logs from a Node that may be used to aid in diagnostics. */
-server cluster DiagnosticLogs = 50 {
-  enum IntentEnum : enum8 {
-    kEndUserSupport = 0;
-    kNetworkDiag = 1;
-    kCrashLogs = 2;
-  }
-
-  enum StatusEnum : enum8 {
-    kSuccess = 0;
-    kExhausted = 1;
-    kNoLogs = 2;
-    kBusy = 3;
-    kDenied = 4;
-  }
-
-  enum TransferProtocolEnum : enum8 {
-    kResponsePayload = 0;
-    kBDX = 1;
-  }
-
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct RetrieveLogsRequestRequest {
-    IntentEnum intent = 0;
-    TransferProtocolEnum requestedProtocol = 1;
-    optional char_string<32> transferFileDesignator = 2;
-  }
-
-  response struct RetrieveLogsResponse = 1 {
-    StatusEnum status = 0;
-    LONG_OCTET_STRING logContent = 1;
-    optional epoch_us UTCTimeStamp = 2;
-    optional systime_us timeSinceBoot = 3;
-  }
-
-  command RetrieveLogsRequest(RetrieveLogsRequestRequest): RetrieveLogsResponse = 0;
-}
-
 /** The General Diagnostics Cluster, along with other diagnostics clusters, provide a means to acquire standardized diagnostics metrics that MAY be used by a Node to assist a user or Administrative Node in diagnosing potential problems. */
 server cluster GeneralDiagnostics = 51 {
   enum BootReasonEnum : enum8 {
@@ -1572,6 +1528,9 @@ server cluster DoorLock = 257 {
   readonly attribute DlLockType lockType = 1;
   readonly attribute boolean actuatorEnabled = 2;
   readonly attribute nullable DoorStateEnum doorState = 3;
+  attribute access(write: manage) int32u doorOpenEvents = 4;
+  attribute access(write: manage) int32u doorClosedEvents = 5;
+  attribute access(write: manage) int16u openPeriod = 6;
   readonly attribute int16u numberOfTotalUsersSupported = 17;
   readonly attribute int16u numberOfPINUsersSupported = 18;
   readonly attribute int8u maxPINCodeLength = 23;
@@ -1582,11 +1541,10 @@ server cluster DoorLock = 257 {
   attribute access(write: manage) int32u autoRelockTime = 35;
   attribute access(write: manage) OperatingModeEnum operatingMode = 37;
   readonly attribute DlSupportedOperatingModes supportedOperatingModes = 38;
-  attribute access(write: manage) boolean enableOneTouchLocking = 41;
-  attribute access(write: manage) boolean enablePrivacyModeButton = 43;
   attribute access(write: administer) int8u wrongCodeEntryLimit = 48;
   attribute access(write: administer) int8u userCodeTemporaryDisableTime = 49;
   attribute access(write: administer) boolean requirePINforRemoteOperation = 51;
+  attribute access(write: administer) int16u expiringUserTimeout = 53;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1605,58 +1563,6 @@ server cluster DoorLock = 257 {
   request struct UnlockWithTimeoutRequest {
     int16u timeout = 0;
     optional octet_string PINCode = 1;
-  }
-
-  request struct SetWeekDayScheduleRequest {
-    int8u weekDayIndex = 0;
-    int16u userIndex = 1;
-    DaysMaskMap daysMask = 2;
-    int8u startHour = 3;
-    int8u startMinute = 4;
-    int8u endHour = 5;
-    int8u endMinute = 6;
-  }
-
-  request struct GetWeekDayScheduleRequest {
-    int8u weekDayIndex = 0;
-    int16u userIndex = 1;
-  }
-
-  request struct ClearWeekDayScheduleRequest {
-    int8u weekDayIndex = 0;
-    int16u userIndex = 1;
-  }
-
-  request struct SetYearDayScheduleRequest {
-    int8u yearDayIndex = 0;
-    int16u userIndex = 1;
-    epoch_s localStartTime = 2;
-    epoch_s localEndTime = 3;
-  }
-
-  request struct GetYearDayScheduleRequest {
-    int8u yearDayIndex = 0;
-    int16u userIndex = 1;
-  }
-
-  request struct ClearYearDayScheduleRequest {
-    int8u yearDayIndex = 0;
-    int16u userIndex = 1;
-  }
-
-  request struct SetHolidayScheduleRequest {
-    int8u holidayIndex = 0;
-    epoch_s localStartTime = 1;
-    epoch_s localEndTime = 2;
-    OperatingModeEnum operatingMode = 3;
-  }
-
-  request struct GetHolidayScheduleRequest {
-    int8u holidayIndex = 0;
-  }
-
-  request struct ClearHolidayScheduleRequest {
-    int8u holidayIndex = 0;
   }
 
   request struct SetUserRequest {
@@ -1694,37 +1600,6 @@ server cluster DoorLock = 257 {
     nullable CredentialStruct credential = 0;
   }
 
-  request struct UnboltDoorRequest {
-    optional octet_string PINCode = 0;
-  }
-
-  response struct GetWeekDayScheduleResponse = 12 {
-    int8u weekDayIndex = 0;
-    int16u userIndex = 1;
-    DlStatus status = 2;
-    optional DaysMaskMap daysMask = 3;
-    optional int8u startHour = 4;
-    optional int8u startMinute = 5;
-    optional int8u endHour = 6;
-    optional int8u endMinute = 7;
-  }
-
-  response struct GetYearDayScheduleResponse = 15 {
-    int8u yearDayIndex = 0;
-    int16u userIndex = 1;
-    DlStatus status = 2;
-    optional epoch_s localStartTime = 3;
-    optional epoch_s localEndTime = 4;
-  }
-
-  response struct GetHolidayScheduleResponse = 18 {
-    int8u holidayIndex = 0;
-    DlStatus status = 1;
-    optional epoch_s localStartTime = 2;
-    optional epoch_s localEndTime = 3;
-    optional OperatingModeEnum operatingMode = 4;
-  }
-
   response struct GetUserResponse = 28 {
     int16u userIndex = 0;
     nullable char_string userName = 1;
@@ -1755,27 +1630,16 @@ server cluster DoorLock = 257 {
   timed command LockDoor(LockDoorRequest): DefaultSuccess = 0;
   timed command UnlockDoor(UnlockDoorRequest): DefaultSuccess = 1;
   timed command UnlockWithTimeout(UnlockWithTimeoutRequest): DefaultSuccess = 3;
-  command access(invoke: administer) SetWeekDaySchedule(SetWeekDayScheduleRequest): DefaultSuccess = 11;
-  command access(invoke: administer) GetWeekDaySchedule(GetWeekDayScheduleRequest): GetWeekDayScheduleResponse = 12;
-  command access(invoke: administer) ClearWeekDaySchedule(ClearWeekDayScheduleRequest): DefaultSuccess = 13;
-  command access(invoke: administer) SetYearDaySchedule(SetYearDayScheduleRequest): DefaultSuccess = 14;
-  command access(invoke: administer) GetYearDaySchedule(GetYearDayScheduleRequest): GetYearDayScheduleResponse = 15;
-  command access(invoke: administer) ClearYearDaySchedule(ClearYearDayScheduleRequest): DefaultSuccess = 16;
-  command access(invoke: administer) SetHolidaySchedule(SetHolidayScheduleRequest): DefaultSuccess = 17;
-  command access(invoke: administer) GetHolidaySchedule(GetHolidayScheduleRequest): GetHolidayScheduleResponse = 18;
-  command access(invoke: administer) ClearHolidaySchedule(ClearHolidayScheduleRequest): DefaultSuccess = 19;
   timed command access(invoke: administer) SetUser(SetUserRequest): DefaultSuccess = 26;
   command access(invoke: administer) GetUser(GetUserRequest): GetUserResponse = 27;
   timed command access(invoke: administer) ClearUser(ClearUserRequest): DefaultSuccess = 29;
   timed command access(invoke: administer) SetCredential(SetCredentialRequest): SetCredentialResponse = 34;
   command access(invoke: administer) GetCredentialStatus(GetCredentialStatusRequest): GetCredentialStatusResponse = 36;
   timed command access(invoke: administer) ClearCredential(ClearCredentialRequest): DefaultSuccess = 38;
-  timed command UnboltDoor(UnboltDoorRequest): DefaultSuccess = 39;
 }
 
 endpoint 0 {
   device type ma_rootdevice = 22, version 1;
-  device type ma_powersource = 17, version 1;
 
   binding cluster OtaSoftwareUpdateProvider;
 
@@ -1935,18 +1799,6 @@ endpoint 0 {
     handle command ReorderNetwork;
   }
 
-  server cluster DiagnosticLogs {
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
-
-    handle command RetrieveLogsRequest;
-    handle command RetrieveLogsResponse;
-  }
-
   server cluster GeneralDiagnostics {
     emits event BootReason;
     callback attribute networkInterfaces;
@@ -2086,7 +1938,6 @@ endpoint 0 {
   }
 }
 endpoint 1 {
-  device type ma_powersource = 17, version 1;
   device type ma_doorlock = 10, version 1;
 
 
@@ -2127,6 +1978,9 @@ endpoint 1 {
     ram      attribute lockType;
     ram      attribute actuatorEnabled;
     ram      attribute doorState;
+    ram      attribute doorOpenEvents;
+    ram      attribute doorClosedEvents;
+    ram      attribute openPeriod;
     ram      attribute numberOfTotalUsersSupported default = 5;
     ram      attribute numberOfPINUsersSupported default = 5;
     ram      attribute maxPINCodeLength default = 8;
@@ -2137,33 +1991,20 @@ endpoint 1 {
     ram      attribute autoRelockTime default = 60;
     ram      attribute operatingMode default = 0x00;
     ram      attribute supportedOperatingModes default = 0xFFF6;
-    ram      attribute enableOneTouchLocking default = 0x00;
-    ram      attribute enablePrivacyModeButton default = 0x00;
     ram      attribute wrongCodeEntryLimit default = 3;
     ram      attribute userCodeTemporaryDisableTime default = 10;
     ram      attribute requirePINforRemoteOperation default = 0;
+    ram      attribute expiringUserTimeout;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
-    ram      attribute featureMap default = 0x1DB3;
+    ram      attribute featureMap default = 0x1A1;
     ram      attribute clusterRevision default = 7;
 
     handle command LockDoor;
     handle command UnlockDoor;
     handle command UnlockWithTimeout;
-    handle command SetWeekDaySchedule;
-    handle command GetWeekDaySchedule;
-    handle command GetWeekDayScheduleResponse;
-    handle command ClearWeekDaySchedule;
-    handle command SetYearDaySchedule;
-    handle command GetYearDaySchedule;
-    handle command GetYearDayScheduleResponse;
-    handle command ClearYearDaySchedule;
-    handle command SetHolidaySchedule;
-    handle command GetHolidaySchedule;
-    handle command GetHolidayScheduleResponse;
-    handle command ClearHolidaySchedule;
     handle command SetUser;
     handle command GetUser;
     handle command GetUserResponse;
@@ -2173,7 +2014,6 @@ endpoint 1 {
     handle command GetCredentialStatus;
     handle command GetCredentialStatusResponse;
     handle command ClearCredential;
-    handle command UnboltDoor;
   }
 }
 
