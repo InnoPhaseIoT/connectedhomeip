@@ -2,54 +2,6 @@
 // It is for view/code review purposes only.
 
 /** Attributes and commands for putting a device into Identification mode (e.g. flashing a light). */
-client cluster Identify = 3 {
-  enum EffectIdentifierEnum : enum8 {
-    kBlink = 0;
-    kBreathe = 1;
-    kOkay = 2;
-    kChannelChange = 11;
-    kFinishEffect = 254;
-    kStopEffect = 255;
-  }
-
-  enum EffectVariantEnum : enum8 {
-    kDefault = 0;
-  }
-
-  enum IdentifyTypeEnum : enum8 {
-    kNone = 0;
-    kLightOutput = 1;
-    kVisibleIndicator = 2;
-    kAudibleBeep = 3;
-    kDisplay = 4;
-    kActuator = 5;
-  }
-
-  attribute int16u identifyTime = 0;
-  readonly attribute IdentifyTypeEnum identifyType = 1;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct IdentifyRequest {
-    int16u identifyTime = 0;
-  }
-
-  request struct TriggerEffectRequest {
-    EffectIdentifierEnum effectIdentifier = 0;
-    EffectVariantEnum effectVariant = 1;
-  }
-
-  /** Command description for Identify */
-  command access(invoke: manage) Identify(IdentifyRequest): DefaultSuccess = 0;
-  /** Command description for TriggerEffect */
-  command access(invoke: manage) TriggerEffect(TriggerEffectRequest): DefaultSuccess = 64;
-}
-
-/** Attributes and commands for putting a device into Identification mode (e.g. flashing a light). */
 server cluster Identify = 3 {
   enum EffectIdentifierEnum : enum8 {
     kBlink = 0;
@@ -186,25 +138,6 @@ server cluster Descriptor = 29 {
   readonly attribute cluster_id serverList[] = 1;
   readonly attribute cluster_id clientList[] = 2;
   readonly attribute endpoint_no partsList[] = 3;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-}
-
-/** The Binding Cluster is meant to replace the support from the Zigbee Device Object (ZDO) for supporting the binding table. */
-server cluster Binding = 30 {
-  fabric_scoped struct TargetStruct {
-    optional node_id node = 1;
-    optional group_id group = 2;
-    optional endpoint_no endpoint = 3;
-    optional cluster_id cluster = 4;
-    fabric_idx fabricIndex = 254;
-  }
-
-  attribute access(write: manage) TargetStruct binding[] = 0;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -375,155 +308,6 @@ server cluster BasicInformation = 40 {
   readonly attribute int16u clusterRevision = 65533;
 }
 
-/** Provides an interface for providing OTA software updates */
-client cluster OtaSoftwareUpdateProvider = 41 {
-  enum ApplyUpdateActionEnum : enum8 {
-    kProceed = 0;
-    kAwaitNextAction = 1;
-    kDiscontinue = 2;
-  }
-
-  enum DownloadProtocolEnum : enum8 {
-    kBDXSynchronous = 0;
-    kBDXAsynchronous = 1;
-    kHTTPS = 2;
-    kVendorSpecific = 3;
-  }
-
-  enum StatusEnum : enum8 {
-    kUpdateAvailable = 0;
-    kBusy = 1;
-    kNotAvailable = 2;
-    kDownloadProtocolNotSupported = 3;
-  }
-
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct QueryImageRequest {
-    vendor_id vendorID = 0;
-    int16u productID = 1;
-    int32u softwareVersion = 2;
-    DownloadProtocolEnum protocolsSupported[] = 3;
-    optional int16u hardwareVersion = 4;
-    optional char_string<2> location = 5;
-    optional boolean requestorCanConsent = 6;
-    optional octet_string<512> metadataForProvider = 7;
-  }
-
-  response struct QueryImageResponse = 1 {
-    StatusEnum status = 0;
-    optional int32u delayedActionTime = 1;
-    optional char_string<256> imageURI = 2;
-    optional int32u softwareVersion = 3;
-    optional char_string<64> softwareVersionString = 4;
-    optional octet_string<32> updateToken = 5;
-    optional boolean userConsentNeeded = 6;
-    optional octet_string<512> metadataForRequestor = 7;
-  }
-
-  request struct ApplyUpdateRequestRequest {
-    octet_string<32> updateToken = 0;
-    int32u newVersion = 1;
-  }
-
-  response struct ApplyUpdateResponse = 3 {
-    ApplyUpdateActionEnum action = 0;
-    int32u delayedActionTime = 1;
-  }
-
-  request struct NotifyUpdateAppliedRequest {
-    octet_string<32> updateToken = 0;
-    int32u softwareVersion = 1;
-  }
-
-  /** Determine availability of a new Software Image */
-  command QueryImage(QueryImageRequest): QueryImageResponse = 0;
-  /** Determine next action to take for a downloaded Software Image */
-  command ApplyUpdateRequest(ApplyUpdateRequestRequest): ApplyUpdateResponse = 2;
-  /** Notify OTA Provider that an update was applied */
-  command NotifyUpdateApplied(NotifyUpdateAppliedRequest): DefaultSuccess = 4;
-}
-
-/** Provides an interface for downloading and applying OTA software updates */
-server cluster OtaSoftwareUpdateRequestor = 42 {
-  enum AnnouncementReasonEnum : enum8 {
-    kSimpleAnnouncement = 0;
-    kUpdateAvailable = 1;
-    kUrgentUpdateAvailable = 2;
-  }
-
-  enum ChangeReasonEnum : enum8 {
-    kUnknown = 0;
-    kSuccess = 1;
-    kFailure = 2;
-    kTimeOut = 3;
-    kDelayByProvider = 4;
-  }
-
-  enum UpdateStateEnum : enum8 {
-    kUnknown = 0;
-    kIdle = 1;
-    kQuerying = 2;
-    kDelayedOnQuery = 3;
-    kDownloading = 4;
-    kApplying = 5;
-    kDelayedOnApply = 6;
-    kRollingBack = 7;
-    kDelayedOnUserConsent = 8;
-  }
-
-  fabric_scoped struct ProviderLocation {
-    node_id providerNodeID = 1;
-    endpoint_no endpoint = 2;
-    fabric_idx fabricIndex = 254;
-  }
-
-  info event StateTransition = 0 {
-    UpdateStateEnum previousState = 0;
-    UpdateStateEnum newState = 1;
-    ChangeReasonEnum reason = 2;
-    nullable int32u targetSoftwareVersion = 3;
-  }
-
-  critical event VersionApplied = 1 {
-    int32u softwareVersion = 0;
-    int16u productID = 1;
-  }
-
-  info event DownloadError = 2 {
-    int32u softwareVersion = 0;
-    int64u bytesDownloaded = 1;
-    nullable int8u progressPercent = 2;
-    nullable int64s platformCode = 3;
-  }
-
-  attribute ProviderLocation defaultOTAProviders[] = 0;
-  readonly attribute boolean updatePossible = 1;
-  readonly attribute UpdateStateEnum updateState = 2;
-  readonly attribute nullable int8u updateStateProgress = 3;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct AnnounceOTAProviderRequest {
-    node_id providerNodeID = 0;
-    vendor_id vendorID = 1;
-    AnnouncementReasonEnum announcementReason = 2;
-    optional octet_string<512> metadataForNode = 3;
-    endpoint_no endpoint = 4;
-  }
-
-  command AnnounceOTAProvider(AnnounceOTAProviderRequest): DefaultSuccess = 0;
-}
-
 /** Nodes should be expected to be deployed to any and all regions of the world. These global regions
       may have differing common languages, units of measurements, and numerical formatting
       standards. As such, Nodes that visually or audibly convey information need a mechanism by which
@@ -594,7 +378,6 @@ server cluster UnitLocalization = 45 {
     kTemperatureUnit = 0x1;
   }
 
-  attribute TempUnitEnum temperatureUnit = 0;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -809,50 +592,6 @@ server cluster NetworkCommissioning = 49 {
   command access(invoke: administer) ReorderNetwork(ReorderNetworkRequest): NetworkConfigResponse = 8;
 }
 
-/** The cluster provides commands for retrieving unstructured diagnostic logs from a Node that may be used to aid in diagnostics. */
-server cluster DiagnosticLogs = 50 {
-  enum IntentEnum : enum8 {
-    kEndUserSupport = 0;
-    kNetworkDiag = 1;
-    kCrashLogs = 2;
-  }
-
-  enum StatusEnum : enum8 {
-    kSuccess = 0;
-    kExhausted = 1;
-    kNoLogs = 2;
-    kBusy = 3;
-    kDenied = 4;
-  }
-
-  enum TransferProtocolEnum : enum8 {
-    kResponsePayload = 0;
-    kBDX = 1;
-  }
-
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct RetrieveLogsRequestRequest {
-    IntentEnum intent = 0;
-    TransferProtocolEnum requestedProtocol = 1;
-    optional char_string<32> transferFileDesignator = 2;
-  }
-
-  response struct RetrieveLogsResponse = 1 {
-    StatusEnum status = 0;
-    LONG_OCTET_STRING logContent = 1;
-    optional epoch_us UTCTimeStamp = 2;
-    optional systime_us timeSinceBoot = 3;
-  }
-
-  command RetrieveLogsRequest(RetrieveLogsRequestRequest): RetrieveLogsResponse = 0;
-}
-
 /** The General Diagnostics Cluster, along with other diagnostics clusters, provide a means to acquire standardized diagnostics metrics that MAY be used by a Node to assist a user or Administrative Node in diagnosing potential problems. */
 server cluster GeneralDiagnostics = 51 {
   enum BootReasonEnum : enum8 {
@@ -979,8 +718,6 @@ server cluster SoftwareDiagnostics = 52 {
   }
 
   readonly attribute int64u currentHeapFree = 1;
-  readonly attribute int64u currentHeapUsed = 2;
-  readonly attribute int64u currentHeapHighWatermark = 3;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1401,6 +1138,8 @@ server cluster Thermostat = 513 {
   readonly attribute int16s absMaxHeatSetpointLimit = 4;
   readonly attribute int16s absMinCoolSetpointLimit = 5;
   readonly attribute int16s absMaxCoolSetpointLimit = 6;
+  readonly attribute int8u PICoolingDemand = 7;
+  readonly attribute int8u PIHeatingDemand = 8;
   attribute int16s occupiedCoolingSetpoint = 17;
   attribute int16s occupiedHeatingSetpoint = 18;
   attribute access(write: manage) int16s minHeatSetpointLimit = 21;
@@ -1410,6 +1149,7 @@ server cluster Thermostat = 513 {
   attribute access(write: manage) int8s minSetpointDeadBand = 25;
   attribute access(write: manage) ThermostatControlSequence controlSequenceOfOperation = 27;
   attribute access(write: manage) enum8 systemMode = 28;
+  readonly attribute enum8 thermostatRunningMode = 30;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1425,35 +1165,9 @@ server cluster Thermostat = 513 {
   command SetpointRaiseLower(SetpointRaiseLowerRequest): DefaultSuccess = 0;
 }
 
-/** An interface for configuring the user interface of a thermostat (which may be remote from the thermostat). */
-server cluster ThermostatUserInterfaceConfiguration = 516 {
-  attribute enum8 temperatureDisplayMode = 0;
-  attribute access(write: manage) enum8 keypadLockout = 1;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-}
-
 endpoint 0 {
   device type ma_rootdevice = 22, version 1;
 
-  binding cluster OtaSoftwareUpdateProvider;
-
-  server cluster Identify {
-    ram      attribute identifyTime default = 0x0000;
-    ram      attribute identifyType default = 0x00;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 4;
-
-    handle command Identify;
-  }
 
   server cluster Descriptor {
     callback attribute deviceTypeList;
@@ -1466,16 +1180,6 @@ endpoint 0 {
     callback attribute attributeList;
     ram      attribute featureMap default = 0;
     callback attribute clusterRevision;
-  }
-
-  server cluster Binding {
-    callback attribute binding;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
   }
 
   server cluster AccessControl {
@@ -1524,24 +1228,6 @@ endpoint 0 {
     ram      attribute clusterRevision default = 2;
   }
 
-  server cluster OtaSoftwareUpdateRequestor {
-    emits event StateTransition;
-    emits event VersionApplied;
-    emits event DownloadError;
-    callback attribute defaultOTAProviders;
-    ram      attribute updatePossible default = 1;
-    ram      attribute updateState default = 0;
-    ram      attribute updateStateProgress default = 0;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
-
-    handle command AnnounceOTAProvider;
-  }
-
   server cluster LocalizationConfiguration {
     persist  attribute activeLocale default = "en-US";
     callback attribute supportedLocales;
@@ -1566,8 +1252,11 @@ endpoint 0 {
   }
 
   server cluster UnitLocalization {
-    persist  attribute temperatureUnit default = 0;
-    ram      attribute featureMap default = 0x1;
+    callback attribute generatedCommandList;
+    callback attribute acceptedCommandList;
+    callback attribute eventList;
+    callback attribute attributeList;
+    ram      attribute featureMap default = 0;
     ram      attribute clusterRevision default = 1;
   }
 
@@ -1618,18 +1307,6 @@ endpoint 0 {
     handle command ReorderNetwork;
   }
 
-  server cluster DiagnosticLogs {
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
-
-    handle command RetrieveLogsRequest;
-    handle command RetrieveLogsResponse;
-  }
-
   server cluster GeneralDiagnostics {
     emits event BootReason;
     callback attribute networkInterfaces;
@@ -1653,8 +1330,6 @@ endpoint 0 {
 
   server cluster SoftwareDiagnostics {
     callback attribute currentHeapFree;
-    callback attribute currentHeapUsed;
-    callback attribute currentHeapHighWatermark;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
@@ -1774,7 +1449,6 @@ endpoint 0 {
 endpoint 1 {
   device type ma_thermostat = 769, version 1;
 
-  binding cluster Identify;
 
   server cluster Identify {
     ram      attribute identifyTime default = 0x0000;
@@ -1830,6 +1504,8 @@ endpoint 1 {
     ram      attribute absMaxHeatSetpointLimit default = 3000;
     ram      attribute absMinCoolSetpointLimit default = 1600;
     ram      attribute absMaxCoolSetpointLimit default = 3200;
+    ram      attribute PICoolingDemand;
+    ram      attribute PIHeatingDemand;
     persist  attribute occupiedCoolingSetpoint default = 0x0A28;
     persist  attribute occupiedHeatingSetpoint default = 0x07D0;
     ram      attribute minHeatSetpointLimit default = 700;
@@ -1839,6 +1515,7 @@ endpoint 1 {
     ram      attribute minSetpointDeadBand default = 0x19;
     ram      attribute controlSequenceOfOperation default = 0x04;
     persist  attribute systemMode default = 0x01;
+    ram      attribute thermostatRunningMode;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
@@ -1847,17 +1524,6 @@ endpoint 1 {
     ram      attribute clusterRevision default = 6;
 
     handle command SetpointRaiseLower;
-  }
-
-  server cluster ThermostatUserInterfaceConfiguration {
-    ram      attribute temperatureDisplayMode default = 0x00;
-    ram      attribute keypadLockout default = 0x00;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 2;
   }
 }
 
