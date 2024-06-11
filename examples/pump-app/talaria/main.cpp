@@ -56,6 +56,7 @@ extern "C" {
 #define FLOW_SENSOR_PERIODIC_TIME_OUT_MS 10000
 #define IDENTIFY_TIMER_DELAY_MS  1000
 #define LED_PIN 14
+#define PUMP_APP_MIN_MAX_CONTROL_GPIO 18
 
 using namespace chip;
 using namespace chip::Platform;
@@ -99,6 +100,7 @@ struct Flow_Sensor_Mesurement
 int SoftwareTimer_Init(void);
 uint32_t led_pin;
 static uint32_t identifyTimerCount = 0;
+static uint32_t pump_control_gpio;
 
 /* Function Declarations */
 
@@ -119,12 +121,23 @@ static void Read_And_Update_FlowSensor_Measurements(intptr_t arg)
      * flow sensor measurement values.
      * The rand function generates random flow sensor measurement values
      * between 0 and 100 as actual flow measurement sensor is not available. */
-    flow_measurement_data.MeasuredValue = rand() % (100 + 1);
-    flow_measurement_data.MinMeasuredValue = rand() % (100 + 1);
-    flow_measurement_data.MaxMeasuredValue = rand() % (100 + 1);
-    flow_measurement_data.Tolerance = rand() % (100 + 1);
-
-    Update_FlowSensor_Mesurement_status_attributes(&flow_measurement_data);
+    int state = (os_gpio_get_value(pump_control_gpio) > 0) ?  1 : 0;
+    if ( state > 0)
+    {
+        flow_measurement_data.MeasuredValue = 65534;
+        flow_measurement_data.MinMeasuredValue = 0;
+        flow_measurement_data.MaxMeasuredValue = 65534;
+        flow_measurement_data.Tolerance = rand() % (2048);
+        Update_FlowSensor_Mesurement_status_attributes(&flow_measurement_data);
+    }
+    else
+    {
+        flow_measurement_data.MeasuredValue = 0 ;
+        flow_measurement_data.MinMeasuredValue = 0;
+        flow_measurement_data.MaxMeasuredValue = 65534;
+        flow_measurement_data.Tolerance = rand() % (2048);
+        Update_FlowSensor_Mesurement_status_attributes(&flow_measurement_data);
+    }
 }
 
 static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
@@ -429,7 +442,13 @@ int main(void)
     os_gpio_request(led_pin);
     os_gpio_set_output(led_pin);
     os_gpio_clr_pin(led_pin);
+    pump_control_gpio = GPIO_PIN(PUMP_APP_MIN_MAX_CONTROL_GPIO);
 
+    /* Requesting for Gpio pin */
+    os_gpio_request(pump_control_gpio);
+
+    /* Setting Direction as Input */
+    os_gpio_set_input(pump_control_gpio);
     app_test();
 
     /* There is nothing to do in this task. Putting the task in suspend mode */

@@ -79,6 +79,8 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           e.g. pairing ble-wifi 1111 tplinkc6_iop InnoQA2023$ 20202021 1122
 - Once the commissioning is completed successfully you can use following commands to perform Flow Sensor operations on Talaria Two EVB. Here the 1111 is the node-id given at the time of commissioning to the device
 
+- To change the flow-measurement value to low connect the GPIO18 to ground
+- To change the flow-measurement value to high connect the GPIO18 to VCC
 
           ## Command to read the flow sensor attribute values
           >>> flowmeasurement read <attribute name> 1111 1
