@@ -50,6 +50,7 @@ extern "C" {
 #include <platform/ConnectivityManager.h>
 #include <platform/talaria/TalariaUtils.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
+#include <app/clusters/identify-server/identify-server.h>
 
 /* Periodic timeout for Flow Sensor software timer in ms */
 #define FLOW_SENSOR_PERIODIC_TIME_OUT_MS 10000
@@ -70,6 +71,18 @@ using namespace chip::app::Clusters::PumpConfigurationAndControl;
 
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
+static void OnIdentifyStart(struct Identify *identify);
+static void OnIdentifyStop(struct Identify * identify);
+static void OnTriggerIdentifyEffect(struct Identify *identify);
+
+chip::app::Clusters::Identify::EffectIdentifierEnum sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+struct Identify gIdentify = {
+    chip::EndpointId{ 1 },
+    OnIdentifyStart,
+    OnIdentifyStop,
+    chip::app::Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator,
+    OnTriggerIdentifyEffect,
+};
 /*-----------------------------------------------------------*/
 
 void print_test_results(nlTestSuite * tSuite);
@@ -294,6 +307,65 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & 
     }
 
     PostAttributeChangeCallback(path.mEndpointId, path.mClusterId, path.mAttributeId, type, size, value);
+}
+
+static void OnIdentifyStart(struct Identify *identify)
+{
+    /* For Identify Start setting some max number of seconds e.g. 10 */
+    identifyTimerCount = 10;
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, identify->mEndpoint);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, identify->mEndpoint);
+}
+
+static void OnIdentifyStop(struct Identify * identify)
+{
+    /* On next timer handler call it will stop identify */
+    identifyTimerCount = 0;
+}
+
+static void OnTriggerIdentifyEffectCompleted(chip::System::Layer * layer, void * appState)
+{
+    ChipLogProgress(AppServer, "Trigger Identify Complete");
+    sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+
+    OnIdentifyStop(NULL);
+}
+
+static void OnTriggerIdentifyEffect(struct Identify *identify)
+{
+    sIdentifyEffect = identify->mCurrentEffectIdentifier;
+
+    if (identify->mEffectVariant != chip::app::Clusters::Identify::EffectVariantEnum::kDefault)
+    {
+        ChipLogDetail(AppServer, "Identify Effect Variant unsupported. Using default");
+    }
+
+    OnIdentifyStart(identify);
+
+    switch (sIdentifyEffect)
+    {
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBlink:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kOkay:
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(5), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBreathe:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kChannelChange:
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(10), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kFinishEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(1), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        break;
+    default:
+        sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+        ChipLogProgress(Zcl, "No identifier effect");
+    }
 }
 
 #ifdef UNIT_TEST
