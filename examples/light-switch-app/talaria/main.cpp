@@ -49,6 +49,7 @@ extern "C" {
 #include <app/clusters/switch-server/switch-server.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include "LightSwitch_ProjecConfig.h"
+#include <app/clusters/identify-server/identify-server.h>
 
 using namespace chip;
 using namespace chip::Platform;
@@ -63,6 +64,19 @@ DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 void print_test_results(nlTestSuite * tSuite);
 void app_test();
 int SoftwareTimer_Init(void);
+
+static void OnIdentifyStart(struct Identify *identify);
+static void OnIdentifyStop(struct Identify * identify);
+static void OnTriggerIdentifyEffect(struct Identify *identify);
+
+chip::app::Clusters::Identify::EffectIdentifierEnum sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+struct Identify gIdentify = {
+    chip::EndpointId{ 1 },
+    OnIdentifyStart,
+    OnIdentifyStop,
+    chip::app::Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator,
+    OnTriggerIdentifyEffect,
+};
 
 static enum Switch_Position Current_Switch_Pos = SWITCH_POS_0;
 
@@ -176,7 +190,6 @@ void emberAfSwitchClusterInitCallback(EndpointId endpoint)
 
     /* Initialize Type and Number of Positions attributes of Switch */
     Switch::Attributes::NumberOfPositions::Set(SWITCH_ENDPOINT_ID, SWITCH_MAX_POSITIONS);
-    Switch::Attributes::FeatureMap::Set(SWITCH_ENDPOINT_ID, SWITCH_TYPE_MOMENTARY);
 }
 
 void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & path, uint8_t type, uint16_t size, uint8_t * value)
@@ -238,6 +251,67 @@ static void DebounceTimer(TimerHandle_t xTimer)
 
     /* Enabling Interupt Again after ISR was served */
     os_gpio_enable_irq(switch_pin, gpio_event_3);
+}
+
+static void OnIdentifyStart(struct Identify *identify)
+{
+    /* Identify Start */
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, identify->mEndpoint);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, identify->mEndpoint);
+}
+
+static void OnIdentifyStop(struct Identify * identify)
+{
+    /* On next timer handler call it will stop identify */
+    identifyTimerCount = 0;
+}
+
+static void OnTriggerIdentifyEffectCompleted(chip::System::Layer * layer, void * appState)
+{
+    ChipLogProgress(AppServer, "Trigger Identify Complete");
+    sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+
+    OnIdentifyStop(NULL);
+}
+
+static void OnTriggerIdentifyEffect(struct Identify *identify)
+{
+    sIdentifyEffect = identify->mCurrentEffectIdentifier;
+
+    if (identify->mEffectVariant != chip::app::Clusters::Identify::EffectVariantEnum::kDefault)
+    {
+        ChipLogDetail(AppServer, "Identify Effect Variant unsupported. Using default");
+    }
+
+    switch (sIdentifyEffect)
+    {
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBlink:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kOkay:
+        identifyTimerCount = 5;
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(5), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        OnIdentifyStart(identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBreathe:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kChannelChange:
+        identifyTimerCount = 10;
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(10), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        OnIdentifyStart(identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kFinishEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(1), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        break;
+    default:
+        sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+        ChipLogProgress(Zcl, "No identifier effect");
+        break;
+    }
 }
 
 #ifdef UNIT_TEST
