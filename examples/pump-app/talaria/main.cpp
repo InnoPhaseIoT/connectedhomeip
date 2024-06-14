@@ -324,8 +324,7 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & 
 
 static void OnIdentifyStart(struct Identify *identify)
 {
-    /* For Identify Start setting some max number of seconds e.g. 10 */
-    identifyTimerCount = 10;
+    /* Identify Start */
     DeviceLayer::SystemLayer().CancelTimer(Hanlder, identify->mEndpoint);
     DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, identify->mEndpoint);
 }
@@ -353,19 +352,21 @@ static void OnTriggerIdentifyEffect(struct Identify *identify)
         ChipLogDetail(AppServer, "Identify Effect Variant unsupported. Using default");
     }
 
-    OnIdentifyStart(identify);
-
     switch (sIdentifyEffect)
     {
     case chip::app::Clusters::Identify::EffectIdentifierEnum::kBlink:
     case chip::app::Clusters::Identify::EffectIdentifierEnum::kOkay:
+        identifyTimerCount = 5;
         (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(5), OnTriggerIdentifyEffectCompleted,
                                                            identify);
+        OnIdentifyStart(identify);
         break;
     case chip::app::Clusters::Identify::EffectIdentifierEnum::kBreathe:
     case chip::app::Clusters::Identify::EffectIdentifierEnum::kChannelChange:
+        identifyTimerCount = 10;
         (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(10), OnTriggerIdentifyEffectCompleted,
                                                            identify);
+        OnIdentifyStart(identify);
         break;
     case chip::app::Clusters::Identify::EffectIdentifierEnum::kFinishEffect:
         (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
