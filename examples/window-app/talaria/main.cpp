@@ -29,10 +29,6 @@ extern "C" {
 #include <talaria_two.h>
 #include <kernel/pwm.h>
 
-void print_faults();
-int filesystem_util_mount_data_if(const char * path);
-void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
-
 #ifdef __cplusplus
 }
 #endif
@@ -89,14 +85,8 @@ struct Identify gIdentify = {
 };
 
 /*-----------------------------------------------------------*/
-void test_fn_1();
-int TestBitMask();
-int chip::RunRegisteredUnitTests();
 void print_test_results(nlTestSuite * tSuite);
-void test_suit_proc();
 void app_test();
-
-int main_TestInetLayer(int argc, char * argv[]);
 
 void DriveCurrentLiftPosition(EndpointId endpoint);
 void DriveCurrentTiltPosition(EndpointId endpoint);
@@ -510,14 +500,6 @@ int main(void)
     talariautils::ApplicationInitLog("matter window-cover app");
     talariautils::EnableSuspend();
     ConfigurePWM();
-
-    ConnectivityManager::SEDIntervalsConfig intervalsConfig;
-    uint32_t active_interval         = os_get_boot_arg_int("matter.sed.active_interval", 3);
-    uint32_t idle_interval           = os_get_boot_arg_int("matter.sed.idle_interval", 3);
-    intervalsConfig.ActiveIntervalMS = static_cast<System::Clock::Milliseconds32>(active_interval);
-    intervalsConfig.IdleIntervalMS   = static_cast<System::Clock::Milliseconds32>(idle_interval);
-
-    // ConnectivityMgr().SetSEDIntervalsConfig(intervalsConfig);
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 
