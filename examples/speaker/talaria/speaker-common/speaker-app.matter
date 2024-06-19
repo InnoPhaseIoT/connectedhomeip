@@ -1,222 +1,6 @@
 // This IDL was generated automatically by ZAP.
 // It is for view/code review purposes only.
 
-/** Attributes and commands for group configuration and manipulation. */
-server cluster Groups = 4 {
-  bitmap Feature : bitmap32 {
-    kGroupNames = 0x1;
-  }
-
-  bitmap NameSupportBitmap : bitmap8 {
-    kGroupNames = 0x80;
-  }
-
-  readonly attribute NameSupportBitmap nameSupport = 0;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct AddGroupRequest {
-    group_id groupID = 0;
-    char_string<16> groupName = 1;
-  }
-
-  request struct ViewGroupRequest {
-    group_id groupID = 0;
-  }
-
-  request struct GetGroupMembershipRequest {
-    group_id groupList[] = 0;
-  }
-
-  request struct RemoveGroupRequest {
-    group_id groupID = 0;
-  }
-
-  request struct AddGroupIfIdentifyingRequest {
-    group_id groupID = 0;
-    char_string<16> groupName = 1;
-  }
-
-  response struct AddGroupResponse = 0 {
-    enum8 status = 0;
-    group_id groupID = 1;
-  }
-
-  response struct ViewGroupResponse = 1 {
-    enum8 status = 0;
-    group_id groupID = 1;
-    char_string<16> groupName = 2;
-  }
-
-  response struct GetGroupMembershipResponse = 2 {
-    nullable int8u capacity = 0;
-    group_id groupList[] = 1;
-  }
-
-  response struct RemoveGroupResponse = 3 {
-    enum8 status = 0;
-    group_id groupID = 1;
-  }
-
-  fabric command access(invoke: manage) AddGroup(AddGroupRequest): AddGroupResponse = 0;
-  fabric command ViewGroup(ViewGroupRequest): ViewGroupResponse = 1;
-  fabric command GetGroupMembership(GetGroupMembershipRequest): GetGroupMembershipResponse = 2;
-  fabric command access(invoke: manage) RemoveGroup(RemoveGroupRequest): RemoveGroupResponse = 3;
-  fabric command access(invoke: manage) RemoveAllGroups(): DefaultSuccess = 4;
-  fabric command access(invoke: manage) AddGroupIfIdentifying(AddGroupIfIdentifyingRequest): DefaultSuccess = 5;
-}
-
-/** Attributes and commands for scene configuration and manipulation. */
-provisional server cluster Scenes = 5 {
-  bitmap Feature : bitmap32 {
-    kSceneNames = 0x1;
-    kExplicit = 0x2;
-    kTableSize = 0x4;
-    kFabricScenes = 0x8;
-  }
-
-  bitmap ScenesCopyMode : bitmap8 {
-    kCopyAllScenes = 0x1;
-  }
-
-  struct AttributeValuePair {
-    attrib_id attributeID = 0;
-    int32u attributeValue = 1;
-  }
-
-  struct ExtensionFieldSet {
-    cluster_id clusterID = 0;
-    AttributeValuePair attributeValueList[] = 1;
-  }
-
-  readonly attribute int8u sceneCount = 0;
-  readonly attribute int8u currentScene = 1;
-  readonly attribute group_id currentGroup = 2;
-  readonly attribute boolean sceneValid = 3;
-  readonly attribute bitmap8 nameSupport = 4;
-  readonly attribute nullable node_id lastConfiguredBy = 5;
-  readonly attribute int16u sceneTableSize = 6;
-  readonly attribute int8u remainingCapacity = 7;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct AddSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-    int16u transitionTime = 2;
-    char_string sceneName = 3;
-    ExtensionFieldSet extensionFieldSets[] = 4;
-  }
-
-  request struct ViewSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-  }
-
-  request struct RemoveSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-  }
-
-  request struct RemoveAllScenesRequest {
-    group_id groupID = 0;
-  }
-
-  request struct StoreSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-  }
-
-  request struct RecallSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-    optional nullable int16u transitionTime = 2;
-  }
-
-  request struct GetSceneMembershipRequest {
-    group_id groupID = 0;
-  }
-
-  request struct EnhancedAddSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-    int16u transitionTime = 2;
-    char_string sceneName = 3;
-    ExtensionFieldSet extensionFieldSets[] = 4;
-  }
-
-  request struct EnhancedViewSceneRequest {
-    group_id groupID = 0;
-    int8u sceneID = 1;
-  }
-
-  request struct CopySceneRequest {
-    ScenesCopyMode mode = 0;
-    group_id groupIdentifierFrom = 1;
-    int8u sceneIdentifierFrom = 2;
-    group_id groupIdentifierTo = 3;
-    int8u sceneIdentifierTo = 4;
-  }
-
-  response struct AddSceneResponse = 0 {
-    status status = 0;
-    group_id groupID = 1;
-    int8u sceneID = 2;
-  }
-
-  response struct ViewSceneResponse = 1 {
-    status status = 0;
-    group_id groupID = 1;
-    int8u sceneID = 2;
-    optional int16u transitionTime = 3;
-    optional char_string sceneName = 4;
-    optional ExtensionFieldSet extensionFieldSets[] = 5;
-  }
-
-  response struct RemoveSceneResponse = 2 {
-    status status = 0;
-    group_id groupID = 1;
-    int8u sceneID = 2;
-  }
-
-  response struct RemoveAllScenesResponse = 3 {
-    status status = 0;
-    group_id groupID = 1;
-  }
-
-  response struct StoreSceneResponse = 4 {
-    status status = 0;
-    group_id groupID = 1;
-    int8u sceneID = 2;
-  }
-
-  response struct GetSceneMembershipResponse = 6 {
-    status status = 0;
-    nullable int8u capacity = 1;
-    group_id groupID = 2;
-    optional int8u sceneList[] = 3;
-  }
-
-  fabric command access(invoke: manage) AddScene(AddSceneRequest): AddSceneResponse = 0;
-  fabric command ViewScene(ViewSceneRequest): ViewSceneResponse = 1;
-  fabric command access(invoke: manage) RemoveScene(RemoveSceneRequest): RemoveSceneResponse = 2;
-  fabric command access(invoke: manage) RemoveAllScenes(RemoveAllScenesRequest): RemoveAllScenesResponse = 3;
-  fabric command access(invoke: manage) StoreScene(StoreSceneRequest): StoreSceneResponse = 4;
-  fabric command RecallScene(RecallSceneRequest): DefaultSuccess = 5;
-  fabric command GetSceneMembership(GetSceneMembershipRequest): GetSceneMembershipResponse = 6;
-  fabric command EnhancedAddScene(EnhancedAddSceneRequest): EnhancedAddSceneResponse = 64;
-  fabric command EnhancedViewScene(EnhancedViewSceneRequest): EnhancedViewSceneResponse = 65;
-  fabric command CopyScene(CopySceneRequest): CopySceneResponse = 66;
-}
-
 /** Attributes and commands for switching devices between 'On' and 'Off' states. */
 server cluster OnOff = 6 {
   enum DelayedAllOffEffectVariantEnum : enum8 {
@@ -250,10 +34,6 @@ server cluster OnOff = 6 {
   }
 
   readonly attribute boolean onOff = 0;
-  readonly attribute boolean globalSceneControl = 16384;
-  attribute int16u onTime = 16385;
-  attribute int16u offWaitTime = 16386;
-  attribute access(write: manage) nullable StartUpOnOffEnum startUpOnOff = 16387;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -261,23 +41,9 @@ server cluster OnOff = 6 {
   readonly attribute bitmap32 featureMap = 65532;
   readonly attribute int16u clusterRevision = 65533;
 
-  request struct OffWithEffectRequest {
-    EffectIdentifierEnum effectIdentifier = 0;
-    int8u effectVariant = 1;
-  }
-
-  request struct OnWithTimedOffRequest {
-    OnOffControlBitmap onOffControl = 0;
-    int16u onTime = 1;
-    int16u offWaitTime = 2;
-  }
-
   command Off(): DefaultSuccess = 0;
   command On(): DefaultSuccess = 1;
   command Toggle(): DefaultSuccess = 2;
-  command OffWithEffect(OffWithEffectRequest): DefaultSuccess = 64;
-  command OnWithRecallGlobalScene(): DefaultSuccess = 65;
-  command OnWithTimedOff(OnWithTimedOffRequest): DefaultSuccess = 66;
 }
 
 /** Attributes and commands for controlling devices that can be set to a level between fully 'On' and fully 'Off.' */
@@ -304,19 +70,8 @@ server cluster LevelControl = 8 {
   }
 
   readonly attribute nullable int8u currentLevel = 0;
-  readonly attribute int16u remainingTime = 1;
-  readonly attribute int8u minLevel = 2;
-  readonly attribute int8u maxLevel = 3;
-  readonly attribute int16u currentFrequency = 4;
-  readonly attribute int16u minFrequency = 5;
-  readonly attribute int16u maxFrequency = 6;
   attribute LevelControlOptions options = 15;
-  attribute int16u onOffTransitionTime = 16;
   attribute nullable int8u onLevel = 17;
-  attribute nullable int16u onTransitionTime = 18;
-  attribute nullable int16u offTransitionTime = 19;
-  attribute nullable int8u defaultMoveRate = 20;
-  attribute access(write: manage) nullable int8u startUpCurrentLevel = 16384;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -580,155 +335,6 @@ server cluster BasicInformation = 40 {
   readonly attribute int16u clusterRevision = 65533;
 }
 
-/** Provides an interface for providing OTA software updates */
-client cluster OtaSoftwareUpdateProvider = 41 {
-  enum ApplyUpdateActionEnum : enum8 {
-    kProceed = 0;
-    kAwaitNextAction = 1;
-    kDiscontinue = 2;
-  }
-
-  enum DownloadProtocolEnum : enum8 {
-    kBDXSynchronous = 0;
-    kBDXAsynchronous = 1;
-    kHTTPS = 2;
-    kVendorSpecific = 3;
-  }
-
-  enum StatusEnum : enum8 {
-    kUpdateAvailable = 0;
-    kBusy = 1;
-    kNotAvailable = 2;
-    kDownloadProtocolNotSupported = 3;
-  }
-
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct QueryImageRequest {
-    vendor_id vendorID = 0;
-    int16u productID = 1;
-    int32u softwareVersion = 2;
-    DownloadProtocolEnum protocolsSupported[] = 3;
-    optional int16u hardwareVersion = 4;
-    optional char_string<2> location = 5;
-    optional boolean requestorCanConsent = 6;
-    optional octet_string<512> metadataForProvider = 7;
-  }
-
-  response struct QueryImageResponse = 1 {
-    StatusEnum status = 0;
-    optional int32u delayedActionTime = 1;
-    optional char_string<256> imageURI = 2;
-    optional int32u softwareVersion = 3;
-    optional char_string<64> softwareVersionString = 4;
-    optional octet_string<32> updateToken = 5;
-    optional boolean userConsentNeeded = 6;
-    optional octet_string<512> metadataForRequestor = 7;
-  }
-
-  request struct ApplyUpdateRequestRequest {
-    octet_string<32> updateToken = 0;
-    int32u newVersion = 1;
-  }
-
-  response struct ApplyUpdateResponse = 3 {
-    ApplyUpdateActionEnum action = 0;
-    int32u delayedActionTime = 1;
-  }
-
-  request struct NotifyUpdateAppliedRequest {
-    octet_string<32> updateToken = 0;
-    int32u softwareVersion = 1;
-  }
-
-  /** Determine availability of a new Software Image */
-  command QueryImage(QueryImageRequest): QueryImageResponse = 0;
-  /** Determine next action to take for a downloaded Software Image */
-  command ApplyUpdateRequest(ApplyUpdateRequestRequest): ApplyUpdateResponse = 2;
-  /** Notify OTA Provider that an update was applied */
-  command NotifyUpdateApplied(NotifyUpdateAppliedRequest): DefaultSuccess = 4;
-}
-
-/** Provides an interface for downloading and applying OTA software updates */
-server cluster OtaSoftwareUpdateRequestor = 42 {
-  enum AnnouncementReasonEnum : enum8 {
-    kSimpleAnnouncement = 0;
-    kUpdateAvailable = 1;
-    kUrgentUpdateAvailable = 2;
-  }
-
-  enum ChangeReasonEnum : enum8 {
-    kUnknown = 0;
-    kSuccess = 1;
-    kFailure = 2;
-    kTimeOut = 3;
-    kDelayByProvider = 4;
-  }
-
-  enum UpdateStateEnum : enum8 {
-    kUnknown = 0;
-    kIdle = 1;
-    kQuerying = 2;
-    kDelayedOnQuery = 3;
-    kDownloading = 4;
-    kApplying = 5;
-    kDelayedOnApply = 6;
-    kRollingBack = 7;
-    kDelayedOnUserConsent = 8;
-  }
-
-  fabric_scoped struct ProviderLocation {
-    node_id providerNodeID = 1;
-    endpoint_no endpoint = 2;
-    fabric_idx fabricIndex = 254;
-  }
-
-  info event StateTransition = 0 {
-    UpdateStateEnum previousState = 0;
-    UpdateStateEnum newState = 1;
-    ChangeReasonEnum reason = 2;
-    nullable int32u targetSoftwareVersion = 3;
-  }
-
-  critical event VersionApplied = 1 {
-    int32u softwareVersion = 0;
-    int16u productID = 1;
-  }
-
-  info event DownloadError = 2 {
-    int32u softwareVersion = 0;
-    int64u bytesDownloaded = 1;
-    nullable int8u progressPercent = 2;
-    nullable int64s platformCode = 3;
-  }
-
-  attribute ProviderLocation defaultOTAProviders[] = 0;
-  readonly attribute boolean updatePossible = 1;
-  readonly attribute UpdateStateEnum updateState = 2;
-  readonly attribute nullable int8u updateStateProgress = 3;
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct AnnounceOTAProviderRequest {
-    node_id providerNodeID = 0;
-    vendor_id vendorID = 1;
-    AnnouncementReasonEnum announcementReason = 2;
-    optional octet_string<512> metadataForNode = 3;
-    endpoint_no endpoint = 4;
-  }
-
-  command AnnounceOTAProvider(AnnounceOTAProviderRequest): DefaultSuccess = 0;
-}
-
 /** Nodes should be expected to be deployed to any and all regions of the world. These global regions
       may have differing common languages, units of measurements, and numerical formatting
       standards. As such, Nodes that visually or audibly convey information need a mechanism by which
@@ -990,50 +596,6 @@ server cluster NetworkCommissioning = 49 {
   command access(invoke: administer) ReorderNetwork(ReorderNetworkRequest): NetworkConfigResponse = 8;
 }
 
-/** The cluster provides commands for retrieving unstructured diagnostic logs from a Node that may be used to aid in diagnostics. */
-server cluster DiagnosticLogs = 50 {
-  enum IntentEnum : enum8 {
-    kEndUserSupport = 0;
-    kNetworkDiag = 1;
-    kCrashLogs = 2;
-  }
-
-  enum StatusEnum : enum8 {
-    kSuccess = 0;
-    kExhausted = 1;
-    kNoLogs = 2;
-    kBusy = 3;
-    kDenied = 4;
-  }
-
-  enum TransferProtocolEnum : enum8 {
-    kResponsePayload = 0;
-    kBDX = 1;
-  }
-
-  readonly attribute command_id generatedCommandList[] = 65528;
-  readonly attribute command_id acceptedCommandList[] = 65529;
-  readonly attribute event_id eventList[] = 65530;
-  readonly attribute attrib_id attributeList[] = 65531;
-  readonly attribute bitmap32 featureMap = 65532;
-  readonly attribute int16u clusterRevision = 65533;
-
-  request struct RetrieveLogsRequestRequest {
-    IntentEnum intent = 0;
-    TransferProtocolEnum requestedProtocol = 1;
-    optional char_string<32> transferFileDesignator = 2;
-  }
-
-  response struct RetrieveLogsResponse = 1 {
-    StatusEnum status = 0;
-    LONG_OCTET_STRING logContent = 1;
-    optional epoch_us UTCTimeStamp = 2;
-    optional systime_us timeSinceBoot = 3;
-  }
-
-  command RetrieveLogsRequest(RetrieveLogsRequestRequest): RetrieveLogsResponse = 0;
-}
-
 /** The General Diagnostics Cluster, along with other diagnostics clusters, provide a means to acquire standardized diagnostics metrics that MAY be used by a Node to assist a user or Administrative Node in diagnosing potential problems. */
 server cluster GeneralDiagnostics = 51 {
   enum BootReasonEnum : enum8 {
@@ -1160,8 +722,6 @@ server cluster SoftwareDiagnostics = 52 {
   }
 
   readonly attribute int64u currentHeapFree = 1;
-  readonly attribute int64u currentHeapUsed = 2;
-  readonly attribute int64u currentHeapHighWatermark = 3;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1513,7 +1073,6 @@ server cluster UserLabel = 65 {
 endpoint 0 {
   device type ma_rootdevice = 22, version 1;
 
-  binding cluster OtaSoftwareUpdateProvider;
 
   server cluster Descriptor {
     callback attribute deviceTypeList;
@@ -1572,24 +1131,6 @@ endpoint 0 {
     callback attribute attributeList;
     ram      attribute featureMap default = 0;
     ram      attribute clusterRevision default = 2;
-  }
-
-  server cluster OtaSoftwareUpdateRequestor {
-    emits event StateTransition;
-    emits event VersionApplied;
-    emits event DownloadError;
-    callback attribute defaultOTAProviders;
-    ram      attribute updatePossible default = 1;
-    ram      attribute updateState default = 0;
-    ram      attribute updateStateProgress default = 0;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
-
-    handle command AnnounceOTAProvider;
   }
 
   server cluster LocalizationConfiguration {
@@ -1662,18 +1203,6 @@ endpoint 0 {
     handle command ReorderNetwork;
   }
 
-  server cluster DiagnosticLogs {
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 1;
-
-    handle command RetrieveLogsRequest;
-    handle command RetrieveLogsResponse;
-  }
-
   server cluster GeneralDiagnostics {
     emits event BootReason;
     callback attribute networkInterfaces;
@@ -1697,8 +1226,6 @@ endpoint 0 {
 
   server cluster SoftwareDiagnostics {
     callback attribute currentHeapFree;
-    callback attribute currentHeapUsed;
-    callback attribute currentHeapHighWatermark;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
@@ -1819,102 +1346,29 @@ endpoint 1 {
   device type ma_speaker = 34, version 1;
 
 
-  server cluster Groups {
-    ram      attribute nameSupport;
+  server cluster OnOff {
+    persist  attribute onOff default = 0x00;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
     ram      attribute featureMap default = 0;
-    ram      attribute clusterRevision default = 4;
-
-    handle command AddGroup;
-    handle command AddGroupResponse;
-    handle command ViewGroup;
-    handle command ViewGroupResponse;
-    handle command GetGroupMembership;
-    handle command GetGroupMembershipResponse;
-    handle command RemoveGroup;
-    handle command RemoveGroupResponse;
-    handle command RemoveAllGroups;
-    handle command AddGroupIfIdentifying;
-  }
-
-  server cluster Scenes {
-    callback attribute sceneCount;
-    ram      attribute currentScene default = 0x00;
-    ram      attribute currentGroup default = 0x0000;
-    ram      attribute sceneValid default = 0x00;
-    ram      attribute nameSupport default = 0x80;
-    ram      attribute lastConfiguredBy;
-    ram      attribute sceneTableSize default = 16;
-    callback attribute remainingCapacity;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 7;
-    ram      attribute clusterRevision default = 5;
-
-    handle command AddScene;
-    handle command AddSceneResponse;
-    handle command ViewScene;
-    handle command ViewSceneResponse;
-    handle command RemoveScene;
-    handle command RemoveSceneResponse;
-    handle command RemoveAllScenes;
-    handle command RemoveAllScenesResponse;
-    handle command StoreScene;
-    handle command StoreSceneResponse;
-    handle command RecallScene;
-    handle command GetSceneMembership;
-    handle command GetSceneMembershipResponse;
-    handle command EnhancedAddScene;
-    handle command EnhancedViewScene;
-    handle command CopyScene;
-  }
-
-  server cluster OnOff {
-    persist  attribute onOff default = 0x00;
-    ram      attribute globalSceneControl default = 0x01;
-    ram      attribute onTime default = 0x0000;
-    ram      attribute offWaitTime default = 0x0000;
-    persist  attribute startUpOnOff default = 0xFF;
-    callback attribute generatedCommandList;
-    callback attribute acceptedCommandList;
-    callback attribute eventList;
-    callback attribute attributeList;
-    ram      attribute featureMap default = 1;
     ram      attribute clusterRevision default = 5;
 
     handle command Off;
     handle command On;
     handle command Toggle;
-    handle command OffWithEffect;
-    handle command OnWithRecallGlobalScene;
-    handle command OnWithTimedOff;
   }
 
   server cluster LevelControl {
     persist  attribute currentLevel default = 0x01;
-    ram      attribute remainingTime default = 0x0000;
-    ram      attribute minLevel default = 0x01;
-    ram      attribute maxLevel default = 0xFE;
-    ram      attribute currentFrequency default = 0x0000;
-    ram      attribute minFrequency default = 0x0000;
-    ram      attribute maxFrequency default = 0x0000;
     ram      attribute options default = 0x00;
-    ram      attribute onOffTransitionTime default = 0x0000;
     ram      attribute onLevel default = 0xFF;
-    ram      attribute onTransitionTime;
-    ram      attribute offTransitionTime;
-    ram      attribute defaultMoveRate default = 50;
-    persist  attribute startUpCurrentLevel default = 255;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
-    ram      attribute featureMap default = 3;
+    ram      attribute featureMap default = 1;
     ram      attribute clusterRevision default = 5;
 
     handle command MoveToLevel;

@@ -56,9 +56,6 @@ extern "C" {
 #include <app-common/zap-generated/ids/Attributes.h>
 #include <app-common/zap-generated/cluster-objects.h>
 
-/* Configured  */
-#define SPEAKER_MAX_VOLUME 100
-
 using namespace chip;
 using namespace chip::Platform;
 using namespace chip::DeviceLayer;
@@ -175,7 +172,6 @@ void emberAfOnOffClusterInitCallback(EndpointId endpoint)
 
 void emberAfLevelControlClusterInitCallback(EndpointId endpoint)
 {
-    LevelControl::Attributes::MaxLevel::Set(endpoint, SPEAKER_MAX_VOLUME);
     ChipLogDetail(AppServer, "emberAfLevelControlClusterInitCallback");
 }
 
