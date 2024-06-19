@@ -29,10 +29,6 @@ extern "C" {
 #include <talaria_two.h>
 #include <kernel/pwm.h>
 
-void print_faults();
-int filesystem_util_mount_data_if(const char * path);
-void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
-
 #ifdef __cplusplus
 }
 #endif
@@ -87,7 +83,6 @@ struct Identify gIdentify = {
 /*-----------------------------------------------------------*/
 #ifdef UNIT_TEST
 void print_test_results(nlTestSuite * tSuite);
-void test_suit_proc();
 #endif
 
 void app_test();
