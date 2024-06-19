@@ -28,10 +28,6 @@ extern "C" {
 #include <kernel/gpio.h>
 #include <talaria_two.h>
 
-void print_faults();
-int filesystem_util_mount_data_if(const char * path);
-void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
-
 #ifdef __cplusplus
 }
 #endif
@@ -54,9 +50,13 @@ void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
 #include <platform/talaria/TalariaUtils.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app/clusters/air-quality-server/air-quality-server.h>
+#include <app/clusters/identify-server/identify-server.h>
 
 /* Periodic timeout for AQS software timer in ms */
 #define AQS_PERIODIC_TIME_OUT_MS 5000
+
+#define IDENTIFY_TIMER_DELAY_MS  1000
+#define LED_PIN 14
 
 using namespace chip;
 using namespace chip::Platform;
@@ -65,19 +65,14 @@ using namespace chip::Credentials;
 using namespace chip::app::Clusters;
 using namespace chip::talaria;
 using namespace chip::app::Clusters::AirQuality;
+using namespace chip::app::Clusters::Identify;
 
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 /*-----------------------------------------------------------*/
 
-void test_fn_1();
-int TestBitMask();
-int chip::RunRegisteredUnitTests();
 void print_test_results(nlTestSuite * tSuite);
-void test_suit_proc();
 void app_test();
-
-int main_TestInetLayer(int argc, char * argv[]);
 
 int SoftwareTimer_Init(void);
 
@@ -86,6 +81,21 @@ static chip::BitMask<Feature, uint32_t> airQualityFeatures(Feature::kFair, Featu
 static Instance mAirQualityInstance = Instance(1, airQualityFeatures);
 AirQualityEnum airQualityStatus;
 
+static void OnIdentifyStart(struct Identify *identify);
+static void OnIdentifyStop(struct Identify * identify);
+static void OnTriggerIdentifyEffect(struct Identify *identify);
+
+chip::app::Clusters::Identify::EffectIdentifierEnum sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+struct Identify gIdentify = {
+    chip::EndpointId{ 1 },
+    OnIdentifyStart,
+    OnIdentifyStop,
+    chip::app::Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator,
+    OnTriggerIdentifyEffect,
+};
+
+static uint32_t identifyTimerCount = 0;
+uint32_t led_pin;
 
 /* Function Declarations */
 
@@ -195,6 +205,26 @@ int SoftwareTimer_Init()
     return 0;
 }
 
+static void Hanlder(chip::System::Layer * systemLayer, EndpointId endpointId)
+{
+    if (identifyTimerCount > 0)
+    {
+        /* Decrement the timer count. */
+        identifyTimerCount--;
+
+        /* Toggle LED. */
+        os_gpio_toggle_pin(led_pin);
+        chip::app::Clusters::Identify::Attributes::IdentifyTime::Set(endpointId, identifyTimerCount);
+    }
+}
+
+static void OnIdentifyPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
+{
+    identifyTimerCount = (*value);
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, endpointId);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, endpointId);
+}
+
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,
                                         uint16_t size, uint8_t * value)
 {
@@ -206,6 +236,11 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
     {
 	VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
 	ChipLogProgress(AppServer, "AirQuality: attribute status value set to %u", airQualityStatus);
+    }
+    else if (clusterId == Identify::Id)
+    {
+	VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+	OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
     }
 
     os_printf("\nCluster control command addressed. os_free_heap(): %d", os_avail_heap());
@@ -244,6 +279,67 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath & 
     }
 
     PostAttributeChangeCallback(path.mEndpointId, path.mClusterId, path.mAttributeId, type, size, value);
+}
+
+static void OnIdentifyStart(struct Identify *identify)
+{
+    /* Identify Start */
+    DeviceLayer::SystemLayer().CancelTimer(Hanlder, identify->mEndpoint);
+    DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Milliseconds64(IDENTIFY_TIMER_DELAY_MS), Hanlder, identify->mEndpoint);
+}
+
+static void OnIdentifyStop(struct Identify * identify)
+{
+    /* On next timer handler call it will stop identify */
+    identifyTimerCount = 0;
+}
+
+static void OnTriggerIdentifyEffectCompleted(chip::System::Layer * layer, void * appState)
+{
+    ChipLogProgress(AppServer, "Trigger Identify Complete");
+    sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+
+    OnIdentifyStop(NULL);
+}
+
+static void OnTriggerIdentifyEffect(struct Identify *identify)
+{
+    sIdentifyEffect = identify->mCurrentEffectIdentifier;
+
+    if (identify->mEffectVariant != chip::app::Clusters::Identify::EffectVariantEnum::kDefault)
+    {
+        ChipLogDetail(AppServer, "Identify Effect Variant unsupported. Using default");
+    }
+
+    switch (sIdentifyEffect)
+    {
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBlink:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kOkay:
+        identifyTimerCount = 5;
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(5), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        OnIdentifyStart(identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kBreathe:
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kChannelChange:
+        identifyTimerCount = 10;
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(10), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        OnIdentifyStart(identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kFinishEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        (void) chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(1), OnTriggerIdentifyEffectCompleted,
+                                                           identify);
+        break;
+    case chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect:
+        (void) chip::DeviceLayer::SystemLayer().CancelTimer(OnTriggerIdentifyEffectCompleted, identify);
+        break;
+    default:
+        sIdentifyEffect = chip::app::Clusters::Identify::EffectIdentifierEnum::kStopEffect;
+        ChipLogProgress(Zcl, "No identifier effect");
+        break;
+    }
 }
 
 #ifdef UNIT_TEST
@@ -303,6 +399,10 @@ int main(void)
     talariautils::EnableSuspend();
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
+    led_pin = GPIO_PIN(LED_PIN);
+    os_gpio_request(led_pin);
+    os_gpio_set_output(led_pin);
+    os_gpio_clr_pin(led_pin);
 
     app_test();
 
