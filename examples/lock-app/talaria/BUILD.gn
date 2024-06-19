@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("//out/test/args.gn")
 
 executable("lock-app.elf") {
   sources = [
@@ -20,6 +21,11 @@ executable("lock-app.elf") {
     "custom_msg_exchange_group.h",
     "main.cpp",
     "test.cpp",
+  ]
+
+  defines = [
+    "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}",
+    "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
   ]
 
   deps = [

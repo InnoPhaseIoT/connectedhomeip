@@ -278,7 +278,6 @@ static uint8_t app_cipher_key[CIPHER_KEY_LEN];
 
 int fota_flag_status_set(char * param_name, char * param_val)
 {
-    os_printf("\n%s:%d\n", __func__, __LINE__);
     struct json_parser json;
 
     int ch             = 'A';
@@ -498,11 +497,8 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
     if (req->cluster == DOOR_LOCK)
     {
-        os_printf("\r\n--%d", __LINE__);
-
         if (strncmp(req->data, OPEN_COMMISSIONING_WINDOW, 5) == 0)
         {
-            os_printf("\r\n--%d", __LINE__);
             openCommissionWindow();
         }
     }

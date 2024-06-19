@@ -559,13 +559,20 @@ int main(void)
 
     talariautils::ApplicationInitLog("matter lock app");
 
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true) && (CHIP_ENABLE_SECUREBOOT != true)
+    vTaskDelay(pdMS_TO_TICKS(2000));
+#endif
     matter_hio_init();
 
     chk_and_register_pkt_hook();
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
     vTaskDelay(pdMS_TO_TICKS(2000));
+
+    /* This Delay is specifically for Nuvoton Host secured FOTA */
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
     vTaskDelay(pdMS_TO_TICKS(2500));
+#endif
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)
