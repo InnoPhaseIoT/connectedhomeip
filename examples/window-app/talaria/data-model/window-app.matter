@@ -1508,7 +1508,7 @@ endpoint 1 {
     persist  attribute currentPositionTilt default = 0;
     persist  attribute numberOfActuationsLift default = 0x0000;
     persist  attribute numberOfActuationsTilt default = 0x0000;
-    persist  attribute configStatus default = 0x03;
+    persist  attribute configStatus default = 0x0079;
     persist  attribute currentPositionLiftPercentage default = 0;
     persist  attribute currentPositionTiltPercentage default = 0;
     ram      attribute operationalStatus default = 0x00;
