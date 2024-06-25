@@ -181,7 +181,7 @@ Percent100ths CalculateNextPosition(WindowCoveringType type, EndpointId endpoint
 
     if ((status == EMBER_ZCL_STATUS_SUCCESS) && !current.IsNull())
     {
-        static constexpr auto sPercentDelta{ WC_PERCENT100THS_MAX_CLOSED / 20 };
+        static constexpr auto sPercentDelta{ WC_PERCENT100THS_MAX_CLOSED };
         percent100ths = ComputePercent100thsStep(opState, current.Value(), sPercentDelta);
     }
     else
