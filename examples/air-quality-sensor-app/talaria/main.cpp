@@ -57,6 +57,11 @@ extern "C" {
 
 #define IDENTIFY_TIMER_DELAY_MS  1000
 #define LED_PIN 14
+#define TEMP_HUMIDITY_APP_MIN_MAX_CONTROL_GPIO 18
+#define TEMP_MIN_MEASURED_VALUE -27315
+#define TEMP_MAX_MEASURED_VALUE 32767
+#define HUMIDITY_MIN_MEASURED_VALUE 0
+#define HUMIDITY_MAX_MEASURED_VALUE 65534
 
 using namespace chip;
 using namespace chip::Platform;
@@ -96,6 +101,7 @@ struct Identify gIdentify = {
 
 static uint32_t identifyTimerCount = 0;
 uint32_t led_pin;
+static uint32_t temp_humidity_control_gpio;
 
 /* Function Declarations */
 
@@ -143,33 +149,31 @@ static void vTimerCallback_aqs(TimerHandle_t xTimer)
     DeviceLayer::PlatformMgr().ScheduleWork(Update_AirQuality_status, reinterpret_cast<intptr_t>(nullptr));
 }
 
-static void UpdateClusters(int16_t NewUpdatedValue)
+static void UpdateClusters(intptr_t arg)
 {
-    static int MaxValue = 0, MinimalValue = 100;
+    chip::app::Clusters::TemperatureMeasurement::Attributes::MinMeasuredValue::Set(1, TEMP_MIN_MEASURED_VALUE);
+    chip::app::Clusters::TemperatureMeasurement::Attributes::MaxMeasuredValue::Set(1, TEMP_MAX_MEASURED_VALUE);
 
-    if ( NewUpdatedValue < MinimalValue)
+    chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Set(1, HUMIDITY_MIN_MEASURED_VALUE);
+    chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Set(1, HUMIDITY_MAX_MEASURED_VALUE);
+
+    int state = (os_gpio_get_value(temp_humidity_control_gpio) > 0) ?  1 : 0;
+    if (state > 0)
     {
-        chip::app::Clusters::TemperatureMeasurement::Attributes::MinMeasuredValue::Set( 1, NewUpdatedValue);
-        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Set( 1, NewUpdatedValue);
-        MinimalValue = NewUpdatedValue;
+        chip::app::Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Set(1, TEMP_MAX_MEASURED_VALUE);
+        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set(1, HUMIDITY_MAX_MEASURED_VALUE);
     }
-    if ( NewUpdatedValue > MaxValue)
+    else
     {
-        chip::app::Clusters::TemperatureMeasurement::Attributes::MaxMeasuredValue::Set( 1, NewUpdatedValue);
-        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Set( 1, NewUpdatedValue);
-        MaxValue = NewUpdatedValue;
+        chip::app::Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Set(1, TEMP_MIN_MEASURED_VALUE);
+        chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set(1, HUMIDITY_MIN_MEASURED_VALUE);
     }
-    chip::app::Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Set( 1, NewUpdatedValue);
-    chip::app::Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set( 1, NewUpdatedValue + 1);
+
 }
 
 static void UpdateTimer(TimerHandle_t xTimer)
 {
-    int16_t UpdateClusterValue = rand() % 58;
-    /* Read the value from Temperature Senosor and fetch the data
-       For present application we are using rand() function to generate randon values*/
-
-    chip::DeviceLayer::PlatformMgr().ScheduleWork(UpdateClusters, UpdateClusterValue);
+    chip::DeviceLayer::PlatformMgr().ScheduleWork(UpdateClusters, reinterpret_cast<intptr_t>(nullptr));
 }
 
 int SoftwareTimer_Init()
@@ -241,6 +245,22 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
     {
 	VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
 	OnIdentifyPostAttributeChangeCallback(endpointId, attributeId, value);
+    }
+    else if (clusterId == TemperatureMeasurement::Id)
+    {
+        VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+        if (attributeId == TemperatureMeasurement::Attributes::MeasuredValue::Id)
+        {
+            ChipLogProgress(AppServer, "[TemperatureMeasurement]: Measured-Value: %d", *(int16_t*)value);
+        }
+    }
+    else if (clusterId == RelativeHumidityMeasurement::Id)
+    {
+        VerifyOrExit(endpointId == 1, ChipLogError(AppServer, "Unexpected EndPoint ID: `0x%02x'", endpointId));
+        if (attributeId == RelativeHumidityMeasurement::Attributes::MeasuredValue::Id)
+        {
+	    ChipLogProgress(AppServer, "[RelativeHumidityMeasurement]: Measured-Value: %d", *(uint16_t*)value);
+        }
     }
 
     os_printf("\nCluster control command addressed. os_free_heap(): %d", os_avail_heap());
@@ -403,6 +423,13 @@ int main(void)
     os_gpio_request(led_pin);
     os_gpio_set_output(led_pin);
     os_gpio_clr_pin(led_pin);
+    temp_humidity_control_gpio = GPIO_PIN(TEMP_HUMIDITY_APP_MIN_MAX_CONTROL_GPIO);
+
+    /* Requesting for Gpio pin */
+    os_gpio_request(temp_humidity_control_gpio);
+
+    /* Setting Direction as Input */
+    os_gpio_set_input(temp_humidity_control_gpio);
 
     app_test();
 

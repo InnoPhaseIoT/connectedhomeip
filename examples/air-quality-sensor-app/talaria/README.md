@@ -86,3 +86,15 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> airquality read air-quality 1111 1
           ## Command to read the air-quality cluster version
           >>> airquality read cluster-revision 1111
+          ## Command to subscribe for temperaturemeasurement data
+          >>> temperaturemeasurement subscribe measured-value 5 10 1111 1
+          ## Command to read the temperaturemeasurement data
+          >>> temperaturemeasurement read measured-value 1111 1
+          ## Command to subscribe for relativehumiditymeasurement data
+          >>> relativehumiditymeasurement subscribe measured-value 5 10 1111 1
+          ## Command to read the relativehumiditymeasurement data
+          >>> relativehumiditymeasurement read measured-value 1111 1
+- To change the temperaturemeasurement measured-value to lowest, connect the GPIO18 to ground.
+- To change the temperaturemeasurement measured-value to highest, connect the GPIO18 to VCC.
+- To change the relativehumiditymeasurement measured-value to lowest, connect the GPIO18 to ground.
+- To change the relativehumiditymeasurement measured-value to highest, connect the GPIO18 to VCC.
