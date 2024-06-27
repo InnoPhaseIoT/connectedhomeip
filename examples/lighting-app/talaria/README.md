@@ -216,6 +216,10 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> levelcontrol subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
           e.g. levelcontrol subscribe current-level 5 10 1111 1
 
+ - Note: PWM is disabled in Suspend mode, so the brightness of the LED will not be changed by level control commands.
+   - The LED will turn off when the brightness level is set to min-level,
+   - The LED will turn on when the brightness level is set up to max-level.
+
 
 #### Color Control Commands:
 

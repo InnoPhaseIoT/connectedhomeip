@@ -97,6 +97,7 @@ void execute_lighting_cmd(bool value);
 int main_TestInetLayer(int argc, char * argv[]);
 static uint32_t identifyTimerCount = 0;
 static struct pwm_output_cfg cfg;
+static uint8_t flag_suspend_enable = 0;
 
 /* Function Declarations */
 static void CommonDeviceEventHandler(const chip::DeviceLayer::ChipDeviceEvent * event, intptr_t arg);
@@ -145,12 +146,20 @@ static void Toggle(EndpointId endpointId )
     chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpointId , &value);
     if(value)
     {
-        SetPWMdutyCycle(0);
+        if (flag_suspend_enable)
+            os_gpio_clr_pin(1 << PWM_PIN);
+        else
+            SetPWMdutyCycle(0);
+
         chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, false);
     }
     else
     {
-        SetPWMdutyCycle(100);
+        if (flag_suspend_enable)
+            os_gpio_set_pin(1 << PWM_PIN);
+        else
+            SetPWMdutyCycle(100);
+
         chip::app::Clusters::OnOff::Attributes::OnOff::Set(endpointId, true);
     }
 }
@@ -174,6 +183,14 @@ static void OnIdentifyPostAttributeChangeCallback(EndpointId endpointId, Attribu
 
 exit:
     return;
+}
+
+static void ConfigureLED(void)
+{
+    int led_pin = 1 << PWM_PIN;
+    os_gpio_request(led_pin);
+    os_gpio_set_output(led_pin);
+    os_gpio_clr_pin(led_pin);
 }
 
 static void ConfigurePWM(void)
@@ -245,7 +262,10 @@ static void OnLevelControlAttributeChangeCallback(EndpointId endpointId, Attribu
     chip::app::Clusters::OnOff::Attributes::OnOff::Get(endpointId , &onoff_value);
     if (attributeId == LevelControl::Attributes::CurrentLevel::Id && onoff_value == true)
     {
-	    SetBrightnessLevel(*value);
+        if (flag_suspend_enable)
+            os_gpio_set_pin(1 << PWM_PIN);
+        else
+            SetBrightnessLevel(*value);
     }
 }
 
@@ -332,15 +352,25 @@ static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId cluster
 
         if (*value == 1)
         {
-	     /* Turn on the LED with the current brightness level */
-		app::DataModel::Nullable<uint8_t> currentLevel;
-		chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Get(endpointId, currentLevel);
-		SetBrightnessLevel(currentLevel.Value());
-        }
+            if (flag_suspend_enable)
+            {
+                os_gpio_set_pin(1 << PWM_PIN);
+            }
+            else
+            {
+                /* Turn on the LED with the current brightness level */
+                app::DataModel::Nullable<uint8_t> currentLevel;
+                chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Get(endpointId, currentLevel);
+                SetBrightnessLevel(currentLevel.Value());
+            }
+	}
         else
         {
-	     SetPWMdutyCycle(0);
-        }
+            if (flag_suspend_enable)
+                os_gpio_clr_pin(1 << PWM_PIN);
+            else
+                SetPWMdutyCycle(0);
+	}
 
 #if CONFIG_ENABLE_AWS_IOT_APP
 	post_lighting_status_to_aws_server(*value);
@@ -548,13 +578,26 @@ int main(void)
         while (1)
             vTaskDelay(100000);
     }
+    flag_suspend_enable = os_get_boot_arg_int("suspend", 0);
 #ifdef UNIT_TEST
     run_unit_test();
 #endif
 
     talariautils::ApplicationInitLog("matter lighting app");
     talariautils::EnableSuspend();
-    ConfigurePWM();
+    /* PWM is disabled in Suspend mode, so the brightness of the LED will not be changed by level control commands.
+     * The LED will turn off when the brightness level is set to min-level.
+     * The LED will turn on when the brightness level is set up to max-level. */
+    if (flag_suspend_enable)
+    {
+        ChipLogProgress(AppServer, "PWM is disabled in Suspend mode, "
+                                   "brightness of LED will not be changed by level control commands");
+        ConfigureLED();
+    }
+    else
+    {
+        ConfigurePWM();
+    }
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 
