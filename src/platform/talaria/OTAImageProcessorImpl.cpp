@@ -33,6 +33,13 @@ extern "C" {
 #endif
 #include "hio/matter.h"
 #include "hio/matter_hio.h"
+
+static bool OTAStop = false;
+void SetOTAFailFlag( bool value)
+{
+    OTAStop = value;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -168,6 +175,12 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
 {
     ChipLogProgress(SoftwareUpdate, "HandleProcessBlock");
     auto * imageProcessor = reinterpret_cast<OTAImageProcessorImpl *>(context);
+    if (OTAStop == true)
+    {
+        imageProcessor->OTAImageProcessorImpl::Abort();
+        SetOTAFailFlag(false);
+        return;
+    }
     if (imageProcessor == nullptr)
     {
         ChipLogError(SoftwareUpdate, "ImageProcessor context is null");

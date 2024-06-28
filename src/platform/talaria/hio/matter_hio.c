@@ -112,6 +112,7 @@ void hio_reqmsg_free(struct hio_msg_hdr * msg);
 #define OPEN_COMMISSIONING_WINDOW "cm_ok"
 #define FOTA_START "do_fota"
 #define FOTA_IN_PROGRESS "fota_in_progress"
+#define FOTA_FAILED "FOTA_Failed"
 
 enum
 {
@@ -431,6 +432,15 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR)
+    {
+        if (strncmp(req->data, FOTA_FAILED, 11) == 0)
+        {
+            SetOTAFailFlag(true);
+        }
+    }
+#endif
 #ifdef TESTCODE
     os_printf("\r\ncluster: %d\r\n", req->cluster);
     os_printf("\r\ncmd: %d\r\n", req->cmd);
