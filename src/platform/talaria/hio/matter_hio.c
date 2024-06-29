@@ -40,6 +40,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talaria_two.h>
+#if (CHIP_ENABLE_SECUREBOOT == true)
+#include <kernel/secureboot.h>
+
+#define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
+#define CIPHER_KEY_LEN 32
+#endif
 
 #pragma GCC diagnostic push
 /* Suppress the "-Wstringop-truncation" warning. It was created by cogg logic.!
@@ -132,150 +138,6 @@ static char confbufgetc(char * buf)
     return ch;
 }
 
-// int fota_flag_status_set(char * param_name, char * param_val)
-// {
-
-//     struct json_parser json;
-
-//     int ch             = 'A';
-//     unsigned int state = JSON_PARSE_STATE_KEY;
-//     int name_found     = 0;
-//     char * finbuff     = NULL;
-//     int retval = -1, cnfDataLen = 0, endposition = 0, startposition = 0;
-//     int index        = 0;
-//     int paramLenDiff = 0;
-
-//     FILE * f_part;
-//     size_t bytesRead;
-//     f_part = fopen(FOTA_CFG_FLAG_PATH, "r+");
-//     if (f_part == NULL)
-//     {
-//         os_printf("Failed to open the file.\n");
-//         return 1;
-//     }
-
-//     confData = pvPortMalloc(MAX_BUFFER_SIZE);
-
-//     os_printf("Contents of the file:\n");
-//     bytesRead = fread(confData, 1, MAX_BUFFER_SIZE, f_part);
-//     if (bytesRead == 0)
-//     {
-//         os_printf("Failed to read from the file.\n");
-//         fclose(f_part);
-//         return 1;
-//     }
-//     confData[bytesRead] = '\0';
-//     json_init(&json);
-//     while (1)
-//     {
-//         if (ch == EOF || ch == '\0')
-//         {
-//             os_printf("\nEOF / End of String reached");
-//             break;
-//         }
-//         ch = confbufgetc(confData);
-//         endposition++;
-//         volatile int t = json_tokenizer(&json, ch);
-//         if (t == JSON_END)
-//             break;
-//         if (t == JSON_BEGIN_ARRAY)
-//         {
-//             state = JSON_PARSE_STATE_KEY;
-//             continue;
-//         }
-
-//         if (JSON_PARSE_STATE_KEY == state && t == JSON_STRING)
-//         {
-//             os_printf("\nKey= %s", json.token);
-//             state = JSON_PARSE_STATE_SEPRATOR;
-
-//             if (strcmp(json.token, param_name) == 0)
-//             {
-//                 name_found = 1;
-//             }
-//             continue;
-//         }
-
-//         if (JSON_PARSE_STATE_SEPRATOR == state && t == JSON_MEMBER_SEPARATOR)
-//         {
-//             state = JSON_PARSE_STATE_VAL;
-//             continue;
-//         }
-
-//         if (state == JSON_PARSE_STATE_VAL)
-//         {
-
-//             if (t == JSON_STRING)
-//             {
-//                 os_printf("\nposition = %d", endposition);
-//                 os_printf("\nVal(str)= %s", json.token);
-//                 if (name_found)
-//                 {
-//                     break;
-//                 }
-//             }
-//             if (t == JSON_STRING || t == JSON_NUMBER)
-//             {
-//                 state = JSON_PARSE_STATE_KEY;
-//             }
-//         }
-//     }
-
-//     endposition   = endposition - 1;
-//     startposition = endposition - strlen(json.token);
-
-//     cnfDataLen   = strlen(confData);
-//     paramLenDiff = strlen(param_val) - strlen(json.token);
-
-//     finbuff = pvPortMalloc(cnfDataLen + paramLenDiff + 1);
-//     if (!finbuff)
-//     {
-//         conf_clear();
-//         return 1;
-//     }
-
-//     index = 0;
-//     memcpy(finbuff, confData, startposition); // copy till the start;
-//     index += startposition;
-//     memcpy(finbuff + index, param_val, strlen(param_val)); // copy new data
-//     index += strlen(param_val);
-//     memcpy(finbuff + index, confData + endposition, (cnfDataLen - endposition)); // copy remaining data
-//     index += (cnfDataLen - endposition);
-//     finbuff[index] = '\0';
-
-//     json_finish(&json);
-//     fseek(f_part, 0, SEEK_SET);
-
-//     if (fputs(finbuff, f_part) == EOF)
-//     {
-//         os_printf("Failed to write to file %s.\n", FOTA_CFG_FLAG_PATH);
-//     }
-//     else
-//     {
-//         os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
-//     }
-//     fclose(f_part);
-
-//     conf_clear();
-//     vPortFree(confData);
-//     return 0;
-// }
-
-#if (CHIP_ENABLE_SECUREBOOT == true)
-
-#define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
-#define SECUREBOOT_SECRET_ADDR_END 0x000B0000
-
-#define CIPHER_KEY_LEN 32
-#define ECDSA_PUBLIC_KEY_LEN 64
-
-static uint32_t * secureboot_secret = (uint32_t *) SECUREBOOT_SECRET_ADDR_START;
-uint8_t app_ecdsa_public_key[ECDSA_PUBLIC_KEY_LEN];
-uint8_t app_signature[ECDSA_PUBLIC_KEY_LEN];
-static uint8_t app_cipher_key[CIPHER_KEY_LEN];
-
-#endif // SECUREBOOT
-
 int fota_flag_status_set(char * param_name, char * param_val)
 {
     struct json_parser json;
@@ -290,6 +152,15 @@ int fota_flag_status_set(char * param_name, char * param_val)
     size_t bytesRead;
 
 #if (CHIP_ENABLE_SECUREBOOT == true)
+    uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+    uint8_t app_cipher_key[CIPHER_KEY_LEN];
+
+    struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
+
+    /* get keys from key-storage */
+    sec_key_read_vault(spi_mem, app_cipher_key,
+        offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+        secureboot_secret);
 
     int tlen         = 0;
     char * temp_buff = utils_file_secured_get(FOTA_CFG_FLAG_PATH, &tlen, (void *) app_cipher_key);
@@ -308,8 +179,8 @@ int fota_flag_status_set(char * param_name, char * param_val)
     }
 #endif
 
-    /* MAX_BUFFER_SIZE iS 512Kb */
-    confData = pvPortMalloc(512);
+    /* MAX_BUFFER_SIZE iS 512 bytes */
+    confData = pvPortMalloc(MAX_BUFFER_SIZE);
     if (confData == NULL)
     {
         os_printf("Failed to allocate memory\n");
@@ -321,7 +192,6 @@ int fota_flag_status_set(char * param_name, char * param_val)
         return 1;
     }
 
-    os_printf("Contents of the file:\n");
 #if (CHIP_ENABLE_SECUREBOOT == true)
     memcpy(confData, temp_buff, tlen);
     bytesRead = tlen;
@@ -424,6 +294,8 @@ int fota_flag_status_set(char * param_name, char * param_val)
         conf_clear();
         vPortFree(confData);
         return 1;
+    } else {
+        os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
     }
 #else
     fseek(f_part, 0, SEEK_SET);
