@@ -98,6 +98,7 @@ void app_test();
 
 uint32_t led_pin;
 static uint32_t identifyTimerCount = 0;
+int flag_test_harness_enable;
 
 /* Function Declarations */
 
@@ -154,9 +155,9 @@ static void Update_SmokeCOAlarm_status_attributes(intptr_t arg)
 void Smoke_co_alarm_update_status(void)
 {
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if ((FactoryReset != 0) || matterutils::IsNodeCommissioned() == false)
+    if ((FactoryReset != 0) || matterutils::IsNodeCommissioned() == false || flag_test_harness_enable == 1)
     {
-	    /*  Ignore the Smoke-CO-Alarm data received from host if device is in factory reset OR not commissioned. */
+	    /*  Ignore the Smoke-CO-Alarm data received from host if device is in factory reset OR not commissioned OR undergoing testing. */
 	    return;
     }
 
@@ -582,6 +583,9 @@ int main(void)
         while (1)
             vTaskSuspend(NULL);
     }
+    flag_test_harness_enable = os_get_boot_arg_int("matter.test_harness", 0);
+    if (flag_test_harness_enable == 1)
+        os_printf("Test Harness enabled...\n");
 #ifdef UNIT_TEST
     run_unit_test();
 #endif
