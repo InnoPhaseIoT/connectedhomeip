@@ -348,7 +348,6 @@ exit:
 
 void emberAfThermostatClusterInitCallback(chip::EndpointId endpoint)
 {
-    Thermostat_Init();
     ChipLogDetail(AppServer, "emberAfThermostatClusterInitCallback");
 }
 
@@ -492,6 +491,7 @@ void load_stored_info_from_host()
     }
     memcpy(getThermostat_data, &revd_data, sizeof(struct thermostat_get_data));
     os_printf("\nReading Thermostat data from host is completed...!!\n");
+    Thermostat_Init();
     vSemaphoreDelete(Getdata);
     vTaskDelete(NULL);
 }
