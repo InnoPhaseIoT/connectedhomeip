@@ -387,7 +387,7 @@ void TalariaConfig::FactoryDefaultConfigCotunters()
     for (int i = 0; i < sizeof(clear_key_set) / sizeof(clear_key_set[0]); i++) {
         err = ClearConfigValue(*clear_key_set[i]);
         if (err != CHIP_NO_ERROR) {
-            ChipLogDetail(DeviceLayer, "Failed to clear %s", clear_key_set[i].Name);
+            ChipLogDetail(DeviceLayer, "Failed to clear %s", clear_key_set[i]->Name);
         }
     }
 
