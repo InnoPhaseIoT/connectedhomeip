@@ -405,7 +405,15 @@ again:
         if (rval < 0 || rval == HTTP_CLIENT_CLOSE_CONNECTION) {
             http_client_close(http_handle);
         }
-	osal_free(post_data);
+        if (!param.post_data) {
+            osal_free(post_data);
+        }
+        post_data = NULL;
+        test_iterations--;
+        if (test_iterations) {
+            http_client_close(http_handle);
+            goto again;
+        }
     }
 exit:
     osal_free(cfg.ssl_cfg.client_key.buf);
