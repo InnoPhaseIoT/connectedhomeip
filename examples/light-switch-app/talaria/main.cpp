@@ -63,6 +63,7 @@ DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 /*-----------------------------------------------------------*/
 void print_test_results(nlTestSuite * tSuite);
 void app_test();
+void startCommandLineInterface();
 int SoftwareTimer_Init(void);
 
 static void OnIdentifyStart(struct Identify *identify);
@@ -607,6 +608,11 @@ int main(void)
     configureSwitchGPIO();
 
     app_test();
+    int enable_cli = os_get_boot_arg_int("matter.enable_cli", 0);
+    if (enable_cli == 1)
+    {
+        startCommandLineInterface();
+    }
 
     vTaskSuspend(NULL);
 

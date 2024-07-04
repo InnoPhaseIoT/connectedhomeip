@@ -18,6 +18,7 @@ executable("light-switch-app.elf") {
   sources = [
     "BindingHandler.h",
     "BindingHandler.cpp",
+    "command_line_interface.cpp",
     "main.cpp",
     "test.cpp",
   ]

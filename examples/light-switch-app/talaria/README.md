@@ -52,7 +52,13 @@ on **Ubuntu 22.04.3 LTS (x86_64)**
     1: Reset to Factory Defaults (e.g. chip-counters and chip-config content will be reset)
     2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
        Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
+-   `matter.enable_cli=<value>`
 
+    To enable/disable the Command line Interface(CLI).
+    0: Disable Command line Interface (Default)
+    1: Enable Command line Interface
+
+    Note that with CLI interface enabled DUT may not go in suspend state.
 
 ## Programming the Example on Talaria Two Platform
 The Linux Tool is provided in FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/bin/T2DownloadTool_Linux to program the Talaria Two device. Following are the steps to program the device.
@@ -146,3 +152,15 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           ## Command to create binding with OnOff, Level and Colour Control clusters in lighting application
           >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":6}, {"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
 - Once the AccessControl and binding commands are successful, OnOff/ Level-Control/ Color-Control Applications can be controlled by changing the state of Switch in light-switch application based on configuration.
+
+#### Command Line Interface:
+- Open the /dev/ttyUSB2 or equivalent port in windows. NOTE: Usage of CLI must be enabled using boot argument matter.enable_cli=1.
+- The baudrate the port should be open is 2457600
+- The commands used in CLI are as below:
+
+		## Command to on light in lighting-app
+		>>> onoff on
+		## Command to off light in lighting-app
+		>>> onoff off
+		## Command to toggle light in lighting-app
+		>>> onoff toggle
