@@ -2157,7 +2157,7 @@ endpoint 1 {
     ram      attribute remainingTime default = 0x0000;
     ram      attribute minLevel default = 0x01;
     ram      attribute options default = 0x00;
-    ram      attribute onLevel;
+    ram      attribute onLevel default = 0x01;
     ram      attribute startUpCurrentLevel;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
