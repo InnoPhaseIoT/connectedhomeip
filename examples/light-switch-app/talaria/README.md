@@ -147,11 +147,13 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
           >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":8}]' 2222 0x1
           ## Command to create binding with Colour-Control cluster in lighting application
           >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
+          ## Command to create binding with Identify cluster in lighting application.
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":3}]' 2222 0x1
           ## Command to create binding with both Level and Colour Control clusters in lighting application
           >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
-          ## Command to create binding with OnOff, Level and Colour Control clusters in lighting application
-          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":6}, {"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}]' 2222 0x1
-- Once the AccessControl and binding commands are successful, OnOff/ Level-Control/ Color-Control Applications can be controlled by changing the state of Switch in light-switch application based on configuration.
+          ## Command to create binding with OnOff, Level, Colour Control and Identify clusters in lighting application
+          >>> binding write binding '[{"node":1111, "endpoint":1, "cluster":6}, {"node":1111, "endpoint":1, "cluster":8}, {"node":1111, "endpoint":1, "cluster":768}, {"node":1111, "endpoint":1, "cluster":3}]' 2222 0x1
+- Once the AccessControl and binding commands are successful, OnOff/ Level-Control/ Color-Control/ Identify Applications can be controlled by changing the state of Switch in light-switch application based on configuration.
 
 #### Command Line Interface:
 - Open the /dev/ttyUSB2 or equivalent port in windows. NOTE: Usage of CLI must be enabled using boot argument matter.enable_cli=1.
@@ -164,3 +166,7 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
 		>>> onoff off
 		## Command to toggle light in lighting-app
 		>>> onoff toggle
+		## Command to identify light in lighting-app
+		>>> identify identify 10
+		## Command to identify trigger-effect in lighting-app
+		>>> identify trigger-effect 0 0

@@ -34,6 +34,7 @@
 void Retry_PrepareBindingCommand(void);
 void Retry_PrepareBindingCommand_Level_Control(void);
 void Retry_PrepareBindingCommand_Colour_Control(void);
+void PrepareBindingCommand_identifyTime(void);
 
 using namespace chip;
 using namespace chip::app;
@@ -468,6 +469,46 @@ void ProcessColorControlUnicastBindingCommand(BindingCommandData * data, const E
 }
 #endif /* ENABLE_COLOUR_CONTROL */
 
+void ProcessIdentifyUnicastBindingCommand(BindingCommandData * data, const EmberBindingTableEntry & binding,
+                                              OperationalDeviceProxy * peer_device)
+{
+        auto onSuccess = [](const ConcreteCommandPath & commandPath, const StatusIB & status, const auto & dataResponse) {
+        retryCountForSendingCommandToLightingApp = 0;
+        ChipLogProgress(NotSpecified, "Identify command succeeds");
+    };
+
+    auto onFailure = [](CHIP_ERROR error) {
+        if(retryCountForSendingCommandToLightingApp == 0)
+        {
+            retryCountForSendingCommandToLightingApp++;
+            ChipLogError(NotSpecified, "Identify command failed, Retrying to send Command");
+            PrepareBindingCommand_identifyTime();
+        }
+        else
+        {
+            retryCountForSendingCommandToLightingApp = 0;
+            ChipLogError(NotSpecified, " Identify command failed: %" CHIP_ERROR_FORMAT, error.Format());
+        }
+    };
+
+    Clusters::Identify::Commands::Identify::Type identify;
+    Clusters::Identify::Commands::TriggerEffect::Type triggerEffect;
+    switch (data->commandId)
+    {
+    case Clusters::Identify::Commands::Identify::Id:
+        identify.identifyTime = static_cast<int>(data->args[0]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         identify, onSuccess, onFailure);
+        break;
+    case Clusters::Identify::Commands::TriggerEffect::Id:
+        triggerEffect.effectIdentifier = static_cast<chip::app::Clusters::Identify::EffectIdentifierEnum>(data->args[0]);
+        triggerEffect.effectVariant = static_cast<chip::app::Clusters::Identify::EffectVariantEnum>(data->args[1]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         triggerEffect, onSuccess, onFailure);
+        break;
+    }
+}
+
 void LightSwitchChangedHandler(const EmberBindingTableEntry & binding, OperationalDeviceProxy * peer_device, void * context)
 {
     VerifyOrReturn(context != nullptr, ChipLogError(NotSpecified, "OnDeviceConnectedFn: context is null"));
@@ -504,6 +545,9 @@ void LightSwitchChangedHandler(const EmberBindingTableEntry & binding, Operation
             ProcessColorControlUnicastBindingCommand(data, binding, peer_device);
             break;
 #endif /* ENABLE_COLOUR_CONTROL */
+        case Clusters::Identify::Id:
+            VerifyOrDie(peer_device != nullptr && peer_device->ConnectionReady());
+            ProcessIdentifyUnicastBindingCommand(data, binding, peer_device);
         }
     }
 }
