@@ -129,7 +129,20 @@ static void post_lighting_status_to_aws_server(uint8_t value)
 
 void execute_lighting_cmd(bool value)
 {
-    chip::app::Clusters::OnOff::Attributes::OnOff::Set(1, value);
+    if (value)
+    {
+        app::DataModel::Nullable<uint8_t> OnLevel;
+        chip::app::Clusters::LevelControl::Attributes::OnLevel::Get(1, OnLevel);
+        chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Set(1, OnLevel);
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(1, value);
+    }
+    else
+    {
+        uint8_t MinLevel;
+        chip::app::Clusters::LevelControl::Attributes::MinLevel::Get(1, &MinLevel);
+        chip::app::Clusters::LevelControl::Attributes::CurrentLevel::Set(1, MinLevel);
+        chip::app::Clusters::OnOff::Attributes::OnOff::Set(1, value);
+    }
 }
 #endif /* CONFIG_ENABLE_AWS_IOT_APP */
 
