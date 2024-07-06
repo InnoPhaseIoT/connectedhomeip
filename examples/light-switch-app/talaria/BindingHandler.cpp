@@ -20,6 +20,7 @@
 #include "app/CommandSender.h"
 #include "app/clusters/bindings/BindingManager.h"
 #include "app/server/Server.h"
+#include "controller/ReadInteraction.h"
 #include "controller/InvokeInteraction.h"
 #include "platform/CHIPDeviceLayer.h"
 #include <app/clusters/bindings/bindings.h>
@@ -40,6 +41,7 @@ using namespace chip;
 using namespace chip::app;
 using chip::app::Clusters::LevelControl::LevelControlOptions;
 using namespace chip::app::Clusters::ColorControl;
+using namespace chip::Controller;
 
 
 #if CONFIG_ENABLE_CHIP_SHELL
@@ -256,6 +258,22 @@ void ProcessColorControlUnicastBindingCommand(BindingCommandData * data, const E
         }
     };
 
+    auto onSuccessHueRead = [](const ConcreteDataAttributePath & attributePath, const auto & dataResponse) {
+        ChipLogProgress(NotSpecified, "Read Color Control attribute succeeds. Hue Attribute value: %d", dataResponse);
+    };
+
+    auto onFailureHueRead = [](const ConcreteDataAttributePath * attributePath, CHIP_ERROR error) {
+        ChipLogError(NotSpecified, "Read Color Control Hue attribute failed: %" CHIP_ERROR_FORMAT, error.Format());
+    };
+
+    auto onSuccessSaturationRead = [](const ConcreteDataAttributePath & attributePath, const auto & dataResponse) {
+        ChipLogProgress(NotSpecified, "Read Color Control attribute succeeds. Saturation Attribute value: %d", dataResponse);
+    };
+
+    auto onFailureSaturationRead = [](const ConcreteDataAttributePath * attributePath, CHIP_ERROR error) {
+        ChipLogError(NotSpecified, "Read Color Control Saturation attribute failed: %" CHIP_ERROR_FORMAT, error.Format());
+    };
+
     Clusters::ColorControl::Commands::MoveToHue::Type moveToHueCommand;
     Clusters::ColorControl::Commands::MoveHue::Type moveHueCommand;
     Clusters::ColorControl::Commands::StepHue::Type stepHueCommand;
@@ -275,6 +293,22 @@ void ProcessColorControlUnicastBindingCommand(BindingCommandData * data, const E
     Clusters::ColorControl::Commands::StopMoveStep::Type stopMoveStepCommand;
     Clusters::ColorControl::Commands::MoveColorTemperature::Type moveColorTemperatureCommand;
     Clusters::ColorControl::Commands::StepColorTemperature::Type stepColorTemperatureCommand;
+
+    if (data->commandId == chip::kInvalidCommandId)
+    {
+        switch(data->attributeId)
+        {
+            case Clusters::ColorControl::Attributes::CurrentHue::Id:
+                chip::Controller::ReadAttribute <Clusters::ColorControl::Attributes::CurrentHue::TypeInfo>(
+                    peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote, onSuccessHueRead, onFailureHueRead);
+                break;
+
+            case Clusters::ColorControl::Attributes::CurrentSaturation::Id:
+                chip::Controller::ReadAttribute <Clusters::ColorControl::Attributes::CurrentSaturation::TypeInfo>(
+                    peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote, onSuccessSaturationRead, onFailureSaturationRead);
+                break;
+        }
+    }
 
     switch (data->commandId)
     {
@@ -482,7 +516,6 @@ void ProcessIdentifyUnicastBindingCommand(BindingCommandData * data, const Ember
         {
             retryCountForSendingCommandToLightingApp++;
             ChipLogError(NotSpecified, "Identify command failed, Retrying to send Command");
-            PrepareBindingCommand_identifyTime();
         }
         else
         {
@@ -499,6 +532,7 @@ void ProcessIdentifyUnicastBindingCommand(BindingCommandData * data, const Ember
         identify.identifyTime = static_cast<int>(data->args[0]);
         Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
                                          identify, onSuccess, onFailure);
+
         break;
     case Clusters::Identify::Commands::TriggerEffect::Id:
         triggerEffect.effectIdentifier = static_cast<chip::app::Clusters::Identify::EffectIdentifierEnum>(data->args[0]);

@@ -170,3 +170,25 @@ FreeRTOS_sdk_3.0_master_matter/pc_tools/Download_Tool/doc/UG_Download_Tool.pdf).
 		>>> identify identify 10
 		## Command to identify trigger-effect in lighting-app
 		>>> identify trigger-effect 0 0
+		## Command to read hue of color control cluster in lighting-app
+		>>> colorcontrol read current-hue
+		## Command to read saturation of color control cluster in lighting-app
+		>>> colorcontrol read current-saturation
+		## Command to stop-move-step in colorcontrol in lighting-app
+		>>> colorcontrol stop-move-step 1
+		## Command to move-hue in colorcontrol in lighting-app
+		>>> colorcontrol move-hue 1 1 1 1
+		## Command to move-to-hue in colorcontrol in lighting-app
+		>>> colorcontrol move-to-hue 10 1 1 1 1
+		## Command to step-hue in colorcontrol in lighting-app
+		>>> colorcontrol step-hue 1 1 1 1 1
+		## Command to move-saturation in colorcontrol in lighting-app
+		>>> colorcontrol move-saturation 1 1 1 1
+		## Command to move-to-saturation in colorcontrol in lighting-app
+		>>> colorcontrol move-to-saturation 1 1 1 1
+		## Command to step-saturation in colorcontrol in lighting-app
+		>>> colorcontrol step-saturation 1 1 1 1 1
+		## Command to move-to-hue-and-saturation in colorcontrol in lighting-app
+		>>> colorcontrol move-to-hue-and-saturation 6 9 1 1 1
+		## Command to stop-move-step in colorcontrol in lighting-app
+		>>> colorcontrol stop-move-step 1 1

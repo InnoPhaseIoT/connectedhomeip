@@ -10,21 +10,60 @@ extern "C" {
 }
 #endif
 
-#define OFF "onoff off"
-#define ON  "onoff on"
-#define TOGGLE "onoff toggle"
+#define ONOFF "onoff"
+#define OFF "off"
+#define ON  "on"
+#define TOGGLE "toggle"
 #define IDENTIFY "identify"
 #define DELIMITERS " "
 #define IDENTIFY_END_POINT 1
 #define TRIGGER_EFFECT "trigger-effect"
 #define UART_RX_BUFFER_SIZE 1000
 #define PRINT_COMMAND_USAGE \
-    "\nError: Invalid Command \n\nUsage: \n\t" ON "\n\t" OFF "\n\t" TOGGLE "\n\t"  IDENTIFY " "\
-    IDENTIFY " <Identify-time-value>\n\t" IDENTIFY " " TRIGGER_EFFECT  " <EffectIdentifier-value> <EffectVariant-value>\n\t"
+    "\nError: Invalid Command \n\nUsage:\n\t"\
+    "onoff on\n\t" \
+    "onoff off\n\t" \
+    "onoff toggle\n\t" \
+    "identify identify Identify-time\n\t"\
+    "identify trigger-effect EffectIdentifier EffectVariant\n\t"\
+    "colorcontrol move-hue MoveMode Rate OptionsMask OptionsOverride\n\t"\
+    "colorcontrol move-to-hue Hue Direction TransitionTime OptionsMask OptionsOverride\n\t"\
+    "colorcontrol step-hue StepMode StepSize TransitionTime OptionsMask OptionsOverride\n\t"\
+    "colorcontrol move-saturation MoveMode Rate OptionsMask OptionsOverride\n\t"\
+    "colorcontrol move-to-saturation Saturation TransitionTime OptionsMask OptionsOverride\n\t"\
+    "colorcontrol step-saturation StepMode StepSize TransitionTime OptionsMask OptionsOverride\n\t"\
+    "colorcontrol move-to-hue-and-saturation Hue Saturation TransitionTime OptionsMask OptionsOverride\n\t"\
+    "colorcontrol stop-move-step OptionsMask OptionsOverride\n\t"\
+    "colorcontrol read current-hue\n\t"\
+    "colorcontrol read current-saturation\n\t"
+
 #define DEVICE_NOT_COMMISSIONED "Light-switch it not commissioned\n"
 #define UART_BAUDRATE 2457600
 #define INVALID_COMMAND -1
 #define ERR_DEVICE_NOT_COMMISSIONED -2
+#define COLORCONTROL "colorcontrol"
+#define MOVE_HUE "move-hue"
+#define MOVE_TO_HUE "move-to-hue"
+#define STEP_HUE "step-hue"
+#define MOVE_SATURATION "move-saturation"
+#define MOVE_TO_SATURATION "move-to-saturation"
+#define STEP_SATURATION "step-saturation"
+#define MOVE_TO_HUE_AND_SATURATION "move-to-hue-and-saturation"
+#define STOP_MOVE_STEP "stop-move-step"
+#define READ "read"
+#define CURRENT_HUE "current-hue"
+#define CURRENT_SATURATION "current-saturation"
+#define IDENTIFY_TIME_ARGUMENT_COUNT 1
+#define IDENTIFY_TRIGGER_EFFECT_ARGUMENT_COUNT 2
+#define MOVE_HUE_ARGUMENT_COUNT 4
+#define MOVE_TO_HUE_ARGUMENT_COUNT 5
+#define STEP_HUE_ARGUMENT_COUNT 5
+#define MOVE_SATURATION_ARGUMENT_COUNT 4
+#define MOVE_TO_SATURATION_ARGUMENT_COUNT 4
+#define STEP_SATURATION_ARGUMENT_COUNT 5
+#define MOVE_TO_HUE_AND_SATURATION_ARGUMENT_COUNT 5
+#define STOP_MOVE_STEP_ARGUMENT_COUNT 2
+#define ZERO_ARGUMENT_COUNT 0
 
 #include "BindingHandler.h"
 #include <platform/CHIPDeviceLayer.h>
@@ -36,86 +75,356 @@ extern "C" {
 using namespace chip;
 using namespace chip::talaria;
 
-void PrepareBindingCommand(uint8_t state);
-TaskHandle_t receive_thread = NULL;
-int IdentifyData[2];
+enum ReadCommandsEnum
+{
+    Hue=1,
+    Saturation,
+    MaxReadCommand
+};
 
-void PrepareBindingCommand_identifyTime()
+enum OnOffCommandsEnum
+{
+    On=1,
+    Off,
+    Toggle,
+    MaxOnOffCommand
+};
+
+enum IdentifyCommandsEnum
+{
+    IdentifyCommandTime=1,
+    TriggerEffectCommand,
+    MaxIdentifyCommand
+};
+
+enum ColorControlCommandsEnum
+{
+    MoveHue=1,
+    MoveToHue,
+    StepHue,
+    MoveSaturation,
+    MoveToSaturation,
+    StepSaturation,
+    MoveToHueAndSaturation,
+    StopMoveStep,
+    Read,
+    MaxAttribuet
+};
+
+enum ClusterNameEnum
+{
+    OnOff=1,
+    Identify,
+    ColorControl,
+    MAxCluster
+};
+
+static TaskHandle_t receive_thread = NULL;
+
+static int GetTotalArguemntFromCommand(int * data, int len, char *token)
+{
+    if (len == 0)
+        return 0;
+
+    int index = 0;
+    token = strtok(NULL, DELIMITERS);
+
+    for (index = 0; index < len; index++)
+    {
+        if (token != NULL)
+        {
+            data[index] = atoi(token);
+            token = strtok(NULL, DELIMITERS);
+        }
+        else
+        {
+            return INVALID_COMMAND;
+        }
+    }
+
+    return 0;
+}
+
+static void SendReadCommand(uint32_t clusterId, uint32_t attributeId)
 {
     BindingCommandData * data = Platform::New<BindingCommandData>();
-    data->clusterId = chip::app::Clusters::Identify::Id;
-    data->commandId = chip::app::Clusters::Identify::Commands::Identify::Id;
-    data->attributeId = chip::app::Clusters::Identify::Attributes::IdentifyTime::Id;
-    /* Command arguments for Identify Cluster:
-    * data->args[0] - Identify-Time*/
-    data->args[0] = IdentifyData[0];
-    SwitchWorkerFunction(data);
+    data->clusterId = clusterId;
+    data->attributeId = attributeId;
+    data->commandId = chip::kInvalidCommandId; /* Since there is no command ID for Read */
+    chip::DeviceLayer::PlatformMgr().ScheduleWork(SwitchWorkerFunction, data);
 }
 
-void Retry_PrepareBindingCommand_identifyTime(void)
+static enum ReadCommandsEnum GetReadAttribute(char * token)
 {
-    PrepareBindingCommand_identifyTime();
+    if (strncmp(token, CURRENT_HUE, strlen(CURRENT_HUE)) == 0)
+    {
+        return Hue;
+    }
+    else if (strncmp(token, CURRENT_SATURATION, strlen(CURRENT_SATURATION)) == 0)
+    {
+        return Saturation;
+    }
 }
 
-void PrepareBindingCommand_identify_TriggerEffect()
+static int ReadCommand(char * token, uint32_t clusterId)
 {
+    int ret = INVALID_COMMAND;
+
+    token = strtok(NULL, DELIMITERS);
+
+    if (token == NULL)
+        return INVALID_COMMAND;
+
+    enum ReadCommandsEnum value = GetReadAttribute(token);
+
+    switch(value)
+    {
+        case Hue:
+            SendReadCommand(clusterId, chip::app::Clusters::ColorControl::Attributes::CurrentHue::Id);
+            ret = 0;
+            break;
+
+        case Saturation:
+            SendReadCommand(clusterId, chip::app::Clusters::ColorControl::Attributes::CurrentSaturation::Id);
+            ret = 0;
+            break;
+    }
+
+    return ret;
+}
+
+static int SendClusterCommandFromBinder(char *token, int len, uint32_t clusterId, uint32_t commandId)
+{
+    int ret = INVALID_COMMAND;
+    int dataArgument[len];
+
+    ret = GetTotalArguemntFromCommand(dataArgument, len, token);
+    if (ret == INVALID_COMMAND)
+        return ret;
+
     BindingCommandData * data = Platform::New<BindingCommandData>();
-    data->clusterId = chip::app::Clusters::Identify::Id;
-    data->commandId = chip::app::Clusters::Identify::Commands::TriggerEffect::Id;
-    /* Command arguments for Identify Cluster:
-    * data->args[0] - Identify-Time*/
-    data->args[0] = IdentifyData[0];
-    data->args[1] = IdentifyData[1];
-    SwitchWorkerFunction(data);
+    data->clusterId = clusterId;
+    data->commandId = commandId;
+    /* Command arguments of command of colorcontrol cluster Cluster */
+    for (int index = 0; index < len; index++)
+    {
+        data->args[index] = dataArgument[index];
+    }
+    chip::DeviceLayer::PlatformMgr().ScheduleWork(SwitchWorkerFunction, data);
+
+    return 0;
 }
 
-void Retry_PrepareBindingCommand_identify_TriggerEffect(void)
+static enum ColorControlCommandsEnum GetColorControlCommand(char *token)
 {
-    PrepareBindingCommand_identify_TriggerEffect();
+    if (strncmp(token, MOVE_TO_HUE_AND_SATURATION, strlen(MOVE_TO_HUE_AND_SATURATION)) == 0)
+    {
+        return MoveToHueAndSaturation;
+    }
+    if (strncmp(token, MOVE_HUE, strlen(MOVE_HUE)) == 0)
+    {
+        return MoveHue;
+    }
+    if (strncmp(token, MOVE_TO_HUE, strlen(MOVE_TO_HUE)) == 0)
+    {
+        return MoveToHue;
+    }
+    if (strncmp(token, STEP_HUE, strlen(STEP_HUE)) == 0)
+    {
+        return StepHue;
+    }
+    if (strncmp(token, MOVE_SATURATION, strlen(MOVE_SATURATION)) == 0)
+    {
+        return MoveSaturation;
+    }
+    if (strncmp(token, MOVE_TO_SATURATION, strlen(MOVE_TO_SATURATION)) == 0)
+    {
+        return MoveToSaturation;
+    }
+    if (strncmp(token, STEP_SATURATION, strlen(STEP_SATURATION)) == 0)
+    {
+        return StepSaturation;
+    }
+    if (strncmp(token, STOP_MOVE_STEP, strlen(STOP_MOVE_STEP)) == 0)
+    {
+        return StopMoveStep;
+    }
+    if (strncmp(token, READ, strlen(READ)) == 0)
+    {
+        return Read;
+    }
 }
 
-static int IdentifyCommand(char *uartbuff)
+static int ColorControlCommand(char *uartbuff)
 {
+    int ret = INVALID_COMMAND;
+    uint32_t clusterId = chip::app::Clusters::ColorControl::Id;
+
     char *token = strtok(uartbuff, DELIMITERS);
 
     if (token == NULL)
     {
         return INVALID_COMMAND;
     }
+    enum ColorControlCommandsEnum value = GetColorControlCommand(token);
 
+    switch(value)
+    {
+        case MoveHue:
+            ret = SendClusterCommandFromBinder(token, MOVE_HUE_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::MoveHue::Id);
+            break;
+
+        case MoveToHue:
+            ret = SendClusterCommandFromBinder(token, MOVE_TO_HUE_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::MoveToHue::Id);
+            break;
+
+        case StepHue:
+            ret = SendClusterCommandFromBinder(token, STEP_HUE_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::StepHue::Id);
+            break;
+
+        case MoveSaturation:
+            ret = SendClusterCommandFromBinder(token, MOVE_SATURATION_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::MoveSaturation::Id);
+            break;
+
+        case MoveToSaturation:
+            ret = SendClusterCommandFromBinder(token, MOVE_TO_SATURATION_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::MoveToSaturation::Id);
+            break;
+
+        case StepSaturation:
+            ret = SendClusterCommandFromBinder(token, STEP_SATURATION_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::StepSaturation::Id);
+            break;
+
+        case MoveToHueAndSaturation:
+            ret = SendClusterCommandFromBinder(token, MOVE_TO_HUE_AND_SATURATION_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::MoveToHueAndSaturation::Id);
+            break;
+
+        case StopMoveStep:
+            ret = SendClusterCommandFromBinder(token, STOP_MOVE_STEP_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::ColorControl::Commands::StopMoveStep::Id);
+            break;
+
+        case Read:
+            ret = ReadCommand(token, clusterId);
+            break;
+    }
+
+    return ret;
+}
+
+static enum IdentifyCommandsEnum GetIdentifyCommands(char *token)
+{
     if (strncmp(token, IDENTIFY, strlen(IDENTIFY)) == 0)
     {
-        token = strtok(NULL, DELIMITERS);
-        if (token == NULL)
-        {
-            return INVALID_COMMAND;
-        }
-
-        IdentifyData[0] = atoi(token);
-        chip::DeviceLayer::PlatformMgr().ScheduleWork(PrepareBindingCommand_identifyTime);
-        return 0;
+        return IdentifyCommandTime;
     }
     if (strncmp(token, TRIGGER_EFFECT, strlen(TRIGGER_EFFECT)) == 0)
     {
-        token = strtok(NULL, DELIMITERS);
-        if (token == NULL)
-        {
-            return INVALID_COMMAND;
-        }
-        IdentifyData[0] = atoi(token);
+        return TriggerEffectCommand;
+    }
+}
 
-        token = strtok(NULL, DELIMITERS);
+static int IdentifyCommand(char *uartbuff)
+{
+    int ret = INVALID_COMMAND;
+    uint32_t clusterId = chip::app::Clusters::Identify::Id;
 
-        if (token == NULL)
-        {
-            return INVALID_COMMAND;
-        }
-        IdentifyData[1] = atoi(token);
+    char *token = strtok(uartbuff, DELIMITERS);
 
-        chip::DeviceLayer::PlatformMgr().ScheduleWork(PrepareBindingCommand_identify_TriggerEffect);
-        return 0;
+    if (token == NULL)
+    {
+        return INVALID_COMMAND;
+    }
+    enum IdentifyCommandsEnum value = GetIdentifyCommands(token);
+
+    switch(value)
+    {
+        case IdentifyCommandTime:
+            ret = SendClusterCommandFromBinder(token, IDENTIFY_TIME_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::Identify::Commands::Identify::Id);
+            break;
+
+        case TriggerEffectCommand:
+            ret = SendClusterCommandFromBinder(token, IDENTIFY_TRIGGER_EFFECT_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::Identify::Commands::TriggerEffect::Id);
+            break;
     }
 
+    return ret;
+}
+
+static enum OnOffCommandsEnum GetOnOffCommands(char *token)
+{
+    if (strncmp(token, ON, strlen(ON)) == 0)
+    {
+        return On;
+    }
+    if (strncmp(token, OFF, strlen(OFF)) == 0)
+    {
+        return Off;
+    }
+    if (strncmp(token, TOGGLE, strlen(TOGGLE)) == 0)
+    {
+        return Toggle;
+    }
+}
+
+static int OnOffCommand(char *uartbuff)
+{
+    int ret = INVALID_COMMAND;
+    uint32_t clusterId = chip::app::Clusters::OnOff::Id;
+
+    char *token = strtok(uartbuff, DELIMITERS);
+
+    if (token == NULL)
+    {
+        return INVALID_COMMAND;
+    }
+    enum OnOffCommandsEnum value = GetOnOffCommands(token);
+
+    switch(value)
+    {
+        case On:
+            ret = SendClusterCommandFromBinder(token, ZERO_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::OnOff::Commands::On::Id);
+            ret = 0;
+            break;
+
+        case Off:
+            ret = SendClusterCommandFromBinder(token, ZERO_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::OnOff::Commands::Off::Id);
+            ret = 0;
+            break;
+
+        case Toggle:
+            ret = SendClusterCommandFromBinder(token, ZERO_ARGUMENT_COUNT, clusterId,
+                    chip::app::Clusters::OnOff::Commands::Toggle::Id);
+            break;
+    }
+
+    return ret;
+}
+
+static enum ClusterNameEnum GetClusterName(char *uartbuff)
+{
+    if (strncmp(ONOFF, uartbuff, strlen(ONOFF)) == 0 )
+    {
+        return OnOff;
+    }
+    else if (strncmp(IDENTIFY, uartbuff, strlen(IDENTIFY)) == 0)
+    {
+        return Identify;
+    }
+    else if (strncmp(COLORCONTROL, uartbuff, strlen(COLORCONTROL)) == 0)
+    {
+        return ColorControl;
+    }
 }
 
 static int CommandReceivedFromUart(char *uartbuff)
@@ -127,32 +436,25 @@ static int CommandReceivedFromUart(char *uartbuff)
         return ERR_DEVICE_NOT_COMMISSIONED;
     }
 
-    if (strncmp(OFF, uartbuff, strlen(OFF)) == 0 )
+    enum ClusterNameEnum value = GetClusterName(uartbuff);
+
+    switch(value)
     {
-        chip::DeviceLayer::PlatformMgr().ScheduleWork(PrepareBindingCommand, 0);
+        case OnOff:
+            ret = OnOffCommand(uartbuff + strlen(ONOFF) + 1); // To Omit "Onoff  " from the command received
+            break;
+
+        case Identify:
+            ret = IdentifyCommand(uartbuff + strlen(IDENTIFY) + 1); // To Omit "identify " from the command received
+            break;
+
+        case ColorControl:
+            ret = ColorControlCommand(uartbuff + strlen(COLORCONTROL) + 1); // To Omit "colorcontrol " from the command received
+            break;
     }
-    else if (strncmp(ON, uartbuff, strlen(ON)) == 0)
-    {
-        chip::DeviceLayer::PlatformMgr().ScheduleWork(PrepareBindingCommand, 1);
-    }
-    else if (strncmp(TOGGLE, uartbuff, strlen(TOGGLE)) == 0)
-    {
-        BindingCommandData * data = Platform::New<BindingCommandData>();
-        data->clusterId = chip::app::Clusters::OnOff::Id;
-        data->commandId = chip::app::Clusters::OnOff::Commands::Toggle::Id;
-        chip::DeviceLayer::PlatformMgr().ScheduleWork(SwitchWorkerFunction, data);
-    }
-    else if (strncmp(IDENTIFY, uartbuff, strlen(IDENTIFY)) == 0)
-    {
-        ret = IdentifyCommand(uartbuff + strlen(IDENTIFY) + 1); // To Omit "identify " from the command received
-        return ret;
-    }
-    else
-    {
-        return INVALID_COMMAND;
-    }
-    os_printf("\nCommand Receievd from UART : %s", uartbuff);
-    return 0;
+
+    return ret;
+
 }
 
 static void
