@@ -166,6 +166,8 @@ struct dl_set_get_user
     uint8_t userstatus;               /**< userstatus */
     uint8_t usertype;                 /**< usertyp*/
     uint8_t credentialrule;           /**< credentialrule */
+    uint8_t FabricIndexCreator;       /**< creater FabricIndex */
+    uint8_t FabricIndexModifier ;     /**< modifier FabricIndex*/
 };
 
 struct dl_set_get_credential
@@ -176,6 +178,8 @@ struct dl_set_get_credential
     uint8_t userindex;                      /**< userindex */
     uint8_t userstatus;                     /**< userstatus */
     uint8_t usertype;                       /**< usertyp*/
+    uint8_t FabricIndexCreator;             /**< creater FabricIndex */
+    uint8_t FabricIndexModifier;            /**< modifier FabricIndex */
 };
 
 #if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 34

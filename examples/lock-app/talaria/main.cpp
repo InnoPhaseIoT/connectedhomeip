@@ -277,6 +277,9 @@ bool emberAfPluginDoorLockSetUser(chip::EndpointId endpointId, uint16_t userInde
     setUser->usertype       = (uint8_t) usertype;
     setUser->useruniqueid   = uniqueId;
     setUser->credentialrule = (uint8_t) credentialRule;
+    setUser->FabricIndexCreator = (uint8_t) creator;
+    setUser->FabricIndexModifier = (uint8_t) modifier;
+
     chip::Platform::CopyString(setUser->username, userName);
     for (size_t i = 0; i < totalCredentials; ++i)
     {
@@ -313,6 +316,9 @@ bool emberAfPluginDoorLockGetUser(chip::EndpointId endpointId, uint16_t userInde
     user.userType       = (chip::app::Clusters::DoorLock::UserTypeEnum) getUser->usertype;
     user.credentialRule = (chip::app::Clusters::DoorLock::CredentialRuleEnum) getUser->credentialrule;
     user.userStatus     = (chip::app::Clusters::DoorLock::UserStatusEnum) getUser->userstatus;
+    user.createdBy      = (uint8_t) getUser->FabricIndexCreator;
+    user.lastModifiedBy = (uint8_t) getUser->FabricIndexModifier;
+
     if (credentialsList[userIndex].userstatus != (uint8_t) DlCredentialStatus::kAvailable)
     {
         user.credentials = chip::Span<const CredentialStruct>(mCredentials[userIndex], 1);
@@ -369,6 +375,9 @@ bool emberAfPluginDoorLockSetCredential(chip::EndpointId endpointId, uint16_t cr
     setCredential->userindex  = credentialIndex + 1;
     setCredential->userstatus = (uint8_t) credentialStatus;
     setCredential->usertype   = (uint8_t) credentialType;
+    setCredential->FabricIndexCreator = (uint8_t) creator;
+    setCredential->FabricIndexModifier = (uint8_t) modifier;
+
     memcpy(setCredential->credentialdata, credentialData.data(), min(credentialData.size(), sizeof(setCredential->credentialdata)));
 
     int ret = matter_notify(DOOR_LOCK, cmd, payload, (struct dl_set_get_credential *) setCredential);
