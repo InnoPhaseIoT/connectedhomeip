@@ -1,4 +1,7 @@
 
+EXT_FLASH ?= false
+SECURED ?= false
+
 all: out/test/build.ninja out/test/window-app.elf
 
 out/test/window-app.elf: FORCE
@@ -9,7 +12,7 @@ out/test/window-app.elf: FORCE
 	cksum out/test/window-app.elf.strip
 
 out/test/build.ninja:
-	gn gen out/test --args="is_debug=false"
+	gn gen out/test --args="is_debug=false chip_enable_ext_flash=$(EXT_FLASH) chip_enable_secureboot=$(SECURED)"
 
 clean:
 	rm -rf out/

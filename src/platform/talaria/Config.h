@@ -111,6 +111,7 @@ public:
     static CHIP_ERROR ClearConfigValue(Key key);
     static bool ConfigValueExists(Key key);
     static void FactoryDefaultConfigCotunters();
+    static uint8_t *GetAppCipherKey();
 
     // static void RunConfigUnitTest(void);
 

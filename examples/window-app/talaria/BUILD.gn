@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import("//build_overrides/chip.gni")
+import("//out/test/args.gn")
 
 executable("window-app.elf") {
   sources = [
@@ -28,6 +29,7 @@ executable("window-app.elf") {
 
   include_dirs = [
     "${chip_root}/examples/platform/talaria",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/secureboot/inc/",
   ]
 
   output_dir = root_out_dir
@@ -35,6 +37,10 @@ executable("window-app.elf") {
   ldflags = [  ]
   lib_dirs = [  ]
   libs = [  ]
+  defines =
+      [ "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
+        "CHIP_ENABLE_EXT_FLASH=${chip_enable_ext_flash}",
+  ]
 
 }
 

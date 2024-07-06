@@ -115,6 +115,8 @@ const TalariaConfig::Key TalariaConfig::kCounterKey_UpTime                = { kC
 const TalariaConfig::Key TalariaConfig::kCounterKey_TotalOperationalHours = { kConfigNamespace_ChipCounters, "total-hours" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_BootReason            = { kConfigNamespace_ChipCounters, "boot-reason" };
 
+static bool just_once = false;
+static uint8_t app_cipher_key[CIPHER_KEY_LEN];
 
 CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
 {
@@ -125,15 +127,17 @@ CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
         return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
 #if (CHIP_ENABLE_SECUREBOOT == true)
-    uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
-    uint8_t app_cipher_key[CIPHER_KEY_LEN];
+    if (!just_once) {
+        uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+        struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
 
-    struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
+        /* get keys from key-storage */
+        sec_key_read_vault(spi_mem, app_cipher_key,
+            offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+            secureboot_secret);
 
-    /* get keys from key-storage */
-    sec_key_read_vault(spi_mem, app_cipher_key,
-        offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
-        secureboot_secret);
+        just_once = true;
+    }
 
     *read_data = utils_file_secured_get(path, read_len, (void *)app_cipher_key);
 #else
@@ -158,15 +162,17 @@ CHIP_ERROR TalariaConfig::WriteToFS(Key key, const void * data, size_t data_len)
     ChipLogDetail(DeviceLayer, "Writing path: %s", path, data_len);
 
 #if (CHIP_ENABLE_SECUREBOOT == true)
-    uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
-    uint8_t app_cipher_key[CIPHER_KEY_LEN];
+    if (!just_once) {
+        uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+        struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
 
-    struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
+        /* get keys from key-storage */
+        sec_key_read_vault(spi_mem, app_cipher_key,
+            offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+            secureboot_secret);
 
-    /* get keys from key-storage */
-    sec_key_read_vault(spi_mem, app_cipher_key,
-        offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
-        secureboot_secret);
+        just_once = true;
+    }
 
     if (utils_file_secured_store(path, data, data_len, (void *)app_cipher_key) < 0) {
         ChipLogError(DeviceLayer, "Error writing to FS");
@@ -209,6 +215,16 @@ bool TalariaConfig::ConfigExistsInFS(Key key)
         return false;
     }
     return true;
+}
+
+static uint8_t * TalariaConfig::GetAppCipherKey()
+{
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    /* Return app_cipher_key */
+    return app_cipher_key;
+#else
+    return NULL;
+#endif
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, bool & val)
