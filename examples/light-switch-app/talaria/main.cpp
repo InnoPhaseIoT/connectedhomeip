@@ -556,7 +556,11 @@ static void vTimerCallback_switch_position_change(TimerHandle_t xTimer)
 #if SWITCH_USING_ADC
     DeviceLayer::PlatformMgr().ScheduleWork(OnSwitchPositionChangedHandler_Adc, reinterpret_cast<intptr_t>(nullptr));
 #else
-    DeviceLayer::PlatformMgr().ScheduleWork(OnSwitchPositionChangedHandler_RandomFunction, reinterpret_cast<intptr_t>(nullptr));
+    int enable_cli = os_get_boot_arg_int("matter.enable_cli", 0);
+    if (enable_cli != 1)
+    {
+        DeviceLayer::PlatformMgr().ScheduleWork(OnSwitchPositionChangedHandler_RandomFunction, reinterpret_cast<intptr_t>(nullptr));
+    }
 #endif /* SWITCH_USING_ADC */
 }
 #endif /* ENABLE_DIMMER_SWITCH */
