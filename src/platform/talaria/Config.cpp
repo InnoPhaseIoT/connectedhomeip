@@ -55,6 +55,9 @@ extern "C" {
 #define CIPHER_KEY_LEN 32
 #define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
 #define SECUREBOOT_SECRET_ADDR_END 0x000B0000
+
+static bool just_once = false;
+static uint8_t app_cipher_key[CIPHER_KEY_LEN];
 #endif
 
 namespace chip {
@@ -114,9 +117,6 @@ const TalariaConfig::Key TalariaConfig::kCounterKey_RebootCount           = { kC
 const TalariaConfig::Key TalariaConfig::kCounterKey_UpTime                = { kConfigNamespace_ChipCounters, "up-time" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_TotalOperationalHours = { kConfigNamespace_ChipCounters, "total-hours" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_BootReason            = { kConfigNamespace_ChipCounters, "boot-reason" };
-
-static bool just_once = false;
-static uint8_t app_cipher_key[CIPHER_KEY_LEN];
 
 CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
 {
