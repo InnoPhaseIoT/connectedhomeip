@@ -128,19 +128,20 @@ NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x
           >>> smokecoalarm read cluster-revision 1111 1
 
           ## Commands to subscribe for Smoke-CO-Alarm Sensor status
-          >>> smokecoalarm subscribe expressed-state 1111 1
-          >>> smokecoalarm subscribe smoke-state 1111 1
-          >>> smokecoalarm subscribe costate 1111 1
-          >>> smokecoalarm subscribe battery-alert 1111 1
-          >>> smokecoalarm subscribe device-muted 1111 1
-          >>> smokecoalarm subscribe test-in-progress 1111 1
-          >>> smokecoalarm subscribe hardware-fault-alert 1111 1
-          >>> smokecoalarm subscribe end-of-service-alert 1111 1
-          >>> smokecoalarm subscribe interconnect-smoke-alarm 1111 1
-          >>> smokecoalarm subscribe interconnect-coalarm 1111 1
-          >>> smokecoalarm subscribe contamination-state 1111 1
-          >>> smokecoalarm subscribe smoke-sensitivity-level 1111 1
-          >>> smokecoalarm subscribe expiry-date 1111 1
+          >>> smokecoalarm subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
+          >>> smokecoalarm subscribe expressed-state 5 10 1111 1
+          >>> smokecoalarm subscribe smoke-state 5 10 1111 1
+          >>> smokecoalarm subscribe costate 5 10 1111 1
+          >>> smokecoalarm subscribe battery-alert 5 10 1111 1
+          >>> smokecoalarm subscribe device-muted 5 10 1111 1
+          >>> smokecoalarm subscribe test-in-progress 5 10 1111 1
+          >>> smokecoalarm subscribe hardware-fault-alert 5 10 1111 1
+          >>> smokecoalarm subscribe end-of-service-alert 5 10 1111 1
+          >>> smokecoalarm subscribe interconnect-smoke-alarm 5 10 1111 1
+          >>> smokecoalarm subscribe interconnect-coalarm 5 10 1111 1
+          >>> smokecoalarm subscribe contamination-state 5 10 1111 1
+          >>> smokecoalarm subscribe smoke-sensitivity-level 5 10 1111 1
+          >>> smokecoalarm subscribe expiry-date 5 10 1111 1
           ## Identify cluster commands
           e.g. identify write identify-time 5 1111 1
           e.g. identify read identify-type 1111 1
