@@ -311,13 +311,15 @@ bool emberAfPluginDoorLockGetUser(chip::EndpointId endpointId, uint16_t userInde
     struct dl_set_get_user * getUser;
     getUser = &userList[userIndex];
 
-    user.userName       = chip::CharSpan(getUser->username, sizeof(getUser->username));
-    user.userUniqueId   = getUser->useruniqueid;
-    user.userType       = (chip::app::Clusters::DoorLock::UserTypeEnum) getUser->usertype;
+    user.userName = chip::CharSpan(getUser->username, sizeof(getUser->username));
+    user.userUniqueId = getUser->useruniqueid;
+    user.userType = (chip::app::Clusters::DoorLock::UserTypeEnum) getUser->usertype;
     user.credentialRule = (chip::app::Clusters::DoorLock::CredentialRuleEnum) getUser->credentialrule;
-    user.userStatus     = (chip::app::Clusters::DoorLock::UserStatusEnum) getUser->userstatus;
-    user.createdBy      = (uint8_t) getUser->FabricIndexCreator;
+    user.userStatus = (chip::app::Clusters::DoorLock::UserStatusEnum) getUser->userstatus;
+    user.createdBy = (uint8_t) getUser->FabricIndexCreator;
     user.lastModifiedBy = (uint8_t) getUser->FabricIndexModifier;
+    user.creationSource = DlAssetSource::kMatterIM;
+    user.modificationSource = DlAssetSource::kMatterIM;
 
     if (credentialsList[userIndex].userstatus != (uint8_t) DlCredentialStatus::kAvailable)
     {
@@ -399,14 +401,18 @@ bool emberAfPluginDoorLockGetCredential(chip::EndpointId endpointId, uint16_t cr
         return false;
     }
 
-    getCredential             = &credentialsList[credentialIndex];
-    credential.status         = (DlCredentialStatus) getCredential->userstatus;
+    getCredential = &credentialsList[credentialIndex];
+    credential.status = (DlCredentialStatus) getCredential->userstatus;
     credential.credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) getCredential->usertype;
     if (getCredential->userstatus != (uint8_t) DlCredentialStatus::kAvailable)
     {
         credential.credentialData =
             chip::ByteSpan((uint8_t *) &getCredential->credentialdata[0], strlen(getCredential->credentialdata));
     }
+    credential.createdBy = getCredential->FabricIndexCreator;
+    credential.lastModifiedBy = getCredential->FabricIndexModifier;
+    credential.creationSource = DlAssetSource::kMatterIM;
+    credential.modificationSource = DlAssetSource::kMatterIM;
 
     ChipLogProgress(Zcl,
                     "Door Lock App: GetCredential "
