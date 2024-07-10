@@ -56,6 +56,7 @@ void openCommissionWindow();
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
 #include <platform/talaria/FactoryDataProvider.h>
+#include <app/clusters/door-lock-server/door-lock-server.h>
 
 
 using namespace chip;
@@ -172,6 +173,10 @@ void openCommissionWindow()
     if(Server::GetInstance().GetFabricTable().FabricCount() != 0)
     {
         ChipLogError(DeviceLayer,"Device is already Commissioned hence not Opening Commissioning Window");
+        /* Send event to support the Door Lock Alarm */
+        ChipLogError(DeviceLayer, "Sending Door Lock Jammed Alarm Event");
+        DoorLockServer::Instance().SendLockAlarmEvent(1, AlarmCodeEnum::kLockJammed);
+
         return;
     }
     if(CommissioningFlowTypeHost == true)

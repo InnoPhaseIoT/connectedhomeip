@@ -186,6 +186,9 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
                                             const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                             OperationErrorEnum & err)
 {
+    int  userIndex = 0;
+    Nullable<uint16_t> userIndexPointer;
+
     ChipLogProgress(Zcl, "Door Lock App: lock Command endpoint=%d", endpointId);
     struct dl_unlock_with_timeout time;
     time.unlock_time_out = 1000;
@@ -195,6 +198,26 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     if (ret != 0)
         return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
+
+    for (int i = 0; i < MAX_USERS; i++ )
+    {
+        if (strncmp(pinCode.Value().data() , credentialsList[i].credentialdata, pinCode.Value().size()) == 0)
+        {
+            userIndex = i + 1;
+            break;
+        }
+    }
+    userIndexPointer.SetNonNull(userIndex);
+
+    LockOpCredentials credentialsTypeStruct[1];
+    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[userIndex - 1].usertype;
+    credentialsTypeStruct[0].credentialIndex = credentialsList[userIndex - 1].userindex;
+    List<const LockOpCredentials> credentialList(credentialsTypeStruct, 1);
+    Nullable<List<const LockOpCredentials>> credentials;
+    credentials.SetNonNull(credentialList);
+
+    DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kLocked, OperationSourceEnum::kRemote, userIndexPointer, credentials, fabricIdx, nodeId);
+
     return true;
 }
 
@@ -209,6 +232,7 @@ void emberAfPluginDoorLockOnAutoRelock(chip::EndpointId endpointId)
     if (ret != 0)
         return;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
+
     return;
 }
 
@@ -216,6 +240,9 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
                                               const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                               OperationErrorEnum & err)
 {
+    int userIndex = 0;
+    Nullable<uint16_t> userIndexPointer;
+
     ChipLogProgress(Zcl, "Door Lock App: Unlock Command endpoint=%d", endpointId);
     struct dl_unlock_with_timeout time;
     time.unlock_time_out = 1000;
@@ -225,6 +252,28 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     if (ret != 0)
         return false;
     chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
+    DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlatched, OperationSourceEnum::kRemote);
+
+    for (int i = 0; i < MAX_USERS; i++ )
+    {
+        if (strncmp(pinCode.Value().data() , credentialsList[i].credentialdata, pinCode.Value().size()) == 0)
+        {
+            userIndex = i + 1;
+            break;
+        }
+    }
+    userIndexPointer.SetNonNull(userIndex);
+
+    LockOpCredentials credentialsTypeStruct[1];
+    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[userIndex - 1].usertype;
+    credentialsTypeStruct[0].credentialIndex = credentialsList[userIndex - 1].userindex;
+    List<const LockOpCredentials> credentialList(credentialsTypeStruct, 1);
+    Nullable<List<const LockOpCredentials>> credentials;
+    credentials.SetNonNull(credentialList);
+
+    DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlatched, OperationSourceEnum::kRemote, userIndexPointer, credentials, fabricIdx, nodeId);
+    DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlocked, OperationSourceEnum::kRemote, userIndexPointer, credentials, fabricIdx, nodeId);
+
     return true;
 }
 
@@ -404,6 +453,7 @@ bool emberAfPluginDoorLockGetCredential(chip::EndpointId endpointId, uint16_t cr
     getCredential = &credentialsList[credentialIndex];
     credential.status = (DlCredentialStatus) getCredential->userstatus;
     credential.credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) getCredential->usertype;
+
     if (getCredential->userstatus != (uint8_t) DlCredentialStatus::kAvailable)
     {
         credential.credentialData =
