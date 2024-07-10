@@ -349,6 +349,7 @@ exit:
 void emberAfThermostatClusterInitCallback(chip::EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfThermostatClusterInitCallback");
+    Thermostat_Init();
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
@@ -491,7 +492,6 @@ void load_stored_info_from_host()
     }
     memcpy(getThermostat_data, &revd_data, sizeof(struct thermostat_get_data));
     os_printf("\nReading Thermostat data from host is completed...!!\n");
-    Thermostat_Init();
     vSemaphoreDelete(Getdata);
     vTaskDelete(NULL);
 }
@@ -510,7 +510,7 @@ int main(void)
     matter_hio_init();
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
-    vTaskDelay(pdMS_TO_TICKS(1800));
+    vTaskDelay(pdMS_TO_TICKS(2000));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)
