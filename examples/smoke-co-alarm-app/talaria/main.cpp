@@ -31,6 +31,7 @@ extern "C" {
 #include <hio/matter_hio.h>
 
 void Smoke_co_alarm_update_status();
+void Event_handler_push_button(void);
 #ifdef __cplusplus
 }
 #endif
@@ -167,18 +168,23 @@ void Smoke_co_alarm_update_status(void)
     ChipLogProgress(Support, "[Smoke-CO-Alarm] Status: ExpressedState: %d, SmokeState: %d, COState: %d, BatteryAlert: %d"
 		    " DeviceMuted: %d, TestInProgress: %d, HardwareFaultAlert: %d, EndOfServiceAlert: %d, InterconnectSmokeAlarm: %d"
 		    "InterconnectCOAlarm: %d, ContaminationState: %d, SmokeSensitivityLevel: %d, ExpiryDate: %d",
-		    revd_smoke_co_alarm_data.ExpressedState, revd_smoke_co_alarm_data.ExpressedState, revd_smoke_co_alarm_data.COState,
-		    revd_smoke_co_alarm_data.COState, revd_smoke_co_alarm_data.DeviceMuted, revd_smoke_co_alarm_data.TestInProgress,
+		    revd_smoke_co_alarm_data.ExpressedState, revd_smoke_co_alarm_data.SmokeState, revd_smoke_co_alarm_data.COState,
+		    revd_smoke_co_alarm_data.BatteryAlert, revd_smoke_co_alarm_data.DeviceMuted, revd_smoke_co_alarm_data.TestInProgress,
 		    revd_smoke_co_alarm_data.HardwareFaultAlert, revd_smoke_co_alarm_data.EndOfServiceAlert,
 		    revd_smoke_co_alarm_data.InterconnectSmokeAlarm, revd_smoke_co_alarm_data.InterconnectCOAlarm,
 		    revd_smoke_co_alarm_data.ContaminationState, revd_smoke_co_alarm_data.SmokeSensitivityLevel,
 		    revd_smoke_co_alarm_data.ExpiryDate);
 }
 
-static void EndSelfTestingEventHandler(void)
+static void Update_SmokeCOAlarm_status_post_EndSelfTest(intptr_t arg)
 {
     mSmokealarmInstance.SetTestInProgress(SMOKE_ALARM_ENDPOINT_ID, false);
     mSmokealarmInstance.SetExpressedStateByPriority(SMOKE_ALARM_ENDPOINT_ID, sPriorityOrder);
+}
+
+static void EndSelfTestingEventHandler(chip::System::Layer * aLayer)
+{
+    DeviceLayer::PlatformMgr().ScheduleWork(Update_SmokeCOAlarm_status_post_EndSelfTest, reinterpret_cast<intptr_t>(nullptr));
 }
 
 #if TALARIA_TEST_EVENT_TRIGGER_ENABLED
@@ -409,6 +415,11 @@ exit:
     return;
 }
 
+static void Trigger_SelfTest_emberAf(intptr_t arg)
+{
+    mSmokealarmInstance.RequestSelfTest(SMOKE_ALARM_ENDPOINT_ID);
+}
+
 /** @brief  Smoke CO Alarm Cluster Init
  *
  * This function is called when a specific cluster is initialized. It gives the
@@ -446,7 +457,7 @@ static void SelfTesting_EventHandler(void)
     }
     else
     {
-	    EndSelfTestingEventHandler();
+	    chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds16(120), EndSelfTestingEventHandler, NULL);
 	    ChipLogProgress(AppServer, "[Smoke-CO-Alarm] SelfTesting command successfull");
     }
 }
@@ -567,6 +578,18 @@ void print_test_results(nlTestSuite * tSuite)
 }
 #endif
 
+void Event_handler_push_button()
+{
+    if(Server::GetInstance().GetFabricTable().FabricCount() != 0)
+    {
+        os_printf("Push button event received from host...\n");
+        /* Trigger manual self-test-request command for smoke-co-alarm */
+        os_printf("Manual Self Test Command Triggered...\n");
+        DeviceLayer::PlatformMgr().ScheduleWork(Trigger_SelfTest_emberAf, reinterpret_cast<intptr_t>(nullptr));
+        return;
+    }
+}
+
 int main(void)
 {
     talariautils::ApplicationInitLog("matter Smoke CO Alarm app");
@@ -574,7 +597,7 @@ int main(void)
     matter_hio_init();
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
-    vTaskDelay(pdMS_TO_TICKS(1800));
+    vTaskDelay(pdMS_TO_TICKS(2000));
 
     int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
     if (FactoryReset == 1 || FactoryReset == 2)

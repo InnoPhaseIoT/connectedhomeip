@@ -148,6 +148,7 @@ NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x
           e.g. identify read identify-time 1111 1
 
 
+- The self-test-request command can be triggered manually by pressing and holding the user push button on the host for at least 3 seconds, then releasing it.
 ### Enabling test event trigger
 - Enable "TALARIA_TEST_EVENT_TRIGGER_ENABLED" to trigger the test events for Smoke-CO-Alarm Sensor. It is enabled by default.
 - Below are the test events available for Smoke-CO-Alarm Sensor

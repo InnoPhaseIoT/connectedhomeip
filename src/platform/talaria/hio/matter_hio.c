@@ -110,6 +110,7 @@ void hio_reqmsg_free(struct hio_msg_hdr * msg);
 #define FOTA_CFG_FILE_PATH MOUNT_PATH "fota_config.json"
 #define FOTA_CFG_FLAG_PATH MOUNT_PATH "fota_flag.json"
 #define OPEN_COMMISSIONING_WINDOW "cm_ok"
+#define PUSH_BUTTON_EVENT "cm_ok"
 #define FOTA_START "do_fota"
 #define FOTA_IN_PROGRESS "fota_in_progress"
 #define FOTA_FAILED "FOTA_Failed"
@@ -428,6 +429,10 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
         {
             memcpy(&revd_smoke_co_alarm_data, req->data, sizeof(struct smoke_co_alarm_get_data));
             Smoke_co_alarm_update_status();
+        }
+        else if (strncmp(req->data, PUSH_BUTTON_EVENT, 5) == 0)
+        {
+            Event_handler_push_button();
         }
     }
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
