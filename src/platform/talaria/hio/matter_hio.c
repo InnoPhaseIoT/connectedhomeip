@@ -588,7 +588,7 @@ static void hio_matter_create_thread(void)
                                               * task. */
                     "hio_matter",            /* The text name assigned to the task - for debug only
                                               * as * it is not used by the kernel. */
-                    1024,                    /* The size of the stack to allocate to the task. */
+                    configMINIMAL_STACK_SIZE,/* The size of the stack to allocate to the task. */
                     NULL,                    /* The parameter passed to the task - not used in this case.
                                               */
                     (tskIDLE_PRIORITY + 2),  /* The priority assigned to the task. */
