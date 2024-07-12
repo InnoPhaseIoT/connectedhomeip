@@ -1958,7 +1958,7 @@ endpoint 1 {
     ram      attribute wrongCodeEntryLimit default = 3;
     ram      attribute userCodeTemporaryDisableTime default = 10;
     ram      attribute requirePINforRemoteOperation default = 0;
-    ram      attribute expiringUserTimeout;
+    ram      attribute expiringUserTimeout default = 2000;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
