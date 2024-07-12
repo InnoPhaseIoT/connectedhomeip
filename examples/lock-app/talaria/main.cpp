@@ -186,7 +186,7 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
                                             const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                             OperationErrorEnum & err)
 {
-    int  userIndex = 0;
+    int  userIndex = 0, CredentialIndex = 0;
     Nullable<uint16_t> userIndexPointer;
 
     ChipLogProgress(Zcl, "Door Lock App: lock Command endpoint=%d", endpointId);
@@ -203,6 +203,14 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     {
         if (strncmp(pinCode.Value().data() , credentialsList[i].credentialdata, pinCode.Value().size()) == 0)
         {
+            CredentialIndex = i;
+            break;
+        }
+    }
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        if (credentialsList[CredentialIndex].userindex == userList[i].credentialindex)
+        {
             userIndex = i + 1;
             break;
         }
@@ -210,8 +218,8 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     userIndexPointer.SetNonNull(userIndex);
 
     LockOpCredentials credentialsTypeStruct[1];
-    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[userIndex - 1].usertype;
-    credentialsTypeStruct[0].credentialIndex = credentialsList[userIndex - 1].userindex;
+    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[CredentialIndex].usertype;
+    credentialsTypeStruct[0].credentialIndex = credentialsList[CredentialIndex].userindex;
     List<const LockOpCredentials> credentialList(credentialsTypeStruct, 1);
     Nullable<List<const LockOpCredentials>> credentials;
     credentials.SetNonNull(credentialList);
@@ -240,7 +248,7 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
                                               const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                               OperationErrorEnum & err)
 {
-    int userIndex = 0;
+    int userIndex = 0, CredentialIndex = 0;
     Nullable<uint16_t> userIndexPointer;
 
     ChipLogProgress(Zcl, "Door Lock App: Unlock Command endpoint=%d", endpointId);
@@ -258,6 +266,14 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     {
         if (strncmp(pinCode.Value().data() , credentialsList[i].credentialdata, pinCode.Value().size()) == 0)
         {
+            CredentialIndex = i;
+            break;
+        }
+    }
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        if (credentialsList[CredentialIndex].userindex == userList[i].credentialindex)
+        {
             userIndex = i + 1;
             break;
         }
@@ -265,8 +281,8 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     userIndexPointer.SetNonNull(userIndex);
 
     LockOpCredentials credentialsTypeStruct[1];
-    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[userIndex - 1].usertype;
-    credentialsTypeStruct[0].credentialIndex = credentialsList[userIndex - 1].userindex;
+    credentialsTypeStruct[0].credentialType = (chip::app::Clusters::DoorLock::CredentialTypeEnum) credentialsList[CredentialIndex].usertype;
+    credentialsTypeStruct[0].credentialIndex = credentialsList[CredentialIndex].userindex;
     List<const LockOpCredentials> credentialList(credentialsTypeStruct, 1);
     Nullable<List<const LockOpCredentials>> credentials;
     credentials.SetNonNull(credentialList);
@@ -332,6 +348,7 @@ bool emberAfPluginDoorLockSetUser(chip::EndpointId endpointId, uint16_t userInde
     chip::Platform::CopyString(setUser->username, userName);
     for (size_t i = 0; i < totalCredentials; ++i)
     {
+        setUser->credentialindex = (uint8_t) credentials[i].credentialIndex;
         mCredentials[userIndex][i] = credentials[i];
     }
     if (cmd == CLEAR_USER)
@@ -370,7 +387,7 @@ bool emberAfPluginDoorLockGetUser(chip::EndpointId endpointId, uint16_t userInde
     user.creationSource = DlAssetSource::kMatterIM;
     user.modificationSource = DlAssetSource::kMatterIM;
 
-    if (credentialsList[userIndex].userstatus != (uint8_t) DlCredentialStatus::kAvailable)
+    if (credentialsList[(getUser->credentialindex) - 1].userstatus != (uint8_t) DlCredentialStatus::kAvailable)
     {
         user.credentials = chip::Span<const CredentialStruct>(mCredentials[userIndex], 1);
     }
@@ -564,9 +581,12 @@ void load_stored_info_from_host()
             continue;
         }
         memcpy(getCredential, &revd_credential, sizeof(struct dl_set_get_credential));
-        mCredentials[i][0].credentialType  = (chip::app::Clusters::DoorLock::CredentialTypeEnum) getCredential->usertype;
-        mCredentials[i][0].credentialIndex = getCredential->userindex;
-        // os_printf("\r\n credIndex: %d, credType: %d \r\n", getCredential->userindex, getCredential->usertype);
+        for (int x = 0; x < MAX_USERS; x++) {
+            if (userList[x].credentialindex == getCredential->userindex) {
+                mCredentials[x][0].credentialType  = (chip::app::Clusters::DoorLock::CredentialTypeEnum) getCredential->usertype;
+                mCredentials[x][0].credentialIndex = getCredential->userindex;
+            }
+        }
     }
     os_printf("\nReading User Lock data from host is completed...!!\n");
     vSemaphoreDelete(Getdata);

@@ -161,6 +161,7 @@ struct dl_set_get_user
 {
     uint8_t operationtype;            /**< operationtype */
     uint8_t userindex;                /**< userindex */
+    uint8_t credentialindex;          /**< credentialindex */
     char username[DOORLOCK_BUFF_LEN]; /**< username */
     uint32_t useruniqueid;            /**< useruniqueid */
     uint8_t userstatus;               /**< userstatus */
