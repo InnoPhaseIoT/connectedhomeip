@@ -186,7 +186,7 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
                                             const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                             OperationErrorEnum & err)
 {
-    int  userIndex = 0, CredentialIndex = 0;
+    int  userIndex = 0, CredentialIndex = 0, FoundMatch = 0;
     Nullable<uint16_t> userIndexPointer;
 
     ChipLogProgress(Zcl, "Door Lock App: lock Command endpoint=%d", endpointId);
@@ -197,7 +197,14 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
     int ret = matter_notify(DOOR_LOCK, LOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
     if (ret != 0)
         return false;
-    chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
+
+    if (!pinCode.HasValue())
+    {
+        chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
+        DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kLocked, OperationSourceEnum::kRemote);
+
+        return true;
+    }
 
     for (int i = 0; i < MAX_USERS; i++ )
     {
@@ -212,8 +219,14 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
         if (credentialsList[CredentialIndex].userindex == userList[i].credentialindex)
         {
             userIndex = i + 1;
+            FoundMatch = 1;
+            chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kLocked);
             break;
         }
+    }
+    if (FoundMatch != 1)
+    {
+        return false;
     }
     userIndexPointer.SetNonNull(userIndex);
 
@@ -248,7 +261,7 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
                                               const Nullable<chip::NodeId> & nodeId, const Optional<chip::ByteSpan> & pinCode,
                                               OperationErrorEnum & err)
 {
-    int userIndex = 0, CredentialIndex = 0;
+    int userIndex = 0, CredentialIndex = 0, FoundMatch = 0;
     Nullable<uint16_t> userIndexPointer;
 
     ChipLogProgress(Zcl, "Door Lock App: Unlock Command endpoint=%d", endpointId);
@@ -259,8 +272,15 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
     int ret = matter_notify(DOOR_LOCK, UNLOCK_DOOR, payload, (struct dl_unlock_with_timeout *) &time);
     if (ret != 0)
         return false;
-    chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
-    DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlatched, OperationSourceEnum::kRemote);
+
+    if (!pinCode.HasValue())
+    {
+        chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
+        DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlatched, OperationSourceEnum::kRemote);
+        DoorLockServer::Instance().SetLockState(endpointId, DlLockState::kUnlocked, OperationSourceEnum::kRemote);
+
+        return true;
+    }
 
     for (int i = 0; i < MAX_USERS; i++ )
     {
@@ -275,8 +295,14 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
         if (credentialsList[CredentialIndex].userindex == userList[i].credentialindex)
         {
             userIndex = i + 1;
+            FoundMatch = 1;
+            chip::app::Clusters::DoorLock::Attributes::LockState::Set(endpointId, chip::app::Clusters::DoorLock::DlLockState::kUnlocked);
             break;
         }
+    }
+    if (FoundMatch != 1)
+    {
+        return false;
     }
     userIndexPointer.SetNonNull(userIndex);
 
