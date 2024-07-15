@@ -1502,10 +1502,6 @@ server cluster DoorLock = 257 {
   readonly attribute nullable DlLockState lockState = 0;
   readonly attribute DlLockType lockType = 1;
   readonly attribute boolean actuatorEnabled = 2;
-  readonly attribute nullable DoorStateEnum doorState = 3;
-  attribute access(write: manage) int32u doorOpenEvents = 4;
-  attribute access(write: manage) int32u doorClosedEvents = 5;
-  attribute access(write: manage) int16u openPeriod = 6;
   readonly attribute int16u numberOfTotalUsersSupported = 17;
   readonly attribute int16u numberOfPINUsersSupported = 18;
   readonly attribute int8u maxPINCodeLength = 23;
@@ -1934,17 +1930,12 @@ endpoint 1 {
 
   server cluster DoorLock {
     emits event DoorLockAlarm;
-    emits event DoorStateChange;
     emits event LockOperation;
     emits event LockOperationError;
     emits event LockUserChange;
     persist  attribute lockState default = 1;
     ram      attribute lockType;
     ram      attribute actuatorEnabled;
-    ram      attribute doorState;
-    ram      attribute doorOpenEvents;
-    ram      attribute doorClosedEvents;
-    ram      attribute openPeriod;
     ram      attribute numberOfTotalUsersSupported default = 5;
     ram      attribute numberOfPINUsersSupported default = 5;
     ram      attribute maxPINCodeLength default = 8;
@@ -1963,7 +1954,7 @@ endpoint 1 {
     callback attribute acceptedCommandList;
     callback attribute eventList;
     callback attribute attributeList;
-    ram      attribute featureMap default = 0x1A1;
+    ram      attribute featureMap default = 0x181;
     ram      attribute clusterRevision default = 7;
 
     handle command LockDoor;
