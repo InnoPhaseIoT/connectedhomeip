@@ -1,0 +1,217 @@
+stages:
+    - build_matter_elf
+.cleanup: &cleanup
+  after_script:
+    - if [ "$CI_JOB_STATUS" == "success" ]; then
+        echo "Job succeeded, cleaning up the workspace";
+        rm -rf *;
+      else
+        echo "Job did not succeed, skipping cleanup";
+      fi
+.source_connected_home:
+    stage: build_matter_elf
+    before_script:
+        - git archive --remote=git@git.innophaseiot.com:devops/devops_scripts.git master | tar xvf -
+        - python artifacts_download.py --private_token $PT_TOKEN --project_id 343 --branch_name master --job_name make_sdk
+        - unzip make_sdk_artifacts.zip
+        - find . -name "*qa.zip" -exec unzip {} \; && cd "$(find . -type d -name '*_qa' -print -quit)" ; export Qa_DIR=${PWD}; cd ..; find . -name "*tmp.zip" -exec unzip {} \; && cd "$(find . -type d -name '*_tmp' -print -quit)"
+        - export Matter_DIR=${PWD};cd matter
+        - echo "Matter_DIR=$Matter_DIR" >> li.env; echo "Qa_DIR=$Qa_DIR" >> li.env; cp li.env ~/$CI_PROJECT_DIR/.
+        - cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip
+        #- git clone -b $CI_COMMIT_REF_NAME https://git.innophaseiot.com/external/connectedhomeip
+        - cd third_party/talaria/repo ; if [ -d "freertos_sdk" ] || [ -L "$freertos_sdk" ]; then     echo "link exists  exists. Deleting it..."; rm -rf "freertos_sdk"; fi;ln -sf $Matter_DIR freertos_sdk; cp -r $Matter_DIR/components $Matter_DIR/components_bak; cd $Matter_DIR; make -C components clean all;
+        #- cd $Matter_DIR/matter/connectedhomeip; source ./scripts/bootstrap.sh || true
+        #- pip install --upgrade prompt_toolkit || true
+    <<: *cleanup
+    artifacts:
+        reports:
+            dotenv: li.env 
+        expire_in: 15 h
+
+make_lighting-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cp -r $Qa_DIR/apps/talaria_two_aws $Matter_DIR/apps/talaria_two_aws; cp -r $Qa_DIR/apps/iot_aws $Matter_DIR/apps/iot_aws
+        - cd examples/lighting-app/talaria/
+        - make clean;make EXT_FLASH=true
+        - make clean;make EXT_FLASH=true SECURED=true
+        - make clean;make ENABLE_MQTT_APP=true
+        - make clean;make ENABLE_HTTP_APP=true
+        - make clean;make ENABLE_AWS_IOT_APP=true
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/lighting-app/**/*
+
+make_light-switch-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/light-switch-app/talaria/
+        - make clean ; make 
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/light-switch-app/**/*
+
+make_lock-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/lock-app/talaria/
+        - make clean ; make CHIP_ENABLE_OTA_STORAGE_ON_HOST=true
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/lock-app/**/*     
+        
+make_contact-sensor-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/contact-sensor-app/talaria/
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/contact-sensor-app/**/*  
+
+make_air-quality-sensor-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/air-quality-sensor-app/talaria/
+        - make clean ; make 
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/air-quality-sensor-app/**/*
+
+make_pump-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/pump-app/talaria/
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/pump-app/**/*
+
+make_window-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/window-app/talaria/
+        - make clean ; make EXT_FLASH=true
+        - make clean ; make EXT_FLASH=true SECURED=true 
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/window-app/**/*
+
+make_smoke-co-alarm-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/smoke-co-alarm-app/talaria/
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/smoke-co-alarm-app/**/*
+
+make_tv-app:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/tv-app/talaria/
+        - make clean ; make 
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/tv-app/**/*
+
+make_speaker:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/speaker/talaria/
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/speaker/**/*
+
+make_thermostat:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cd examples/thermostat/talaria/
+        - make clean ; make
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/thermostat/**/*
+
+make_chiptool:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - scripts/examples/gn_build_example.sh examples/chip-tool out/debug
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/chip-tool/**/*
+
+make_ota_provider:
+    extends: .source_connected_home
+    script:
+      - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+      - scripts/examples/gn_build_example.sh examples/ota-provider-app/linux out/debug chip_config_network_layer_ble=false 
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' 
+          changes:
+            - examples/ota-provider-app/**/*
+
+make_all:
+    extends: .source_connected_home
+    script:
+        - source ~/$CI_PROJECT_DIR/li.env; cd  ~/.BACKUP_DONT_DELETE/connectedhomeid/connectedhomeip; git fetch --all ; git checkout $CI_COMMIT_REF_NAME; source ./scripts/activate.sh;
+        - cp -r $Qa_DIR/apps/talaria_two_aws $Matter_DIR/apps/talaria_two_aws; cp -r $Qa_DIR/apps/iot_aws $Matter_DIR/apps/iot_aws
+        - scripts/examples/gn_build_example.sh examples/ota-provider-app/linux out/debug chip_config_network_layer_ble=false
+        - scripts/examples/gn_build_example.sh examples/chip-tool out/debug
+        - scripts/examples/gn_build_example.sh examples/ota-provider-app/linux out/debug chip_config_network_layer_ble=false 
+        - cd examples/lighting-app/talaria/ ; make clean ; make EXT_FLASH=true; make clean; make EXT_FLASH=true SECURED=true; make clean ; make ENABLE_MQTT_APP=true; make clean ; make ENABLE_HTTP_APP=true; make clean ; make ENABLE_AWS_IOT_APP=true;cd -
+        - cd examples/light-switch-app/talaria/ ; make clean ; make ; cd -
+        - cd examples/lock-app/talaria/ ; make clean ; make CHIP_ENABLE_OTA_STORAGE_ON_HOST=true ; make clean ; make; make clean; make CHIP_ENABLE_OTA_STORAGE_ON_HOST=true SECURED=true; cd -
+        - cd examples/contact-sensor-app/talaria/ ; make clean ; make ; cd -
+        - cd examples/air-quality-sensor-app/talaria/ ; make clean ; make ; cd -
+        - cd examples/pump-app/talaria/ ; make clean ; make ; cd -
+        - cd examples/window-app/talaria/ ; make clean ; make EXT_FLASH=true ; make clean ; make EXT_FLASH=true SECURED=true;cd -
+        - cd examples/smoke-co-alarm-app/talaria ; make clean ; make ; cd -
+        - cd examples/tv-app/talaria ; make clean ; make ; cd -
+        - cd examples/speaker/talaria ; make clean ; make ; cd -
+        - cd examples/thermostat/talaria ; make clean ; make ; cd -
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+          changes:
+            - "examples/ota-provider-app/**/*"
+            - "examples/lighting-app/**/*"
+            - "examples/light-switch-app/**/*"
+            - "examples/lock-app/**/*"
+            - "examples/contact-sensor-app/**/*"
+            - "examples/air-quality-sensor-app/**/*"
+            - "examples/pump-app/**/*"
+            - "examples/window-app/**/*"
+            - "examples/smoke-co-alarm-app/**/*"
+            - "examples/tv-app/**/*"
+            - "examples/speaker/**/*"
+            - "examples/thermostat/**/*"
+            - "examples/chip-tool/**/*"
+            - .gitlab-ci.yml
+          when: never
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+          when: always
