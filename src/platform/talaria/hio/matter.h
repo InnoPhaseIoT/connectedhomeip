@@ -259,6 +259,10 @@ struct smoke_co_alarm_get_data
     uint8_t ContaminationState;     /**< Contamination State */
     uint8_t SmokeSensitivityLevel;  /**< SmokeSensitivityLevel State */
     uint32_t ExpiryDate;            /**< ExpiryDate */
+    uint8_t PowerSourceStatus;      /**< Power Source Status */
+    uint8_t BatChargeLevel;         /**< Battery Charge Level */
+    bool BatReplacementNeeded;      /**< Battery Replacement Needed */
+    uint8_t BatReplaceability;      /**< Battery Replaceability */
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
