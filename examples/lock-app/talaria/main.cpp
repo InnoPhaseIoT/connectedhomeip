@@ -743,6 +743,7 @@ int main(void)
     {
         os_printf("Unable to wait on semaphore...!!\n");
     }
+    vSemaphoreDelete(ServerInitDone);
 
     os_printf("After Server initialization completed. os_free_heap(): %d\n", os_avail_heap());
 

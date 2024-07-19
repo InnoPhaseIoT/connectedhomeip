@@ -65,6 +65,7 @@ enum osur_cluster_cmd
     FOTA_SUBSCRIBE_EVENT,
     FOTA_HASH,
     FOTA_NAME,
+    FOTA_IMAGE_INTEGRITY_CHECK,
 };
 
 enum doorlock_cluster_cmd

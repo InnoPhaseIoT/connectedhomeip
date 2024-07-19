@@ -40,6 +40,15 @@ void SetOTAFailFlag( bool value)
     OTAStop = value;
 }
 
+static SemaphoreHandle_t imageIntCheckSem;
+static bool image_integrity_check_ok = false;
+void SetImageIntegrityCheck(bool integrity_flag)
+{
+    ChipLogProgress(SoftwareUpdate, "Image Integrity Check... %s", integrity_flag? "OK": "Failed");
+    image_integrity_check_ok = integrity_flag;
+    xSemaphoreGive(imageIntCheckSem);
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -125,13 +134,16 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
     int power_save_reenable_timeout = os_get_boot_arg_int("matter.max_ota_power_save_disable_time", 360);
 
     DeviceLayer::SystemLayer().StartTimer(
-        static_cast<System::Clock::Timeout>(power_save_reenable_timeout * 1000), OnOTADowanloadFailure, NULL);
+        static_cast<System::Clock::Timeout>(power_save_reenable_timeout * 1000), OnOTADowanloadFailure, imageProcessor);
     imageProcessor->mHeaderParser.Init();
     imageProcessor->mDownloader->OnPreparedForDownload(CHIP_NO_ERROR);
 }
 
-void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, void * aAppState)
+void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, intptr_t context)
 {
+    ChipLogProgress(SoftwareUpdate, "OTA Download has failed");
+    DeviceLayer::PlatformMgr().ScheduleWork(HandleAbort, context);
+    SetOTAFailFlag(false);
     /* Reenable power save */
     TalariaUtils::RestoreWcmPMConfig();
 }
@@ -169,6 +181,7 @@ void OTAImageProcessorImpl::HandleAbort(intptr_t context)
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     free(fw_hash);
 #endif
+    GetRequestorInstance()->CancelImageUpdate();
 }
 
 void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
@@ -197,10 +210,7 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (error != CHIP_NO_ERROR)
     {
         ChipLogError(SoftwareUpdate, "Failed to process OTA image header");
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mDownloader->EndDownload(error);
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
     int err;
@@ -212,10 +222,7 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
 #else
@@ -223,13 +230,8 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
-        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
         ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mOTAUpdateHandle = NULL;
-        imageProcessor->mHeaderParser.Clear();
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
 #endif
@@ -252,6 +254,7 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     /* fota commit.  This will reset the system */
     if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
         ChipLogError(SoftwareUpdate,"[APP]Error: FOTA commit failed");
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
     /* Deinitialize fota */
@@ -261,7 +264,22 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     imageProcessor->mHeaderParser.Clear();
     ChipLogProgress(SoftwareUpdate, "Commit Done!. de-init OTA");
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    imageIntCheckSem = xSemaphoreCreateCounting(1, 0);
+
     matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_ANNOUNCE_OTAPROVIDER, 0, NULL);
+
+    if (xSemaphoreTake(imageIntCheckSem, portMAX_DELAY) == pdFAIL) {
+        ChipLogError(SoftwareUpdate, "Unable to wait on Image integrity check semaphore...!!");
+    }
+    vSemaphoreDelete(imageIntCheckSem);
+
+    if (image_integrity_check_ok == false) {
+        ChipLogError(SoftwareUpdate, "Image Integrity Check has failed. Cancelling the OTA...");
+        imageProcessor->OTAImageProcessorImpl::Abort();
+    } else {
+        ChipLogError(SoftwareUpdate, "Image Integrity Check OK.. Applying the image");
+        image_integrity_check_ok = true;
+    }
 #endif
 }
 

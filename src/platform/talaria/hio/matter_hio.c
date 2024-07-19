@@ -339,11 +339,10 @@ int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t pay
         os_printf("\nPkt alloc error");
         return -1;
     }
-    if (payload_len)
-    {
-        packet_append(pkt, data, payload_len);
-        hio_packet_set_free_hook(&pkt, NULL, &hio_matter_data_ind_free);
-    }
+
+    packet_append(pkt, data, payload_len);
+    hio_packet_set_free_hook(&pkt, NULL, &hio_matter_data_ind_free);
+
     hio_write_msg(pkt, HIO_GROUP_MATTER, MATTER_CMD_NOTIFY_IND, 0);
     os_sem_wait(&hio_ind_sem); /* Wait here until packet is sent */
     return 0;
@@ -438,11 +437,13 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
-    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR)
-    {
-        if (strncmp(req->data, FOTA_FAILED, 11) == 0)
-        {
-            SetOTAFailFlag(true);
+    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR) {
+        if (req->cmd == FOTA_IMAGE_INTEGRITY_CHECK) {
+            SetImageIntegrityCheck(*((bool *) req->data));
+        } else {
+            if (strncmp(req->data, FOTA_FAILED, 11) == 0) {
+                SetOTAFailFlag(true);
+            }
         }
     }
 #endif
