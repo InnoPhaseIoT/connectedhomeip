@@ -83,6 +83,8 @@ public:
     static const Key kConfigKey_RegulatoryLocation;
     static const Key kConfigKey_CountryCode;
     static const Key kConfigKey_UniqueId;
+    static const Key kConfigKey_SoftwareVersion;
+    static const Key kConfigKey_SoftwareVersionStr;
 
     // CHIP Counter keys
     static const Key kCounterKey_RebootCount;

@@ -33,6 +33,7 @@ extern "C" {
 #endif
 #include "hio/matter.h"
 #include "hio/matter_hio.h"
+#include "utils.h"
 
 static bool OTAStop = false;
 void SetOTAFailFlag( bool value)
@@ -84,7 +85,41 @@ CHIP_ERROR OTAImageProcessorImpl::Abort()
 {
     DeviceLayer::PlatformMgr().ScheduleWork(HandleAbort, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
-};
+}
+
+bool OTAImageProcessorImpl::IsFirstImageRun()
+{
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    if (requestor == nullptr)
+    {
+        return false;
+    }
+
+    /* Adding safe delay for wifi to get connected before updating the notification to provider */
+    vTaskDelay(pdMS_TO_TICKS(100));
+    return requestor->GetCurrentUpdateState() == OTARequestorInterface::OTAUpdateStateEnum::kApplying;
+}
+
+CHIP_ERROR OTAImageProcessorImpl::ConfirmCurrentImage()
+{
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    if (requestor == nullptr)
+    {
+        return CHIP_ERROR_INTERNAL;
+    }
+
+    uint32_t currentVersion;
+    uint32_t targetVersion = requestor->GetTargetVersion();
+    ReturnErrorOnFailure(DeviceLayer::ConfigurationMgr().GetSoftwareVersion(currentVersion));
+    if (currentVersion != targetVersion)
+    {
+        ChipLogError(SoftwareUpdate, "Current software version = %" PRIu32 ", expected software version = %" PRIu32, currentVersion,
+                     targetVersion);
+        return CHIP_ERROR_INCORRECT_STATE;
+    }
+
+    return CHIP_NO_ERROR;
+}
 
 CHIP_ERROR OTAImageProcessorImpl::ProcessBlock(ByteSpan & block)
 {
@@ -141,9 +176,7 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
 
 void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, intptr_t context)
 {
-    ChipLogProgress(SoftwareUpdate, "OTA Download has failed");
-    DeviceLayer::PlatformMgr().ScheduleWork(HandleAbort, context);
-    SetOTAFailFlag(false);
+    ChipLogProgress(SoftwareUpdate, "Fast Download Timedout, enabling powersave");
     /* Reenable power save */
     TalariaUtils::RestoreWcmPMConfig();
 }
@@ -175,7 +208,11 @@ void OTAImageProcessorImpl::HandleAbort(intptr_t context)
     /* Reenable power save */
     TalariaUtils::RestoreWcmPMConfig();
     DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-    ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
+    if (imageProcessor->mOTAUpdateHandle != NULL) {
+        ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+    }
+#endif
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->ReleaseBlock();
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
@@ -230,7 +267,6 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
-        ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
         imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
@@ -252,7 +288,7 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     if (imageProcessor->mOTAUpdateHandle == NULL)
         return;
     /* fota commit.  This will reset the system */
-    if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
+    if (ota_commit_matter(imageProcessor->mOTAUpdateHandle, 0)) {
         ChipLogError(SoftwareUpdate,"[APP]Error: FOTA commit failed");
         imageProcessor->OTAImageProcessorImpl::Abort();
         return;
@@ -276,10 +312,18 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     if (image_integrity_check_ok == false) {
         ChipLogError(SoftwareUpdate, "Image Integrity Check has failed. Cancelling the OTA...");
         imageProcessor->OTAImageProcessorImpl::Abort();
+        return;
     } else {
         ChipLogError(SoftwareUpdate, "Image Integrity Check OK.. Applying the image");
         image_integrity_check_ok = true;
     }
+#endif
+    /* Update the image version */
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    DeviceLayer::ConfigurationMgr().StoreSoftwareVersion(requestor->GetTargetVersion());
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
+    /* Reset device after committing the OTA successfuly */
+    reset_device();
 #endif
 }
 

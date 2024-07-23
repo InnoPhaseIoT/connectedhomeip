@@ -142,10 +142,7 @@ void InitServer(intptr_t context)
     os_printf("Initialization completed. os_free_heap(): %d\n", os_avail_heap());
     CommissioningInterface::EnableCommissioning();
     matterutils::MatterConfigLog();
-    /* Trigger Connect WiFi Network if the Device is already Provisioned */
-    if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
-        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
-    }
+
 #if ENABLE_DIMMER_SWITCH
     if (matterutils::IsNodeCommissioned() == true)
     {

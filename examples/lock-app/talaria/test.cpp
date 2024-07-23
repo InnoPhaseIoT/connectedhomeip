@@ -154,6 +154,7 @@ void InitOTARequestor(void)
         gRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
         gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
         gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
+        gRequestorUser.SetSendNotifyUpdateApplied(true);
         gImageProcessor.SetOTADownloader(&gDownloader);
         gImageProcessor.ota_get_firmware_name(app_name);
         gDownloader.SetImageProcessorDelegate(&gImageProcessor);
@@ -245,10 +246,6 @@ void InitServer(intptr_t context)
     // custom_msg_exchange_api_init();
     CommissioningInterface::EnableCommissioning();
     matterutils::MatterConfigLog();
-    /* Trigger Connect WiFi Network if the Device is already Provisioned */
-    if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
-        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
-    }
 }
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
