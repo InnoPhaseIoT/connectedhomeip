@@ -113,6 +113,7 @@ const TalariaConfig::Key TalariaConfig::kConfigKey_CountryCode        = { kConfi
 const TalariaConfig::Key TalariaConfig::kConfigKey_UniqueId           = { kConfigNamespace_ChipConfig, "unique-id" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_SoftwareVersion    = { kConfigNamespace_ChipConfig, "software-ver" };
 const TalariaConfig::Key TalariaConfig::kConfigKey_SoftwareVersionStr = { kConfigNamespace_ChipConfig, "software-ver-str" };
+const TalariaConfig::Key TalariaConfig::kConfigKey_TargetSoftwareVersion = { kConfigNamespace_ChipConfig, "target-software-ver" };
 
 // Keys stored in the Chip-counters namespace
 const TalariaConfig::Key TalariaConfig::kCounterKey_RebootCount           = { kConfigNamespace_ChipCounters, "reboot-count" };

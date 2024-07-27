@@ -320,7 +320,7 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
 #endif
     /* Update the image version */
     OTARequestorInterface * requestor = chip::GetRequestorInstance();
-    DeviceLayer::ConfigurationMgr().StoreSoftwareVersion(requestor->GetTargetVersion());
+    TalariaConfig::WriteConfigValue(TalariaConfig::kConfigKey_TargetSoftwareVersion, requestor->GetTargetVersion());
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     /* Reset device after committing the OTA successfuly */
     reset_device();
