@@ -26,10 +26,23 @@ namespace talaria
 {
 namespace DeviceCommissioning
 {
+    TalariaDerivedAppDelegate DerivedAppDelegate;
     CommissioningManager *CommissioningInterface::mCommissioningMgr = nullptr;
+
+    void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
+    {
+        if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete)
+        {
+            ChipLogProgress(DeviceLayer, "Receive kCommissioningComplete");
+            CommissioningSessionInprogress =  false;
+            chip::DeviceLayer::Internal::TalariaUtils::RestoreWcmPMConfig();
+        }
+    }
 
     CHIP_ERROR CommissioningInterface::Init(CommissioningParam &param)
     {
+        DeviceLayer::PlatformMgrImpl().AddEventHandler(EventHandler, 0);
+
         if(mCommissioningMgr != nullptr)
             return CHIP_NO_ERROR;
 
@@ -72,6 +85,9 @@ namespace DeviceCommissioning
 
     CHIP_ERROR CommissioningInterface::EnableCommissioning()
     {
+        AppDelegate* mAppDelegate = &DerivedAppDelegate;
+        Server::GetInstance().GetCommissioningWindowManager().SetAppDelegate(mAppDelegate);
+
         if(mCommissioningMgr == nullptr)
         {
             ChipLogError(DeviceLayer, "Cannot commission, invalid commissioning type");

@@ -137,7 +137,7 @@ static void matter_custom_ota_check(void)
         ChipLogProgress(AppServer, "\nAvailable heap before initiating OTA: %d", xPortGetFreeHeapSize());
 
         /* Disable WCM power save for faster download */
-        chip::DeviceLayer::Internal::TalariaUtils::ConfigWcmPMForFOTA();
+        chip::DeviceLayer::Internal::TalariaUtils::DisableWcmPMConfig();
         /* Init custom matter ota */
         f_handle = matter_custom_ota_init(&fota_init_param);
         if (!f_handle) {
