@@ -191,6 +191,8 @@ static int matter_custom_ota_task_create(void)
      */
     if (xHandle == NULL)
     {
+        /* Create Semaphore for triggerring the OTA check */
+        matterCustomOtaCheck = xSemaphoreCreateCounting(1, 0);
         /* Create the task to load the persistent data from hsot */
         xReturned = xTaskCreate(matter_custom_ota_check,   /* Function that implements the task. */
                         "matter_custom_ota_check", /* Text name for the task. */
@@ -204,8 +206,7 @@ static int matter_custom_ota_task_create(void)
             /* The task was created.  Use the task's handle to delete the task. */
             ChipLogProgress(AppServer, "Custom OTA check task created...");
 
-            /* Create Semaphore for triggerring the OTA check and give initial semaphore to check OTA */
-            matterCustomOtaCheck = xSemaphoreCreateCounting(1, 0);
+            /* Give initial semaphore to check OTA */
             xSemaphoreGive(matterCustomOtaCheck);
             retval = 0;
         }
