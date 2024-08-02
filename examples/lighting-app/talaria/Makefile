@@ -10,7 +10,7 @@ include $(TOP)/build.mak
 
 # Variables
 OUT_DIR := out/test
-TARGET := $(OUT_DIR)/on-off-light-app.elf
+TARGET := $(OUT_DIR)/lighting-app.elf
 TARGET_STRIP := $(TARGET).strip
 TARGET_SIGN := $(TARGET).sign
 TARGET_ENC := $(TARGET).enc
@@ -23,8 +23,12 @@ CFLAGS += -I$(COMPONENTS_DIR)
 # Default values if not defined
 SECURED ?= false
 EXT_FLASH ?= false
-FACTORY_DATA_PROVIDER ?= false
-DEVICE_INSTANCE_INFO_PROVIDER ?= false
+ENABLE_HTTP_APP ?= false
+ENABLE_MQTT_APP ?= false
+ENABLE_AWS_IOT_APP ?= false
+ENABLE_OTA_REQUESTOR ?= true
+
+COMPILE_AWS_IOT_SDK_LIBS := talaria_aws_iot/compile_aws_sdk.sh
 
 # Targets
 all: check_key libcomponents $(TARGET)
@@ -50,10 +54,17 @@ ifdef KEY
 endif
 
 $(TARGET_STRIP): $(OUT_DIR)/build.ninja FORCE
+	 @if [ "$(ENABLE_AWS_IOT_APP)" = "true" ]; then \
+                echo "Executing $(COMPILE_AWS_IOT_SDK_LIBS)"; \
+                $(COMPILE_AWS_IOT_SDK_LIBS); \
+                if [ $$? -ne 0 ]; then \
+                        exit 1; \
+                fi; \
+        fi
 	ninja -C $(OUT_DIR) -j 4
 
 $(OUT_DIR)/build.ninja:
-	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH) config_enable_talaria_factory_data_provider=$(FACTORY_DATA_PROVIDER) config_enable_talaria_device_instance_info_provider=$(DEVICE_INSTANCE_INFO_PROVIDER)"
+	gn gen $(OUT_DIR) --args="is_debug=false chip_enable_secureboot=$(SECURED) chip_enable_ext_flash=$(EXT_FLASH) config_enable_http_client_app=$(ENABLE_HTTP_APP) config_enable_mqtt_app=$(ENABLE_MQTT_APP) config_enable_aws_iot_app=$(ENABLE_AWS_IOT_APP) chip_enable_ota_requestor=$(ENABLE_OTA_REQUESTOR)"
 
 ifdef KEY
 	$(info KEY=$(KEY))

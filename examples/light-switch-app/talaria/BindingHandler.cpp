@@ -20,19 +20,29 @@
 #include "app/CommandSender.h"
 #include "app/clusters/bindings/BindingManager.h"
 #include "app/server/Server.h"
+#include "controller/ReadInteraction.h"
 #include "controller/InvokeInteraction.h"
 #include "platform/CHIPDeviceLayer.h"
 #include <app/clusters/bindings/bindings.h>
 #include <lib/support/CodeUtils.h>
+#include "LightSwitch_ProjecConfig.h"
 
 #if CONFIG_ENABLE_CHIP_SHELL
 #include "lib/shell/Engine.h"
 #include "lib/shell/commands/Help.h"
 #endif // ENABLE_CHIP_SHELL
 
-extern int switch_interrupt;
+void Retry_PrepareBindingCommand(void);
+void Retry_PrepareBindingCommand_Level_Control(void);
+void Retry_PrepareBindingCommand_Colour_Control(void);
+void PrepareBindingCommand_identifyTime(void);
+
 using namespace chip;
 using namespace chip::app;
+using chip::app::Clusters::LevelControl::LevelControlOptions;
+using namespace chip::app::Clusters::ColorControl;
+using namespace chip::Controller;
+
 
 #if CONFIG_ENABLE_CHIP_SHELL
 using Shell::Engine;
@@ -66,7 +76,7 @@ void ProcessOnOffUnicastBindingCommand(CommandId commandId, const EmberBindingTa
         {
             retryCountForSendingCommandToLightingApp++;
             ChipLogError(NotSpecified, "OnOff command failed, Retrying to send Command");
-            switch_interrupt++;
+            Retry_PrepareBindingCommand();
         }
         else
         {
@@ -118,6 +128,421 @@ void ProcessOnOffGroupBindingCommand(CommandId commandId, const EmberBindingTabl
     }
 }
 
+#if ENABLE_LEVEL_CONTROL
+void ProcessLevelControlUnicastBindingCommand(BindingCommandData * data, const EmberBindingTableEntry & binding,
+                                              OperationalDeviceProxy * peer_device)
+{
+    auto onSuccess = [](const ConcreteCommandPath & commandPath, const StatusIB & status, const auto & dataResponse) {
+        retryCountForSendingCommandToLightingApp = 0;
+        ChipLogProgress(NotSpecified, "LevelControl command succeeds");
+    };
+
+    auto onFailure = [](CHIP_ERROR error) {
+        if(retryCountForSendingCommandToLightingApp == 0)
+        {
+            retryCountForSendingCommandToLightingApp++;
+            ChipLogError(NotSpecified, "LevelControl command failed, Retrying to send Command");
+            Retry_PrepareBindingCommand_Level_Control();
+        }
+        else
+        {
+            retryCountForSendingCommandToLightingApp = 0;
+            ChipLogError(NotSpecified, " LevelControl command failed: %" CHIP_ERROR_FORMAT, error.Format());
+        }
+    };
+
+    Clusters::LevelControl::Commands::MoveToLevel::Type moveToLevelCommand;
+    Clusters::LevelControl::Commands::Move::Type moveCommand;
+    Clusters::LevelControl::Commands::Step::Type stepCommand;
+    Clusters::LevelControl::Commands::Stop::Type stopCommand;
+    Clusters::LevelControl::Commands::MoveToLevelWithOnOff::Type moveToLevelWithOnOffCommand;
+    Clusters::LevelControl::Commands::MoveWithOnOff::Type moveWithOnOffCommand;
+    Clusters::LevelControl::Commands::StepWithOnOff::Type stepWithOnOffCommand;
+    Clusters::LevelControl::Commands::StopWithOnOff::Type stopWithOnOffCommand;
+
+    switch (data->commandId)
+    {
+    case Clusters::LevelControl::Commands::MoveToLevel::Id:
+        moveToLevelCommand.level           = static_cast<uint8_t>(data->args[0]);
+        moveToLevelCommand.transitionTime  = static_cast<DataModel::Nullable<uint16_t>>(data->args[1]);
+        moveToLevelCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[2]);
+        moveToLevelCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToLevelCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::Move::Id:
+        moveCommand.moveMode        = static_cast<EmberAfMoveMode>(data->args[0]);
+        moveCommand.rate            = static_cast<DataModel::Nullable<uint8_t>>(data->args[1]);
+        moveCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[2]);
+        moveCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::Step::Id:
+        stepCommand.stepMode        = static_cast<EmberAfStepMode>(data->args[0]);
+        stepCommand.stepSize        = static_cast<uint8_t>(data->args[1]);
+        stepCommand.transitionTime  = static_cast<DataModel::Nullable<uint16_t>>(data->args[2]);
+        stepCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        stepCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::Stop::Id:
+        stopCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[0]);
+        stopCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[1]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stopCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::MoveToLevelWithOnOff::Id:
+        moveToLevelWithOnOffCommand.level           = static_cast<uint8_t>(data->args[0]);
+        moveToLevelWithOnOffCommand.transitionTime  = static_cast<DataModel::Nullable<uint16_t>>(data->args[1]);
+        moveToLevelWithOnOffCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[2]);
+        moveToLevelWithOnOffCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToLevelWithOnOffCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::MoveWithOnOff::Id:
+        moveWithOnOffCommand.moveMode        = static_cast<EmberAfMoveMode>(data->args[0]);
+        moveWithOnOffCommand.rate            = static_cast<DataModel::Nullable<uint8_t>>(data->args[1]);
+        moveWithOnOffCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[2]);
+        moveWithOnOffCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveWithOnOffCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::StepWithOnOff::Id:
+        stepWithOnOffCommand.stepMode        = static_cast<EmberAfStepMode>(data->args[0]);
+        stepWithOnOffCommand.stepSize        = static_cast<uint8_t>(data->args[1]);
+        stepWithOnOffCommand.transitionTime  = static_cast<DataModel::Nullable<uint16_t>>(data->args[2]);
+        stepWithOnOffCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[3]);
+        stepWithOnOffCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepWithOnOffCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::LevelControl::Commands::StopWithOnOff::Id:
+        stopWithOnOffCommand.optionsMask     = static_cast<chip::BitMask<LevelControlOptions>>(data->args[0]);
+        stopWithOnOffCommand.optionsOverride = static_cast<chip::BitMask<LevelControlOptions>>(data->args[1]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stopWithOnOffCommand, onSuccess, onFailure);
+        break;
+    }
+}
+#endif /* ENABLE_LEVEL_CONTROL */
+
+#if ENABLE_COLOUR_CONTROL
+void ProcessColorControlUnicastBindingCommand(BindingCommandData * data, const EmberBindingTableEntry & binding,
+                                              OperationalDeviceProxy * peer_device)
+{
+    auto onSuccess = [](const ConcreteCommandPath & commandPath, const StatusIB & status, const auto & dataResponse) {
+        retryCountForSendingCommandToLightingApp = 0;
+        ChipLogProgress(NotSpecified, "ColourControl command succeeds");
+    };
+
+    auto onFailure = [](CHIP_ERROR error) {
+        if(retryCountForSendingCommandToLightingApp == 0)
+        {
+            retryCountForSendingCommandToLightingApp++;
+            ChipLogError(NotSpecified, "ColorControl command failed, Retrying to send Command");
+            Retry_PrepareBindingCommand_Colour_Control();
+        }
+        else
+        {
+            retryCountForSendingCommandToLightingApp = 0;
+            ChipLogError(NotSpecified, " ColorControl command failed: %" CHIP_ERROR_FORMAT, error.Format());
+        }
+    };
+
+    auto onSuccessHueRead = [](const ConcreteDataAttributePath & attributePath, const auto & dataResponse) {
+        ChipLogProgress(NotSpecified, "Read Color Control attribute succeeds. Hue Attribute value: %d", dataResponse);
+    };
+
+    auto onFailureHueRead = [](const ConcreteDataAttributePath * attributePath, CHIP_ERROR error) {
+        ChipLogError(NotSpecified, "Read Color Control Hue attribute failed: %" CHIP_ERROR_FORMAT, error.Format());
+    };
+
+    auto onSuccessSaturationRead = [](const ConcreteDataAttributePath & attributePath, const auto & dataResponse) {
+        ChipLogProgress(NotSpecified, "Read Color Control attribute succeeds. Saturation Attribute value: %d", dataResponse);
+    };
+
+    auto onFailureSaturationRead = [](const ConcreteDataAttributePath * attributePath, CHIP_ERROR error) {
+        ChipLogError(NotSpecified, "Read Color Control Saturation attribute failed: %" CHIP_ERROR_FORMAT, error.Format());
+    };
+
+    Clusters::ColorControl::Commands::MoveToHue::Type moveToHueCommand;
+    Clusters::ColorControl::Commands::MoveHue::Type moveHueCommand;
+    Clusters::ColorControl::Commands::StepHue::Type stepHueCommand;
+    Clusters::ColorControl::Commands::MoveToSaturation::Type moveToSaturationCommand;
+    Clusters::ColorControl::Commands::MoveSaturation::Type moveSaturationCommand;
+    Clusters::ColorControl::Commands::StepSaturation::Type stepSaturationCommand;
+    Clusters::ColorControl::Commands::MoveToHueAndSaturation::Type moveToHueAndSaturationCommand;
+    Clusters::ColorControl::Commands::MoveToColor::Type moveToColorCommand;
+    Clusters::ColorControl::Commands::MoveColor::Type moveColorCommand;
+    Clusters::ColorControl::Commands::StepColor::Type stepColorCommand;
+    Clusters::ColorControl::Commands::MoveToColorTemperature::Type moveToColorTemperatureCommand;
+    Clusters::ColorControl::Commands::EnhancedMoveToHue::Type enhancedMoveToHueCommand;
+    Clusters::ColorControl::Commands::EnhancedMoveHue::Type enhancedMoveHueCommand;
+    Clusters::ColorControl::Commands::EnhancedStepHue::Type enhancedStepHueCommand;
+    Clusters::ColorControl::Commands::EnhancedMoveToHueAndSaturation::Type enhancedMoveToHueAndSaturationCommand;
+    Clusters::ColorControl::Commands::ColorLoopSet::Type colorLoopSetCommand;
+    Clusters::ColorControl::Commands::StopMoveStep::Type stopMoveStepCommand;
+    Clusters::ColorControl::Commands::MoveColorTemperature::Type moveColorTemperatureCommand;
+    Clusters::ColorControl::Commands::StepColorTemperature::Type stepColorTemperatureCommand;
+
+    if (data->commandId == chip::kInvalidCommandId)
+    {
+        switch(data->attributeId)
+        {
+            case Clusters::ColorControl::Attributes::CurrentHue::Id:
+                chip::Controller::ReadAttribute <Clusters::ColorControl::Attributes::CurrentHue::TypeInfo>(
+                    peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote, onSuccessHueRead, onFailureHueRead);
+                break;
+
+            case Clusters::ColorControl::Attributes::CurrentSaturation::Id:
+                chip::Controller::ReadAttribute <Clusters::ColorControl::Attributes::CurrentSaturation::TypeInfo>(
+                    peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote, onSuccessSaturationRead, onFailureSaturationRead);
+                break;
+        }
+    }
+
+    switch (data->commandId)
+    {
+    case Clusters::ColorControl::Commands::MoveToHue::Id:
+        moveToHueCommand.hue             = static_cast<uint8_t>(data->args[0]);
+        moveToHueCommand.direction       = static_cast<HueDirection>(data->args[1]);
+        moveToHueCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        moveToHueCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        moveToHueCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveHue::Id:
+        moveHueCommand.moveMode        = static_cast<HueMoveMode>(data->args[0]);
+        moveHueCommand.rate            = static_cast<uint8_t>(data->args[1]);
+        moveHueCommand.optionsMask     = static_cast<uint8_t>(data->args[2]);
+        moveHueCommand.optionsOverride = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::StepHue::Id:
+        stepHueCommand.stepMode        = static_cast<HueStepMode>(data->args[0]);
+        stepHueCommand.stepSize        = static_cast<uint8_t>(data->args[1]);
+        stepHueCommand.transitionTime  = static_cast<uint8_t>(data->args[2]);
+        stepHueCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        stepHueCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveToSaturation::Id:
+        moveToSaturationCommand.saturation      = static_cast<uint8_t>(data->args[0]);
+        moveToSaturationCommand.transitionTime  = static_cast<uint16_t>(data->args[1]);
+        moveToSaturationCommand.optionsMask     = static_cast<uint8_t>(data->args[2]);
+        moveToSaturationCommand.optionsOverride = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToSaturationCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveSaturation::Id:
+        moveSaturationCommand.moveMode        = static_cast<SaturationMoveMode>(data->args[0]);
+        moveSaturationCommand.rate            = static_cast<uint8_t>(data->args[1]);
+        moveSaturationCommand.optionsMask     = static_cast<uint8_t>(data->args[2]);
+        moveSaturationCommand.optionsOverride = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveSaturationCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::StepSaturation::Id:
+        stepSaturationCommand.stepMode        = static_cast<SaturationStepMode>(data->args[0]);
+        stepSaturationCommand.stepSize        = static_cast<uint8_t>(data->args[1]);
+        stepSaturationCommand.transitionTime  = static_cast<uint8_t>(data->args[2]);
+        stepSaturationCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        stepSaturationCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepSaturationCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveToHueAndSaturation::Id:
+        moveToHueAndSaturationCommand.hue             = static_cast<uint8_t>(data->args[0]);
+        moveToHueAndSaturationCommand.saturation      = static_cast<uint8_t>(data->args[1]);
+        moveToHueAndSaturationCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        moveToHueAndSaturationCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        moveToHueAndSaturationCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToHueAndSaturationCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveToColor::Id:
+        moveToColorCommand.colorX          = static_cast<uint16_t>(data->args[0]);
+        moveToColorCommand.colorY          = static_cast<uint16_t>(data->args[1]);
+        moveToColorCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        moveToColorCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        moveToColorCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToColorCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveColor::Id:
+        moveColorCommand.rateX           = static_cast<uint16_t>(data->args[0]);
+        moveColorCommand.rateY           = static_cast<uint16_t>(data->args[1]);
+        moveColorCommand.optionsMask     = static_cast<uint8_t>(data->args[2]);
+        moveColorCommand.optionsOverride = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveColorCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::StepColor::Id:
+        stepColorCommand.stepX           = static_cast<uint16_t>(data->args[0]);
+        stepColorCommand.stepY           = static_cast<uint16_t>(data->args[1]);
+        stepColorCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        stepColorCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        stepColorCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepColorCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveToColorTemperature::Id:
+        moveToColorTemperatureCommand.colorTemperatureMireds = static_cast<uint16_t>(data->args[0]);
+        moveToColorTemperatureCommand.transitionTime         = static_cast<uint16_t>(data->args[1]);
+        moveToColorTemperatureCommand.optionsMask            = static_cast<uint8_t>(data->args[2]);
+        moveToColorTemperatureCommand.optionsOverride        = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveToColorTemperatureCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::EnhancedMoveToHue::Id:
+        enhancedMoveToHueCommand.enhancedHue     = static_cast<uint16_t>(data->args[0]);
+        enhancedMoveToHueCommand.direction       = static_cast<HueDirection>(data->args[1]);
+        enhancedMoveToHueCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        enhancedMoveToHueCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        enhancedMoveToHueCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         enhancedMoveToHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::EnhancedMoveHue::Id:
+        enhancedMoveHueCommand.moveMode        = static_cast<HueMoveMode>(data->args[0]);
+        enhancedMoveHueCommand.rate            = static_cast<uint16_t>(data->args[1]);
+        enhancedMoveHueCommand.optionsMask     = static_cast<uint8_t>(data->args[2]);
+        enhancedMoveHueCommand.optionsOverride = static_cast<uint8_t>(data->args[3]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         enhancedMoveHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::EnhancedStepHue::Id:
+        enhancedStepHueCommand.stepMode        = static_cast<HueStepMode>(data->args[0]);
+        enhancedStepHueCommand.stepSize        = static_cast<uint16_t>(data->args[1]);
+        enhancedStepHueCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        enhancedStepHueCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        enhancedStepHueCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         enhancedStepHueCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::EnhancedMoveToHueAndSaturation::Id:
+        enhancedMoveToHueAndSaturationCommand.enhancedHue     = static_cast<uint16_t>(data->args[0]);
+        enhancedMoveToHueAndSaturationCommand.saturation      = static_cast<uint8_t>(data->args[1]);
+        enhancedMoveToHueAndSaturationCommand.transitionTime  = static_cast<uint16_t>(data->args[2]);
+        enhancedMoveToHueAndSaturationCommand.optionsMask     = static_cast<uint8_t>(data->args[3]);
+        enhancedMoveToHueAndSaturationCommand.optionsOverride = static_cast<uint8_t>(data->args[4]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         enhancedMoveToHueAndSaturationCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::ColorLoopSet::Id:
+        colorLoopSetCommand.updateFlags =
+            static_cast<chip::BitMask<chip::app::Clusters::ColorControl::ColorLoopUpdateFlags>>(data->args[0]);
+        colorLoopSetCommand.action          = static_cast<ColorLoopAction>(data->args[1]);
+        colorLoopSetCommand.direction       = static_cast<ColorLoopDirection>(data->args[2]);
+        colorLoopSetCommand.time            = static_cast<uint16_t>(data->args[3]);
+        colorLoopSetCommand.startHue        = static_cast<uint16_t>(data->args[4]);
+        colorLoopSetCommand.optionsMask     = static_cast<uint8_t>(data->args[5]);
+        colorLoopSetCommand.optionsOverride = static_cast<uint8_t>(data->args[6]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         colorLoopSetCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::StopMoveStep::Id:
+        stopMoveStepCommand.optionsMask     = static_cast<uint8_t>(data->args[0]);
+        stopMoveStepCommand.optionsOverride = static_cast<uint8_t>(data->args[1]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stopMoveStepCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::MoveColorTemperature::Id:
+        moveColorTemperatureCommand.moveMode                      = static_cast<HueMoveMode>(data->args[0]);
+        moveColorTemperatureCommand.rate                          = static_cast<uint16_t>(data->args[1]);
+        moveColorTemperatureCommand.colorTemperatureMinimumMireds = static_cast<uint16_t>(data->args[2]);
+        moveColorTemperatureCommand.colorTemperatureMaximumMireds = static_cast<uint16_t>(data->args[3]);
+        moveColorTemperatureCommand.optionsMask                   = static_cast<uint8_t>(data->args[4]);
+        moveColorTemperatureCommand.optionsOverride               = static_cast<uint8_t>(data->args[5]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         moveColorTemperatureCommand, onSuccess, onFailure);
+        break;
+
+    case Clusters::ColorControl::Commands::StepColorTemperature::Id:
+        stepColorTemperatureCommand.stepMode                      = static_cast<HueStepMode>(data->args[0]);
+        stepColorTemperatureCommand.stepSize                      = static_cast<uint16_t>(data->args[1]);
+        stepColorTemperatureCommand.transitionTime                = static_cast<uint16_t>(data->args[2]);
+        stepColorTemperatureCommand.colorTemperatureMinimumMireds = static_cast<uint16_t>(data->args[3]);
+        stepColorTemperatureCommand.colorTemperatureMaximumMireds = static_cast<uint16_t>(data->args[4]);
+        stepColorTemperatureCommand.optionsMask                   = static_cast<uint8_t>(data->args[5]);
+        stepColorTemperatureCommand.optionsOverride               = static_cast<uint8_t>(data->args[6]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         stepColorTemperatureCommand, onSuccess, onFailure);
+        break;
+    }
+
+}
+#endif /* ENABLE_COLOUR_CONTROL */
+
+void ProcessIdentifyUnicastBindingCommand(BindingCommandData * data, const EmberBindingTableEntry & binding,
+                                              OperationalDeviceProxy * peer_device)
+{
+        auto onSuccess = [](const ConcreteCommandPath & commandPath, const StatusIB & status, const auto & dataResponse) {
+        retryCountForSendingCommandToLightingApp = 0;
+        ChipLogProgress(NotSpecified, "Identify command succeeds");
+    };
+
+    auto onFailure = [](CHIP_ERROR error) {
+        if(retryCountForSendingCommandToLightingApp == 0)
+        {
+            retryCountForSendingCommandToLightingApp++;
+            ChipLogError(NotSpecified, "Identify command failed, Retrying to send Command");
+        }
+        else
+        {
+            retryCountForSendingCommandToLightingApp = 0;
+            ChipLogError(NotSpecified, " Identify command failed: %" CHIP_ERROR_FORMAT, error.Format());
+        }
+    };
+
+    Clusters::Identify::Commands::Identify::Type identify;
+    Clusters::Identify::Commands::TriggerEffect::Type triggerEffect;
+    switch (data->commandId)
+    {
+    case Clusters::Identify::Commands::Identify::Id:
+        identify.identifyTime = static_cast<int>(data->args[0]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         identify, onSuccess, onFailure);
+
+        break;
+    case Clusters::Identify::Commands::TriggerEffect::Id:
+        triggerEffect.effectIdentifier = static_cast<chip::app::Clusters::Identify::EffectIdentifierEnum>(data->args[0]);
+        triggerEffect.effectVariant = static_cast<chip::app::Clusters::Identify::EffectVariantEnum>(data->args[1]);
+        Controller::InvokeCommandRequest(peer_device->GetExchangeManager(), peer_device->GetSecureSession().Value(), binding.remote,
+                                         triggerEffect, onSuccess, onFailure);
+        break;
+    }
+}
+
 void LightSwitchChangedHandler(const EmberBindingTableEntry & binding, OperationalDeviceProxy * peer_device, void * context)
 {
     VerifyOrReturn(context != nullptr, ChipLogError(NotSpecified, "OnDeviceConnectedFn: context is null"));
@@ -141,6 +566,22 @@ void LightSwitchChangedHandler(const EmberBindingTableEntry & binding, Operation
             ProcessOnOffUnicastBindingCommand(data->commandId, binding, peer_device->GetExchangeManager(),
                                               peer_device->GetSecureSession().Value());
             break;
+#if ENABLE_LEVEL_CONTROL
+	case Clusters::LevelControl::Id:
+            VerifyOrDie(peer_device != nullptr && peer_device->ConnectionReady());
+            ProcessLevelControlUnicastBindingCommand(data, binding, peer_device);
+            break;
+#endif /* ENABLE_LEVEL_CONTROL */
+
+#if ENABLE_COLOUR_CONTROL
+	case Clusters::ColorControl::Id:
+            VerifyOrDie(peer_device != nullptr && peer_device->ConnectionReady());
+            ProcessColorControlUnicastBindingCommand(data, binding, peer_device);
+            break;
+#endif /* ENABLE_COLOUR_CONTROL */
+        case Clusters::Identify::Id:
+            VerifyOrDie(peer_device != nullptr && peer_device->ConnectionReady());
+            ProcessIdentifyUnicastBindingCommand(data, binding, peer_device);
         }
     }
 }

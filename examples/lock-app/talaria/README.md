@@ -139,3 +139,5 @@ Tool, of the document: Application_for_Matter.pdf (matter_alpha_v1.0\hosted_matt
           >>> doorlock clear-credential '{ "credentialType": 1, "credentialIndex": 1}' 1111 1 --timedInteractionTimeoutMs 1000
           ## Command to Clear the User
           >>> doorlock clear-user 1 1111 1 --timedInteractionTimeoutMs 1000
+          ## To send the 'Door Lock Jammed Alarm', press and hold the button which was used for commissioning for 5 second
+          >>> doorlock read-event door-lock-alarm 1111 1

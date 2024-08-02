@@ -39,10 +39,26 @@ extern "C" {
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fs_utils.h>
+#if (CHIP_ENABLE_SECUREBOOT == true)
+#include <kernel/secureboot.h>
+#include <kernel/spi-mem.h>
+#include <kernel/spi.h>
+#include <kernel/flash.h>
+#include <secure_key.h>
+#include <kernel/page_alloc.h>
+#endif
 }
 #endif /* _cplusplus */
 
 #define DATA_PARTITION_PATH "/data"
+#if (CHIP_ENABLE_SECUREBOOT == true)
+#define CIPHER_KEY_LEN 32
+#define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
+#define SECUREBOOT_SECRET_ADDR_END 0x000B0000
+
+static bool just_once = false;
+static uint8_t app_cipher_key[CIPHER_KEY_LEN];
+#endif
 
 namespace chip {
 namespace DeviceLayer {
@@ -54,6 +70,7 @@ namespace Internal {
 const char TalariaConfig::kConfigNamespace_ChipFactory[]  = "chip-factory";
 const char TalariaConfig::kConfigNamespace_ChipConfig[]   = "chip-config";
 const char TalariaConfig::kConfigNamespace_ChipCounters[] = "chip-counters";
+const char TalariaConfig::kConfigNamespace_KVS[]          = "kvs";
 
 // Keys stored in the chip-factory namespace
 const TalariaConfig::Key TalariaConfig::kConfigKey_SerialNum             = { kConfigNamespace_ChipFactory, "serial-num" };
@@ -101,7 +118,6 @@ const TalariaConfig::Key TalariaConfig::kCounterKey_UpTime                = { kC
 const TalariaConfig::Key TalariaConfig::kCounterKey_TotalOperationalHours = { kConfigNamespace_ChipCounters, "total-hours" };
 const TalariaConfig::Key TalariaConfig::kCounterKey_BootReason            = { kConfigNamespace_ChipCounters, "boot-reason" };
 
-
 CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
 {
     char path[100];
@@ -110,8 +126,23 @@ CHIP_ERROR TalariaConfig::ReadFromFS(Key key, char ** read_data, int *read_len)
     if (utils_is_file_present(path) == 0) {
         return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
     }
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    if (!just_once) {
+        uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+        struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
 
+        /* get keys from key-storage */
+        sec_key_read_vault(spi_mem, app_cipher_key,
+            offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+            secureboot_secret);
+
+        just_once = true;
+    }
+
+    *read_data = utils_file_secured_get(path, read_len, (void *)app_cipher_key);
+#else
     *read_data = utils_file_get(path, read_len);
+#endif
     return CHIP_NO_ERROR;
 }
 
@@ -130,11 +161,30 @@ CHIP_ERROR TalariaConfig::WriteToFS(Key key, const void * data, size_t data_len)
     sprintf(path, "%s/%s/%s", DATA_PARTITION_PATH, key.Namespace, key.Name);
     ChipLogDetail(DeviceLayer, "Writing path: %s", path, data_len);
 
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    if (!just_once) {
+        uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+        struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
+
+        /* get keys from key-storage */
+        sec_key_read_vault(spi_mem, app_cipher_key,
+            offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+            secureboot_secret);
+
+        just_once = true;
+    }
+
+    if (utils_file_secured_store(path, data, data_len, (void *)app_cipher_key) < 0) {
+        ChipLogError(DeviceLayer, "Error writing to FS");
+        return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
+    }
+#else
     ret = utils_file_store(path, data, data_len);
     if (ret < 0) {
         ChipLogError(DeviceLayer, "Error writing to FS");
-        return CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND;
+        return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
     }
+#endif
     return CHIP_NO_ERROR;
 }
 
@@ -165,6 +215,16 @@ bool TalariaConfig::ConfigExistsInFS(Key key)
         return false;
     }
     return true;
+}
+
+static uint8_t * TalariaConfig::GetAppCipherKey()
+{
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    /* Return app_cipher_key */
+    return app_cipher_key;
+#else
+    return NULL;
+#endif
 }
 
 CHIP_ERROR TalariaConfig::ReadConfigValue(Key key, bool & val)
@@ -343,7 +403,7 @@ void TalariaConfig::FactoryDefaultConfigCotunters()
     for (int i = 0; i < sizeof(clear_key_set) / sizeof(clear_key_set[0]); i++) {
         err = ClearConfigValue(*clear_key_set[i]);
         if (err != CHIP_NO_ERROR) {
-            ChipLogDetail(DeviceLayer, "Failed to clear %s", clear_key_set[i].Name);
+            ChipLogDetail(DeviceLayer, "Failed to clear %s", clear_key_set[i]->Name);
         }
     }
 

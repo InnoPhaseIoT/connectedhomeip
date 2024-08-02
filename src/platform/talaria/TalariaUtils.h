@@ -90,6 +90,7 @@ public:
     static void retryConnectWiFi();
     static CHIP_ERROR ConfigWcmPMForFOTA();
     static CHIP_ERROR RestoreWcmPMConfig();
+    static struct wcm_handle * TalariaUtils::Get_wcm_handle(void);
 };
 
 } // namespace Internal

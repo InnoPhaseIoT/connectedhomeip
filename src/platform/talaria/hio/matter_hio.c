@@ -40,6 +40,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talaria_two.h>
+#if (CHIP_ENABLE_SECUREBOOT == true)
+#include <kernel/secureboot.h>
+
+#define SECUREBOOT_SECRET_ADDR_START 0x000AFFDC
+#define CIPHER_KEY_LEN 32
+#endif
 
 #pragma GCC diagnostic push
 /* Suppress the "-Wstringop-truncation" warning. It was created by cogg logic.!
@@ -47,6 +53,7 @@
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #include "matter_hio.h"
 #pragma GCC diagnostic pop
+#include <CHIPProjectAppConfig.h>
 
 struct os_semaphore hio_ind_sem;
 
@@ -54,9 +61,22 @@ struct os_semaphore hio_ind_sem;
 static bool hio_matter_thread_init = false;
 TaskHandle_t hio_matter_thread     = NULL;
 QueueHandle_t matter_cmd_queue;
+extern SemaphoreHandle_t Getdata;
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
 extern struct dl_set_get_user revd_user;
 extern struct dl_set_get_credential revd_credential;
-extern SemaphoreHandle_t Getdata;
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
+extern struct thermostat_get_data revd_data;
+extern struct thermostat_read_temperature revd_temp;
+extern SemaphoreHandle_t GetTemperatureData;
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+extern struct smoke_co_alarm_get_data revd_smoke_co_alarm_data;
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
 enum
 {
@@ -89,6 +109,11 @@ void hio_reqmsg_free(struct hio_msg_hdr * msg);
 #define MOUNT_PATH "/data/"
 #define FOTA_CFG_FILE_PATH MOUNT_PATH "fota_config.json"
 #define FOTA_CFG_FLAG_PATH MOUNT_PATH "fota_flag.json"
+#define OPEN_COMMISSIONING_WINDOW "cm_ok"
+#define PUSH_BUTTON_EVENT "cm_ok"
+#define FOTA_START "do_fota"
+#define FOTA_IN_PROGRESS "fota_in_progress"
+#define FOTA_FAILED "FOTA_Failed"
 
 enum
 {
@@ -117,7 +142,6 @@ static char confbufgetc(char * buf)
 
 int fota_flag_status_set(char * param_name, char * param_val)
 {
-
     struct json_parser json;
 
     int ch             = 'A';
@@ -127,26 +151,63 @@ int fota_flag_status_set(char * param_name, char * param_val)
     int retval = -1, cnfDataLen = 0, endposition = 0, startposition = 0;
     int index        = 0;
     int paramLenDiff = 0;
-
-    FILE * f_part;
     size_t bytesRead;
+
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    uint32_t *secureboot_secret = (uint32_t *)SECUREBOOT_SECRET_ADDR_START;
+    uint8_t app_cipher_key[CIPHER_KEY_LEN];
+
+    struct spi_mem_device *spi_mem = os_flash_get_spi_dev();
+
+    /* get keys from key-storage */
+    sec_key_read_vault(spi_mem, app_cipher_key,
+        offsetof(struct secure_boot, enc_key), CIPHER_KEY_LEN,
+        secureboot_secret);
+
+    int tlen         = 0;
+    char * temp_buff = utils_file_secured_get(FOTA_CFG_FLAG_PATH, &tlen, (void *) app_cipher_key);
+    if (NULL == temp_buff)
+    {
+        os_printf("\nCritical Error: Could not open %s file", FOTA_CFG_FLAG_PATH);
+        return 1;
+    }
+#else
+    FILE * f_part;
     f_part = fopen(FOTA_CFG_FLAG_PATH, "r+");
     if (f_part == NULL)
     {
         os_printf("Failed to open the file.\n");
         return 1;
     }
+#endif
 
+    /* MAX_BUFFER_SIZE iS 512 bytes */
     confData = pvPortMalloc(MAX_BUFFER_SIZE);
+    if (confData == NULL)
+    {
+        os_printf("Failed to allocate memory\n");
+#if (CHIP_ENABLE_SECUREBOOT == true)
+        vPortFree(temp_buff);
+#else
+        fclose(f_part);
+#endif
+        return 1;
+    }
 
-    os_printf("Contents of the file:\n");
-    bytesRead = fread(confData, 1, MAX_BUFFER_SIZE, f_part);
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    memcpy(confData, temp_buff, tlen);
+    bytesRead = tlen;
+    /* Freeing the read buffer as it's not needed anymore */
+    vPortFree(temp_buff);
+#else
+    bytesRead = fread(confData, 1, 512, f_part);
     if (bytesRead == 0)
     {
         os_printf("Failed to read from the file.\n");
         fclose(f_part);
         return 1;
     }
+#endif
     confData[bytesRead] = '\0';
     json_init(&json);
     while (1)
@@ -158,7 +219,7 @@ int fota_flag_status_set(char * param_name, char * param_val)
         }
         ch = confbufgetc(confData);
         endposition++;
-        volatile int t = json_tokenizer(&json, ch);
+        volatile __auto_type t = json_tokenizer(&json, ch);
         if (t == JSON_END)
             break;
         if (t == JSON_BEGIN_ARRAY)
@@ -222,27 +283,44 @@ int fota_flag_status_set(char * param_name, char * param_val)
     index += startposition;
     memcpy(finbuff + index, param_val, strlen(param_val)); // copy new data
     index += strlen(param_val);
-    memcpy(finbuff + index, confData + endposition, (cnfDataLen - endposition)); // copy remaining data
+    memcpy(finbuff + index, confData + endposition,
+           (cnfDataLen - endposition)); // copy remaining data
     index += (cnfDataLen - endposition);
     finbuff[index] = '\0';
 
     json_finish(&json);
+#if (CHIP_ENABLE_SECUREBOOT == true)
+    if (utils_file_secured_store(FOTA_CFG_FLAG_PATH, finbuff, strlen(finbuff), (void *) app_cipher_key) < 0)
+    {
+        os_printf("Failed to write to file %s\n", FOTA_CFG_FLAG_PATH);
+        conf_clear();
+        vPortFree(confData);
+        return 1;
+    } else {
+        os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
+    }
+#else
     fseek(f_part, 0, SEEK_SET);
 
     if (fputs(finbuff, f_part) == EOF)
     {
         os_printf("Failed to write to file %s.\n", FOTA_CFG_FLAG_PATH);
+        conf_clear();
+        vPortFree(confData);
+        return 1;
     }
     else
     {
         os_printf("Successfully wrote to file %s.\n", FOTA_CFG_FLAG_PATH);
     }
     fclose(f_part);
+#endif
 
     conf_clear();
     vPortFree(confData);
     return 0;
 }
+
 /*fota code end*/
 
 static void hio_matter_data_ind_free(struct packet ** pkt)
@@ -285,30 +363,89 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
     int ok                            = false;
     struct matter_data_send_req * req = packet_data(msg);
     struct packet * rsp_pkt;
-
-    if (strncmp(req->data, "cm_ok", 5) == 0)
+    if (req->cluster >= MAX_CLUSTER)
     {
-        openCommissionWindow();
-    }
-
-    if (strncmp(req->data, "do_fota", 7) == 0)
-    {
-        fota_flag_status_set("fota_in_progress", "1");
-    }
-
-    if (req->cmd == GET_USER)
-    {
-        // os_printf("\r\nget_user\r\n");
-        memcpy(&revd_user, req->data, sizeof(struct dl_set_get_user));
         xSemaphoreGive(Getdata);
+        os_printf("\n Receieved Unsupported Cluster Command \n");
     }
-    else if (req->cmd == GET_CREDENTIAL_STATUS)
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
+    if (req->cluster == DOOR_LOCK)
     {
-        // os_printf("\r\nget_credential\r\n");
-        memcpy(&revd_credential, req->data, sizeof(struct dl_set_get_credential));
-        xSemaphoreGive(Getdata);
+        if (strncmp(req->data, OPEN_COMMISSIONING_WINDOW, 5) == 0)
+        {
+            openCommissionWindow();
+        }
     }
 
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
+
+    if (strncmp(req->data, FOTA_START, 7) == 0)
+    {
+        fota_flag_status_set(FOTA_IN_PROGRESS, "1");
+    }
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
+    if (req->cluster == DOOR_LOCK)
+    {
+        if (req->cmd == GET_USER)
+        {
+            // os_printf("\r\nget_user\r\n");
+            memcpy(&revd_user, req->data, sizeof(struct dl_set_get_user));
+            xSemaphoreGive(Getdata);
+        }
+        else if (req->cmd == GET_CREDENTIAL_STATUS)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_credential, req->data, sizeof(struct dl_set_get_credential));
+            xSemaphoreGive(Getdata);
+        }
+    }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
+    if (req->cluster == THERMOSTAT)
+    {
+        if (req->cmd == THERMOSTAT_GET_DATA)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_data, req->data, sizeof(struct thermostat_get_data));
+            xSemaphoreGive(Getdata);
+            os_printf("\r\n [Thermostat] get_data: data received from host...\r\n");
+        }
+        else if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
+        {
+            // os_printf("\r\nget_credential\r\n");
+            memcpy(&revd_temp, req->data, sizeof(struct thermostat_read_temperature));
+            xSemaphoreGive(GetTemperatureData);
+            os_printf("\r\n [Thermostat] get_temp: temperature received from host...\r\n");
+        }
+    }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
+
+#if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 118)
+    if (req->cluster == SMOKE_CO_ALARM)
+    {
+        if (req->cmd == SMOKE_CO_ALARM_GET_DATA)
+        {
+            memcpy(&revd_smoke_co_alarm_data, req->data, sizeof(struct smoke_co_alarm_get_data));
+            Smoke_co_alarm_update_status();
+        }
+        else if (strncmp(req->data, PUSH_BUTTON_EVENT, 5) == 0)
+        {
+            Event_handler_push_button();
+        }
+    }
+#endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
+
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR)
+    {
+        if (strncmp(req->data, FOTA_FAILED, 11) == 0)
+        {
+            SetOTAFailFlag(true);
+        }
+    }
+#endif
 #ifdef TESTCODE
     os_printf("\r\ncluster: %d\r\n", req->cluster);
     os_printf("\r\ncmd: %d\r\n", req->cmd);

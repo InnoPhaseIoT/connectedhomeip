@@ -23,6 +23,11 @@ executable("lock-app.elf") {
     "test.cpp",
   ]
 
+  defines = [
+    "CHIP_ENABLE_OTA_STORAGE_ON_HOST=${chip_enable_ota_storage_on_host}",
+    "CHIP_ENABLE_SECUREBOOT=${chip_enable_secureboot}",
+  ]
+
   deps = [
     "${chip_root}/examples/lock-app/talaria/data_model",
     "${chip_root}/src/lib",
@@ -36,14 +41,6 @@ executable("lock-app.elf") {
 
   output_dir = root_out_dir
 
-  defines = []
-  if (config_enable_talaria_factory_data_provider == true) {
-    defines += ["CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER=1",]
-  }
-
-  if (config_enable_talaria_device_instance_info_provider == true) {
-    defines += ["CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER=1",]
-  }
 
   ldflags = [  ]
   lib_dirs = [ 

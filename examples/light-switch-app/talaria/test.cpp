@@ -26,9 +26,6 @@ extern "C" {
 #include <kernel/gpio.h>
 #include <talaria_two.h>
 
-void print_faults();
-int filesystem_util_mount_data_if(const char * path);
-
 #ifdef __cplusplus
 }
 #endif
@@ -55,13 +52,11 @@ int filesystem_util_mount_data_if(const char * path);
 #include <common/DeviceCommissioningInterface.h>
 #include <common/Utils.h>
 #include <platform/talaria/FactoryDataProvider.h>
+#include "LightSwitch_ProjecConfig.h"
 
 #define os_avail_heap xPortGetFreeHeapSize
 
-#define SWITCH_PIN 18
-extern uint32_t state;
-extern uint32_t switch_pin;
-int __irq gpio_changed(uint32_t irqno, void * arg);
+int SoftwareTimer_Init(void);
 
 using namespace chip;
 using namespace chip::Platform;
@@ -103,6 +98,16 @@ void EventHandler(const DeviceLayer::ChipDeviceEvent * event, intptr_t arg)
     {
         ChipLogProgress(DeviceLayer, "Receive kCHIPoBLEConnectionEstablished");
     }
+#if ENABLE_DIMMER_SWITCH
+    if (event->Type == DeviceLayer::DeviceEventType::kCommissioningComplete)
+    {
+        ChipLogProgress(DeviceLayer, "Receive kCommissioningComplete");
+	if (SoftwareTimer_Init() != 0)
+	{
+	    ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
+	}
+    }
+#endif /* ENABLE_DIMMER_SWITCH */
 }
 
 void InitServer(intptr_t context)
@@ -141,6 +146,15 @@ void InitServer(intptr_t context)
     if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
         chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
     }
+#if ENABLE_DIMMER_SWITCH
+    if (matterutils::IsNodeCommissioned() == true)
+    {
+	if (SoftwareTimer_Init() != 0)
+	{
+	    ChipLogProgress(DeviceLayer, "SoftwareTimer Init failed");
+	}
+    }
+#endif /* ENABLE_DIMMER_SWITCH */
 }
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
@@ -163,10 +177,6 @@ void app_test()
     err = DeviceLayer::PlatformMgr().InitChipStack();
     os_printf("\nInitChipStack err %d, %s", err.AsInteger(), err.AsString());
 
-
-    //ConnectivityMgr().SetBLEAdvertisingEnabled(true);
-    // PlatformMgr().AddEventHandler(CHIPDeviceManager::CommonDeviceEventHandler, reinterpret_cast<intptr_t>(nullptr));
-    
     err = PlatformMgr().StartEventLoopTask();
     os_printf("\nStartEventLoopTaks err %d, %s", err.AsInteger(), err.AsString());
 

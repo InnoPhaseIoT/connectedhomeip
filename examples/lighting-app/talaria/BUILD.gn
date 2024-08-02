@@ -15,7 +15,7 @@
 import("//build_overrides/chip.gni")
 import("//out/test/args.gn")
 
-executable("on-off-light-app.elf") {
+executable("lighting-app.elf") {
   sources = [
     "main.cpp",
     "test.cpp",
@@ -29,29 +29,78 @@ executable("on-off-light-app.elf") {
 
   include_dirs = [ 
     "${chip_root}/examples/platform/talaria",
-    "${chip_root}/examples/platform/talaria/include",
+    "${chip_root}/third_party/talaria/repo/freertos_sdk/components/",
   ]
 
   output_dir = root_out_dir
-  # output_name = "application.elf"
-
-  defines = []
-  if (config_enable_talaria_factory_data_provider == true) {
-    defines += ["CONFIG_ENABLE_TALARIA_FACTORY_DATA_PROVIDER=1",]
-  }
-
-  if (config_enable_talaria_device_instance_info_provider == true) {
-    defines += ["CONFIG_ENABLE_TALARIA_DEVICE_INSTANCE_INFO_PROVIDER=1",]
-  }
 
   ldflags = [  ]
   lib_dirs = [  ]
   libs = [  ]
 
+  defines = [  ]
+
+  # Disable FOTA if any of the example apps enabled
+  if ((config_enable_http_client_app && !config_enable_mqtt_app && !config_enable_aws_iot_app) ||
+      (!config_enable_http_client_app && config_enable_mqtt_app && !config_enable_aws_iot_app) ||
+      (!config_enable_http_client_app && !config_enable_mqtt_app && config_enable_aws_iot_app)) {
+
+      chip_enable_ota_requestor = false
+
+  }
+  # Enable/Disable FOTA based on build arguments if none of the example applications enabled
+  else if (!config_enable_http_client_app && !config_enable_mqtt_app && !config_enable_aws_iot_app) {
+
+      # Do nothing, as chip_enable_ota_requestor will be enabled or disabled by the user at compile time
+  }
+  # If it comes to this case then, multiple extra apps are enabled, hence raise the error
+  else {
+        assert(false, "Error: Can not compile more than one example app with lighting-app")
+  }
+
+  if (chip_enable_ota_requestor == true) {
+     defines += [ "CONFIG_ENABLE_OTA_REQUESTOR=1" ]
+  }
+
+  if (config_enable_http_client_app == true) {
+     defines += [ "CONFIG_ENABLE_HTTP_CLIENT_APP=1" ]
+     sources += [
+            "talaria_http_client/http_client_main.c",
+            "talaria_http_client/ca_bundle.o",
+     ]
+  }
+  else if (config_enable_mqtt_app == true) {
+     defines += [ "CONFIG_ENABLE_MQTT_APP=1" ]
+     sources += [
+            "talaria_mqtt/main_mqtt.c",
+            "talaria_mqtt/app_mqtt.c",
+     ]
+  }
+  else if (config_enable_aws_iot_app == true) {
+     defines += [ "CONFIG_ENABLE_AWS_IOT_APP=1" ]
+     sources += [
+            "talaria_aws_iot/subscribe_publish_sample.c",
+     ]
+     libs += [
+            "aws_iot_sdk_t2",
+            "aws_iot_sdk_t2_pal",
+     ]
+     lib_dirs += [
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/freertos/subscribe_publish_sample/out/lib/aws_iot_sdk_t2",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/freertos/subscribe_publish_sample/out/lib/aws_iot_sdk_t2_pal",
+     ]
+     include_dirs += [
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/aws-iot-device-sdk-embedded-C/include",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/aws-iot-device-sdk-embedded-C/external_libs/jsmn",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/talaria_two_pal/freertos/include",
+            "talaria_aws_iot",
+     ]
+  }
+
 }
 
 group("talaria") {
-  deps = [ ":on-off-light-app.elf" ]
+  deps = [ ":lighting-app.elf" ]
 }
 
 group("default") {
