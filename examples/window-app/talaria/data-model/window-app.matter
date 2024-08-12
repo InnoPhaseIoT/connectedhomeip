@@ -1151,6 +1151,7 @@ server cluster WindowCovering = 258 {
   readonly attribute int16u installedOpenLimitTilt = 18;
   readonly attribute int16u installedClosedLimitTilt = 19;
   attribute access(write: manage) Mode mode = 23;
+  readonly attribute SafetyStatus safetyStatus = 26;
   readonly attribute command_id generatedCommandList[] = 65528;
   readonly attribute command_id acceptedCommandList[] = 65529;
   readonly attribute event_id eventList[] = 65530;
@@ -1522,6 +1523,7 @@ endpoint 1 {
     persist  attribute installedOpenLimitTilt default = 0x0000;
     persist  attribute installedClosedLimitTilt default = 0xFFFF;
     persist  attribute mode default = 0x0;
+    ram      attribute safetyStatus default = 0x0000;
     callback attribute generatedCommandList;
     callback attribute acceptedCommandList;
     callback attribute eventList;
