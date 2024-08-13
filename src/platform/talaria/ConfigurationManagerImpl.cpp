@@ -134,7 +134,12 @@ CHIP_ERROR ConfigurationManagerImpl::GetSecondaryPairingInstruction(char * buf, 
 CHIP_ERROR ConfigurationManagerImpl::GetSoftwareVersionString(char * buf, size_t bufSize)
 {
     size_t outLen;
-    return TalariaConfig::ReadConfigValueStr(TalariaConfig::kConfigKey_SoftwareVersionStr, buf, bufSize, outLen);
+    if (CHIP_NO_ERROR == TalariaConfig::ReadConfigValueStr(TalariaConfig::kConfigKey_SoftwareVersionStr, buf, bufSize, outLen)) {
+        return CHIP_NO_ERROR;
+    }
+    ReturnErrorCodeIf(bufSize < sizeof(CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING), CHIP_ERROR_BUFFER_TOO_SMALL);
+    strcpy(buf, CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING);
+    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetSoftwareVersion(uint32_t & softwareVer)
