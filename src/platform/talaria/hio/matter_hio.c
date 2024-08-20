@@ -69,7 +69,6 @@ extern struct dl_set_get_credential revd_credential;
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
-extern struct thermostat_get_data revd_data;
 extern struct thermostat_read_temperature revd_temp;
 extern SemaphoreHandle_t GetTemperatureData;
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
@@ -404,14 +403,7 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
     if (req->cluster == THERMOSTAT)
     {
-        if (req->cmd == THERMOSTAT_GET_DATA)
-        {
-            // os_printf("\r\nget_credential\r\n");
-            memcpy(&revd_data, req->data, sizeof(struct thermostat_get_data));
-            xSemaphoreGive(Getdata);
-            os_printf("\r\n [Thermostat] get_data: data received from host...\r\n");
-        }
-        else if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
+        if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
         {
             // os_printf("\r\nget_credential\r\n");
             memcpy(&revd_temp, req->data, sizeof(struct thermostat_read_temperature));

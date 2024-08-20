@@ -205,23 +205,6 @@ struct thermostat_set_data
     int16_t HeatingSetpoint; /**< Occupied Heating SetPoint */
 };
 
-struct thermostat_get_data
-{
-    int16_t AbsMinHeatSetpointLimit;    /**< Absolute Minimum Heat SetPoint Limit */
-    int16_t AbsMaxHeatSetpointLimit;    /**< Absolute Maximum Heat SetPoint Limit */
-    int16_t AbsMinCoolSetpointLimit;    /**< Absolute Minimum Cool SetPoint Limit */
-    int16_t AbsMaxCoolSetpointLimit;    /**< Absolute Maximum Cool SetPoint Limit */
-    int16_t OccupiedCoolingSetpoint;    /**< Occupied Cooling SetPoint */
-    int16_t OccupiedHeatingSetpoint;    /**< Occupied Heating SetPoint */
-    int16_t MinHeatSetpointLimit;       /**< Minimum Heat SetPoint Limit */
-    int16_t MaxHeatSetpointLimit;       /**< Maximum Heat SetPoint Limit */
-    int16_t MinCoolSetpointLimit;       /**< Minimum Cool SetPoint Limit */
-    int16_t MaxCoolSetpointLimit;       /**< Maximum Cool SetPoint Limit */
-    int8_t MinSetpointDeadBand;         /**< Minimum Set Point Dead-Band */
-    uint8_t ControlSequenceOfOperation; /**< Current Thermostat Control Operation */
-    uint8_t SystemMode;                 /**< Current Thermostat Operating mode */
-    uint32_t FeatureMap;                /**< Thermostat Features Support */
-};
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 40)
