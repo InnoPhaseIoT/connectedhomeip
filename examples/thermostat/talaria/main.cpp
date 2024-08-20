@@ -192,6 +192,10 @@ static void read_temperature_from_host(void)
     struct thermostat_read_temperature *get_temperature;
     GetTemperatureData = xSemaphoreCreateCounting(1, 0);
 
+    /* Add a delay for the first read specific to the num2354 platform.
+     * This ensures that by the time the hio command is sent,
+     * the HAPI initialization on the host side is completed. */
+    vTaskDelay(pdMS_TO_TICKS(5000));
     while(1)
     {
 	    get_temperature = &get_temp;
