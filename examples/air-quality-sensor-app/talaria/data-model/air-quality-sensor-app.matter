@@ -1201,7 +1201,7 @@ endpoint 1 {
     callback attribute eventList;
     callback attribute attributeList;
     callback attribute featureMap;
-    ram      attribute clusterRevision default = 1;
+    ram      attribute clusterRevision default = 4;
   }
 
   server cluster TemperatureMeasurement {
