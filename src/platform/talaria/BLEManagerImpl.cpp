@@ -714,15 +714,6 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
     bt_adv_handle.channel_map   = BT_HCI_ADV_CHANNEL_ALL;
     bt_gap_cfg_adv_set(&bt_adv_handle);
 
-    bt_gap_cfg_ext_t extended_adv;
-    /* Disable extended advertisement */
-    extended_adv.use         = 1;
-    extended_adv.adv_pri_phy = 1;   /* adv_pri_phy */
-    extended_adv.adv_sec_phy = 1;   /* adv_sec_phy LE 1 Mbps */
-    extended_adv.adv_sid     = 1;   /* adv_sid */
-    extended_adv.conn_phy    = 1;   /* conn_phy */
-    extended_adv.conn_len    = 251; /* conn_len: Default is 27 */
-    bt_gap_cfg_ext_set(&extended_adv);
 
     /* Assumed the value as 0, as the value is specified 0 in the
        prov application's documentation */

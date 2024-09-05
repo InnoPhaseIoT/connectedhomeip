@@ -61,13 +61,16 @@ using namespace chip::Credentials;
 using namespace chip::app::Clusters;
 using namespace chip::talaria;
 using namespace chip::app::Clusters::WindowCovering;
+using namespace chip::System::Clock::Literals;
 
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 #define PWM_PIN 14
 #define PWM_PERIOD 1000
 #define IDENTIFY_TIMER_DELAY_MS  1000
+#define DEFAULTMOVEMENTSTEP 2000
 
+constexpr const System::Clock::Milliseconds32 kIncrementMovementTimeout = 1000_ms32;
 static void OnIdentifyStart(struct Identify *identify);
 static void OnIdentifyStop(struct Identify * identify);
 static void OnTriggerIdentifyEffect(struct Identify *identify);
@@ -83,6 +86,18 @@ struct Identify gIdentify = {
     chip::app::Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator,
     OnTriggerIdentifyEffect,
 };
+
+struct WindowCoverOperational
+{
+    WindowCovering::OperationalState mState;
+    NPercent100ths mCurrentLiftPosition;
+    NPercent100ths mTargetLiftPosition;
+    NPercent100ths mCurrentTiltPosition;
+    NPercent100ths mTargetTiltPosition;
+    EndpointId endpointId;
+};
+
+struct WindowCoverOperational LiftTiltOperational;
 
 /*-----------------------------------------------------------*/
 void print_test_results(nlTestSuite * tSuite);
@@ -192,6 +207,97 @@ Percent100ths CalculateNextPosition(WindowCoveringType type, EndpointId endpoint
     return percent100ths;
 }
 
+void HandleLiftMovementTimer(System::Layer * layer, void * LiftTiltOperational)
+{
+    WindowCoverOperational * LiftTiltOperationalPtr = (struct WindowCoverOperational *)LiftTiltOperational;
+    VerifyOrReturn(LiftTiltOperationalPtr->mState != chip::app::Clusters::WindowCovering::OperationalState::Stall);
+
+    Percent100ths currentPosition = LiftTiltOperationalPtr->mCurrentLiftPosition.Value();
+    Percent100ths targetPosition  = LiftTiltOperationalPtr->mTargetLiftPosition.Value();
+
+    ChipLogProgress(NotSpecified, "HandleLiftMovementTimer:currentPosition:%u, targetPosition:%u", currentPosition, targetPosition);
+
+    if (chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen == LiftTiltOperationalPtr->mState)
+    {
+        if (ComputeOperationalState(targetPosition, currentPosition) != chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen)
+        {
+            ChipLogProgress(NotSpecified, "Reached the target position");
+            return;
+        }
+
+        Percent100ths tempPosition =
+            ComputePercent100thsStep(chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen, currentPosition, DEFAULTMOVEMENTSTEP);
+        currentPosition = tempPosition > targetPosition ? tempPosition : targetPosition;
+        LiftTiltOperationalPtr->mCurrentLiftPosition.SetNonNull(currentPosition);
+    }
+    else
+    {
+        if (ComputeOperationalState(targetPosition, currentPosition) != chip::app::Clusters::WindowCovering::OperationalState::MovingDownOrClose)
+        {
+            ChipLogProgress(NotSpecified, "Reached the target position");
+            return;
+        }
+
+        Percent100ths tempPosition =
+            ComputePercent100thsStep(chip::app::Clusters::WindowCovering::OperationalState::MovingDownOrClose, currentPosition, DEFAULTMOVEMENTSTEP);
+        currentPosition = tempPosition < targetPosition ? tempPosition : targetPosition;
+        LiftTiltOperationalPtr->mCurrentLiftPosition.SetNonNull(currentPosition);
+    }
+
+    LiftPositionSet(LiftTiltOperationalPtr->endpointId, LiftTiltOperationalPtr->mCurrentLiftPosition);
+
+    if (LiftTiltOperationalPtr->mCurrentLiftPosition != LiftTiltOperationalPtr->mTargetLiftPosition)
+    {
+        LogErrorOnFailure(DeviceLayer::SystemLayer().StartTimer(kIncrementMovementTimeout, HandleLiftMovementTimer, LiftTiltOperationalPtr));
+    }
+}
+
+void HandleTiltMovementTimer(System::Layer * layer, void * LiftTiltOperational)
+{
+    WindowCoverOperational * LiftTiltOperationalPtr = (struct WindowCoverOperational *)LiftTiltOperational;
+
+    VerifyOrReturn(LiftTiltOperationalPtr->mState != chip::app::Clusters::WindowCovering::OperationalState::Stall);
+
+    Percent100ths currentPosition = LiftTiltOperationalPtr->mCurrentTiltPosition.Value();
+    Percent100ths targetPosition  = LiftTiltOperationalPtr->mTargetTiltPosition.Value();
+
+    ChipLogProgress(NotSpecified, "HandleTiltMovementTimer:currentPosition:%u, targetPosition:%u", currentPosition, targetPosition);
+
+    if (chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen == LiftTiltOperationalPtr->mState)
+    {
+        if (ComputeOperationalState(targetPosition, currentPosition) != chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen)
+        {
+            ChipLogProgress(NotSpecified, "Reached the target position");
+            return;
+        }
+
+        Percent100ths tempPosition =
+            ComputePercent100thsStep(chip::app::Clusters::WindowCovering::OperationalState::MovingUpOrOpen, currentPosition, DEFAULTMOVEMENTSTEP);
+        currentPosition = tempPosition > targetPosition ? tempPosition : targetPosition;
+        LiftTiltOperationalPtr->mCurrentTiltPosition.SetNonNull(currentPosition);
+    }
+    else
+    {
+        if (ComputeOperationalState(targetPosition, currentPosition) != chip::app::Clusters::WindowCovering::OperationalState::MovingDownOrClose)
+        {
+            ChipLogProgress(NotSpecified, "Reached the target position");
+            return;
+        }
+
+        Percent100ths tempPosition =
+            ComputePercent100thsStep(chip::app::Clusters::WindowCovering::OperationalState::MovingDownOrClose, currentPosition, DEFAULTMOVEMENTSTEP);
+        currentPosition = tempPosition < targetPosition ? tempPosition : targetPosition;
+        LiftTiltOperationalPtr->mCurrentTiltPosition.SetNonNull(currentPosition);
+    }
+
+    TiltPositionSet(LiftTiltOperationalPtr->endpointId, LiftTiltOperationalPtr->mCurrentTiltPosition);
+
+    if (LiftTiltOperationalPtr->mCurrentTiltPosition != LiftTiltOperationalPtr->mTargetTiltPosition)
+    {
+        LogErrorOnFailure(DeviceLayer::SystemLayer().StartTimer(kIncrementMovementTimeout, HandleTiltMovementTimer, LiftTiltOperationalPtr));
+    }
+}
+
 void DriveCurrentLiftPosition(EndpointId endpointId)
 {
     NPercent100ths current{};
@@ -219,13 +325,15 @@ void DriveCurrentLiftPosition(EndpointId endpointId)
         positionToSet.SetNonNull(current.Value());
     }
 
+    LiftTiltOperational.mCurrentLiftPosition.SetNonNull(current.Value());
+    LiftTiltOperational.mTargetLiftPosition.SetNonNull(target.Value());
+    LiftTiltOperational.mState = state;
+    LiftTiltOperational.endpointId = endpointId;
 
     /* PlaceHolder: Call vendor specific APIs to handle the Lift functionality for
      * up-or-open, down-or-close, go-to-lift-value, go-to-lift-percentage, stop-motion commands */
 
-    LiftPositionSet(endpointId, positionToSet);
-    state = ComputeOperationalState(target, current);
-    OperationalStateSet(endpointId, OperationalStatus::kLift, state);
+    LogErrorOnFailure(DeviceLayer::SystemLayer().StartTimer(kIncrementMovementTimeout, HandleLiftMovementTimer, (void *) &LiftTiltOperational));
 }
 
 void DriveCurrentTiltPosition(EndpointId endpointId)
@@ -255,13 +363,15 @@ void DriveCurrentTiltPosition(EndpointId endpointId)
         positionToSet.SetNonNull(current.Value());
     }
 
+    LiftTiltOperational.mCurrentTiltPosition.SetNonNull(current.Value());
+    LiftTiltOperational.mTargetTiltPosition.SetNonNull(target.Value());
+    LiftTiltOperational.mState = state;
+    LiftTiltOperational.endpointId = endpointId;
 
     /* PlaceHolder: Call vendor specific APIs to handle the Tilt functionality for
      * up-or-open, down-or-close, go-to-tilt-value, go-to-tilt-percentage, stop-motion commands */
 
-    TiltPositionSet(endpointId, positionToSet);
-    state = ComputeOperationalState(target, current);
-    OperationalStateSet(endpointId, OperationalStatus::kTilt, state);
+    LogErrorOnFailure(DeviceLayer::SystemLayer().StartTimer(kIncrementMovementTimeout, HandleTiltMovementTimer, (void *) &LiftTiltOperational));
 }
 
 static void PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t type,

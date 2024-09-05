@@ -59,8 +59,6 @@ extern "C" {
 #define IDENTIFY_TIMER_DELAY_MS  1000
 #define LED_PIN 14
 
-struct thermostat_get_data get_data;
-struct thermostat_get_data revd_data;
 struct thermostat_read_temperature get_temp;
 struct thermostat_read_temperature revd_temp;
 
@@ -106,19 +104,6 @@ SemaphoreHandle_t GetTemperatureData;
 
 /* Function Declarations */
 
-static void Print_Thermostat_data(void)
-{
-	ChipLogProgress(AppServer, "[Thermostat data] AbsMinHeatSetpointLimit: %d, AbsMaxHeatSetpointLimit: %d\n"
-			"AbsMinCoolSetpointLimit: %d, AbsMaxCoolSetpointLimit: %d, OccupiedCoolingSetpoint: %d\n"
-			"OccupiedHeatingSetpoint: %d, MinHeatSetpointLimit: %d, MaxHeatSetpointLimit: %d\n"
-			"MinCoolSetpointLimit: %d, MaxCoolSetpointLimit: %d, MinSetpointDeadBand: %d\n"
-			" ControlSequenceOfOperation: %d, SystemMode: %d, FeatureMap: %d",
-			revd_data.AbsMinHeatSetpointLimit, revd_data.AbsMaxHeatSetpointLimit, revd_data.AbsMinCoolSetpointLimit,
-			revd_data.AbsMaxCoolSetpointLimit, revd_data.OccupiedCoolingSetpoint, revd_data.OccupiedHeatingSetpoint,
-			revd_data.MinHeatSetpointLimit, revd_data.MaxHeatSetpointLimit, revd_data.MinCoolSetpointLimit,
-			revd_data.MaxCoolSetpointLimit, revd_data.MinSetpointDeadBand, revd_data.ControlSequenceOfOperation,
-			revd_data.SystemMode, revd_data.FeatureMap);
-}
 
 static int8_t ConvertToPrintableTemp(int16_t temperature)
 {
@@ -136,31 +121,6 @@ static int8_t ConvertToPrintableTemp(int16_t temperature)
         temperature += kRoundUpValue;
     }
     return static_cast<int8_t>(temperature / 100);
-}
-
-static CHIP_ERROR Thermostat_Init(void)
-{
-    /* Read thermostat configuration parameters from host. */
-
-    Thermostat::Attributes::AbsMinHeatSetpointLimit::Set(kThermostatEndpoint, revd_data.AbsMinHeatSetpointLimit);
-    Thermostat::Attributes::AbsMaxHeatSetpointLimit::Set(kThermostatEndpoint, revd_data.AbsMaxHeatSetpointLimit);
-    Thermostat::Attributes::AbsMinCoolSetpointLimit::Set(kThermostatEndpoint, revd_data.AbsMinCoolSetpointLimit);
-    Thermostat::Attributes::AbsMaxCoolSetpointLimit::Set(kThermostatEndpoint, revd_data.AbsMaxCoolSetpointLimit);
-    Thermostat::Attributes::OccupiedCoolingSetpoint::Set(kThermostatEndpoint, revd_data.OccupiedCoolingSetpoint);
-    Thermostat::Attributes::OccupiedHeatingSetpoint::Set(kThermostatEndpoint, revd_data.OccupiedHeatingSetpoint);
-    Thermostat::Attributes::MinHeatSetpointLimit::Set(kThermostatEndpoint, revd_data.MinHeatSetpointLimit);
-    Thermostat::Attributes::MaxHeatSetpointLimit::Set(kThermostatEndpoint, revd_data.MaxHeatSetpointLimit);
-    Thermostat::Attributes::MinCoolSetpointLimit::Set(kThermostatEndpoint, revd_data.MinCoolSetpointLimit);
-    Thermostat::Attributes::MaxCoolSetpointLimit::Set(kThermostatEndpoint, revd_data.MaxCoolSetpointLimit);
-    Thermostat::Attributes::MinSetpointDeadBand::Get(kThermostatEndpoint, revd_data.MinSetpointDeadBand);
-    Thermostat::Attributes::ControlSequenceOfOperation::Set(kThermostatEndpoint,
-		    static_cast<Thermostat::ThermostatControlSequence> (revd_data.ControlSequenceOfOperation));
-    Thermostat::Attributes::SystemMode::Set(kThermostatEndpoint, revd_data.SystemMode);
-    Thermostat::Attributes::FeatureMap::Set(kThermostatEndpoint, revd_data.FeatureMap);
-
-    Print_Thermostat_data();
-
-    return CHIP_NO_ERROR;
 }
 
 static void OnThermostatPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
@@ -191,7 +151,6 @@ static void OnThermostatPostAttributeChangeCallback(EndpointId endpointId, Attri
 	else
 	{
 		ChipLogProgress(AppServer, "[Thermostat] Successfully adjusted cooling-setpoint to : %d°C", Temp);
-		revd_data.OccupiedCoolingSetpoint = CoolingSetpoint;
 	}
     }
     break;
@@ -214,26 +173,7 @@ static void OnThermostatPostAttributeChangeCallback(EndpointId endpointId, Attri
         else
         {
                 ChipLogProgress(AppServer, "[Thermostat] Successfully adjusted heating-setpoint to : %d°C", Temp);
-		revd_data.OccupiedHeatingSetpoint = HeatingSetpoint;
         }
-    }
-    break;
-    case Thermostat::Attributes::SystemMode::Id: {
-        uint8_t mode = static_cast<uint8_t>(*value);
-        if (revd_data.SystemMode != mode)
-        {
-            revd_data.SystemMode = mode;
-	    ChipLogProgress(AppServer, "[Thermostat] SystemMode set to: %d", revd_data.SystemMode);
-	}
-    }
-    break;
-    case Thermostat::Attributes::ControlSequenceOfOperation::Id: {
-        uint8_t ControlOfOperation = static_cast<uint8_t>(*value);
-        if (revd_data.ControlSequenceOfOperation != ControlOfOperation)
-        {
-            revd_data.ControlSequenceOfOperation = ControlOfOperation;
-	    ChipLogProgress(AppServer, "[Thermostat] ControlOfOperation set to: %d", revd_data.ControlSequenceOfOperation);
-	}
     }
     break;
     default: {
@@ -252,6 +192,10 @@ static void read_temperature_from_host(void)
     struct thermostat_read_temperature *get_temperature;
     GetTemperatureData = xSemaphoreCreateCounting(1, 0);
 
+    /* Add a delay for the first read specific to the num2354 platform.
+     * This ensures that by the time the hio command is sent,
+     * the HAPI initialization on the host side is completed. */
+    vTaskDelay(pdMS_TO_TICKS(5000));
     while(1)
     {
 	    get_temperature = &get_temp;
@@ -349,7 +293,6 @@ exit:
 void emberAfThermostatClusterInitCallback(chip::EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfThermostatClusterInitCallback");
-    Thermostat_Init();
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)
@@ -472,29 +415,6 @@ void print_test_results(nlTestSuite * tSuite)
 }
 #endif
 
-void load_stored_info_from_host()
-{
-    int payload = 0;
-    struct thermostat_get_data *getThermostat_data;
-
-    /* Load USer info and Credentials information from the host */
-    Getdata = xSemaphoreCreateCounting(1, 0);
-
-    getThermostat_data = &get_data;
-    memset(getThermostat_data, 0, sizeof(struct thermostat_get_data));
-    payload = sizeof(struct thermostat_get_data);
-    int ret = matter_notify(THERMOSTAT, THERMOSTAT_GET_DATA, payload, (struct thermostat_get_data *) getThermostat_data);
-    if(ret != 0)
-	    return;
-    if (xSemaphoreTake(Getdata, portMAX_DELAY) == pdFAIL)
-    {
-	    os_printf("Unable to wait on semaphore...!!\n");
-    }
-    memcpy(getThermostat_data, &revd_data, sizeof(struct thermostat_get_data));
-    os_printf("\nReading Thermostat data from host is completed...!!\n");
-    vSemaphoreDelete(Getdata);
-    vTaskDelete(NULL);
-}
 
 BOOTARG_INT("disp_pkt_info", "display packet info", "1 to enable packet info print. 0(default) to disable");
 
@@ -517,22 +437,6 @@ int main(void)
     {
         talariautils::FactoryReset(FactoryReset);
 	vTaskSuspend(NULL);
-    }
-    BaseType_t xReturned;
-    TaskHandle_t xHandle = NULL;
-
-    /* Create the task to load the persistent data from hsot */
-    xReturned = xTaskCreate(load_stored_info_from_host,   /* Function that implements the task. */
-                            "load_stored_info_from_host", /* Text name for the task. */
-                            configMINIMAL_STACK_SIZE,     /* Stack size in words, not bytes. */
-                            (void *) NULL,                /* Parameter passed into the task. */
-                            tskIDLE_PRIORITY + 2,         /* Priority at which the task is created. */
-                            &xHandle);                    /* Used to pass out the created task's handle. */
-
-    if (xReturned == pdPASS)
-    {
-        /* The task was created.  Use the task's handle to delete the task. */
-        os_printf("Loading Thermostat data from host task created...\n");
     }
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);

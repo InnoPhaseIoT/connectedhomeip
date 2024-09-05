@@ -53,6 +53,14 @@ CHIP_ERROR ConfigurationManagerImpl::Init()
     uint32_t tmp;
     err = Internal::GenericConfigurationManagerImpl<TalariaConfig>::Init();
 
+    /* Save the default software version on first boot if not already */
+    if (!TalariaConfig::ConfigValueExists(TalariaConfig::kConfigKey_SoftwareVersion))
+    {
+        err = StoreSoftwareVersion(CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION);
+        SuccessOrExit(err);
+    }
+
+
     /* Update the Reboot Count value */
     if (GetRebootCount(reboot_count) == CHIP_NO_ERROR) {
         StoreRebootCount(reboot_count + 1);
@@ -121,6 +129,27 @@ CHIP_ERROR ConfigurationManagerImpl::GetSecondaryPairingInstruction(char * buf, 
     }
 
     return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR ConfigurationManagerImpl::GetSoftwareVersionString(char * buf, size_t bufSize)
+{
+    size_t outLen;
+    if (CHIP_NO_ERROR == TalariaConfig::ReadConfigValueStr(TalariaConfig::kConfigKey_SoftwareVersionStr, buf, bufSize, outLen)) {
+        return CHIP_NO_ERROR;
+    }
+    ReturnErrorCodeIf(bufSize < sizeof(CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING), CHIP_ERROR_BUFFER_TOO_SMALL);
+    strcpy(buf, CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING);
+    return CHIP_NO_ERROR;
+}
+
+CHIP_ERROR ConfigurationManagerImpl::GetSoftwareVersion(uint32_t & softwareVer)
+{
+    return TalariaConfig::ReadConfigValue(TalariaConfig::kConfigKey_SoftwareVersion, softwareVer);
+}
+
+CHIP_ERROR ConfigurationManagerImpl::StoreSoftwareVersion(uint32_t softwareVer)
+{
+    return TalariaConfig::WriteConfigValue(TalariaConfig::kConfigKey_SoftwareVersion, softwareVer);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetPrimaryWiFiMACAddress(uint8_t * buf)

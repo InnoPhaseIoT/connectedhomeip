@@ -135,6 +135,11 @@ CHIP_ERROR TalariaWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusCh
     mpScanCallback         = nullptr;
     mpConnectCallback      = nullptr;
     mpStatusChangeCallback = networkStatusChangeCallback;
+
+    if (mStagingNetwork.ssidLen != 0) {
+        /* Connected Network credentials has been found. Connecting to the network */
+        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
+    }
     return err;
 }
 

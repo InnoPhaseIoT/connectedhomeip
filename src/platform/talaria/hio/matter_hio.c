@@ -69,7 +69,6 @@ extern struct dl_set_get_credential revd_credential;
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE DOORLOCK */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
-extern struct thermostat_get_data revd_data;
 extern struct thermostat_read_temperature revd_temp;
 extern SemaphoreHandle_t GetTemperatureData;
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
@@ -339,11 +338,10 @@ int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t pay
         os_printf("\nPkt alloc error");
         return -1;
     }
-    if (payload_len)
-    {
-        packet_append(pkt, data, payload_len);
-        hio_packet_set_free_hook(&pkt, NULL, &hio_matter_data_ind_free);
-    }
+
+    packet_append(pkt, data, payload_len);
+    hio_packet_set_free_hook(&pkt, NULL, &hio_matter_data_ind_free);
+
     hio_write_msg(pkt, HIO_GROUP_MATTER, MATTER_CMD_NOTIFY_IND, 0);
     os_sem_wait(&hio_ind_sem); /* Wait here until packet is sent */
     return 0;
@@ -405,14 +403,7 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 769)
     if (req->cluster == THERMOSTAT)
     {
-        if (req->cmd == THERMOSTAT_GET_DATA)
-        {
-            // os_printf("\r\nget_credential\r\n");
-            memcpy(&revd_data, req->data, sizeof(struct thermostat_get_data));
-            xSemaphoreGive(Getdata);
-            os_printf("\r\n [Thermostat] get_data: data received from host...\r\n");
-        }
-        else if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
+        if (req->cmd == THERMOSTAT_READ_TEMPERATURE)
         {
             // os_printf("\r\nget_credential\r\n");
             memcpy(&revd_temp, req->data, sizeof(struct thermostat_read_temperature));
@@ -438,11 +429,13 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
-    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR)
-    {
-        if (strncmp(req->data, FOTA_FAILED, 11) == 0)
-        {
-            SetOTAFailFlag(true);
+    if (req->cluster == OTA_SOFTWARE_UPDATE_REQUESTOR) {
+        if (req->cmd == FOTA_IMAGE_INTEGRITY_CHECK) {
+            SetImageIntegrityCheck(*((bool *) req->data));
+        } else {
+            if (strncmp(req->data, FOTA_FAILED, 11) == 0) {
+                SetOTAFailFlag(true);
+            }
         }
     }
 #endif
@@ -587,7 +580,7 @@ static void hio_matter_create_thread(void)
                                               * task. */
                     "hio_matter",            /* The text name assigned to the task - for debug only
                                               * as * it is not used by the kernel. */
-                    1024,                    /* The size of the stack to allocate to the task. */
+                    configMINIMAL_STACK_SIZE,/* The size of the stack to allocate to the task. */
                     NULL,                    /* The parameter passed to the task - not used in this case.
                                               */
                     (tskIDLE_PRIORITY + 2),  /* The priority assigned to the task. */

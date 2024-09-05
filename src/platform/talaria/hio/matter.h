@@ -65,6 +65,7 @@ enum osur_cluster_cmd
     FOTA_SUBSCRIBE_EVENT,
     FOTA_HASH,
     FOTA_NAME,
+    FOTA_IMAGE_INTEGRITY_CHECK,
 };
 
 enum doorlock_cluster_cmd
@@ -204,23 +205,6 @@ struct thermostat_set_data
     int16_t HeatingSetpoint; /**< Occupied Heating SetPoint */
 };
 
-struct thermostat_get_data
-{
-    int16_t AbsMinHeatSetpointLimit;    /**< Absolute Minimum Heat SetPoint Limit */
-    int16_t AbsMaxHeatSetpointLimit;    /**< Absolute Maximum Heat SetPoint Limit */
-    int16_t AbsMinCoolSetpointLimit;    /**< Absolute Minimum Cool SetPoint Limit */
-    int16_t AbsMaxCoolSetpointLimit;    /**< Absolute Maximum Cool SetPoint Limit */
-    int16_t OccupiedCoolingSetpoint;    /**< Occupied Cooling SetPoint */
-    int16_t OccupiedHeatingSetpoint;    /**< Occupied Heating SetPoint */
-    int16_t MinHeatSetpointLimit;       /**< Minimum Heat SetPoint Limit */
-    int16_t MaxHeatSetpointLimit;       /**< Maximum Heat SetPoint Limit */
-    int16_t MinCoolSetpointLimit;       /**< Minimum Cool SetPoint Limit */
-    int16_t MaxCoolSetpointLimit;       /**< Maximum Cool SetPoint Limit */
-    int8_t MinSetpointDeadBand;         /**< Minimum Set Point Dead-Band */
-    uint8_t ControlSequenceOfOperation; /**< Current Thermostat Control Operation */
-    uint8_t SystemMode;                 /**< Current Thermostat Operating mode */
-    uint32_t FeatureMap;                /**< Thermostat Features Support */
-};
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE THERMOSTAT */
 
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 40)
@@ -259,6 +243,10 @@ struct smoke_co_alarm_get_data
     uint8_t ContaminationState;     /**< Contamination State */
     uint8_t SmokeSensitivityLevel;  /**< SmokeSensitivityLevel State */
     uint32_t ExpiryDate;            /**< ExpiryDate */
+    uint8_t PowerSourceStatus;      /**< Power Source Status */
+    uint8_t BatChargeLevel;         /**< Battery Charge Level */
+    bool BatReplacementNeeded;      /**< Battery Replacement Needed */
+    uint8_t BatReplaceability;      /**< Battery Replaceability */
 };
 #endif /* CHIP_DEVICE_CONFIG_DEVICE_TYPE SMOKE CO ALARM */
 

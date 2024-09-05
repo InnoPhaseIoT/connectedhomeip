@@ -101,39 +101,35 @@ CHIP_ERROR KeyValueStoreManagerImpl::_Get(const char * key, void * value, size_t
 	replaceSlahWithUnderscore(key,configfile);
 	TalariaConfig::Key key_file = {TalariaConfig::kConfigNamespace_KVS, configfile};
 
-	/* Read File */
-	read = (uint8_t *) pvPortMalloc(value_size);
-	if (read == NULL) {
-		ChipLogError(DeviceLayer, "Unable to allocate memory");
-		return CHIP_ERROR_NO_MEMORY;
-	}
-
-	retval = TalariaConfig::ReadConfigValueBin(key_file, read, value_size, size);
+	retval = TalariaConfig::ReadConfigValueBin(key_file, value, value_size, size);
 	if (retval != CHIP_NO_ERROR || size <= 0) {
 		*read_bytes_size = 0;
 		memset(value, 0, value_size);
-		if (read != NULL) {
-			free(read);
-		}
 		return CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
 	}
 
 	if (value_size < (size - 1)) {
-		memcpy(value, read + offset_bytes, value_size);
-		*read_bytes_size = value_size;
-		if (read != NULL) {
-			free(read);
+		if (offset_bytes != 0) {
+			memcpy(value, value + offset_bytes, value_size);
+			/* TODO: Handle the case when read offset is non-zero better
+			* As with current handling the bytes after the value_size will not be passed
+			* in the current memcpy. Till now we haven't observed any request with
+			* offset_bytes value as non-zero. Asserting it here to detect the scenario if
+			* there is any detected.
+			*/
+			os_printf("ASSERT: Offset_bytes value non-zero is not handled properly\n");
+			assert(false);
 		}
+		*read_bytes_size = value_size;
 		return CHIP_ERROR_BUFFER_TOO_SMALL;
 	}
 
-    memcpy(value, read + offset_bytes, size);
-    *read_bytes_size = size;
-
-
-	if (read != NULL) {
-		free(read);
+	if (offset_bytes != 0) {
+		memcpy(value, value + offset_bytes, size);
 	}
+
+        *read_bytes_size = size;
+
 	return CHIP_NO_ERROR;
 }
 

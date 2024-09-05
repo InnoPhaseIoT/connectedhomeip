@@ -476,7 +476,7 @@ CHIP_ERROR TalariaUtils::GetWiFiInterfaceMAC(uint8_t *mac_addr)
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR TalariaUtils::ConfigWcmPMForFOTA()
+CHIP_ERROR TalariaUtils::DisableWcmPMConfig()
 {
     /* Save the PM config for restoring later */
     ChipLogProgress(DeviceLayer, "Disabling WCM power save");

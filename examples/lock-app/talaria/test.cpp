@@ -57,6 +57,7 @@ void openCommissionWindow();
 #include <common/Utils.h>
 #include <platform/talaria/FactoryDataProvider.h>
 #include <app/clusters/door-lock-server/door-lock-server.h>
+#include <system/SystemEvent.h>
 
 
 using namespace chip;
@@ -83,12 +84,12 @@ bool CommissioningFlowTypeHost = false;
 #include "hio/matter_hio.h"
 
 
+#if CHIP_ENABLE_OTA_STORAGE_ON_HOST
 #include <app/clusters/ota-requestor/BDXDownloader.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestor.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorStorage.h>
 #include <app/clusters/ota-requestor/ExtendedOTARequestorDriver.h>
 #include <platform/talaria/OTAImageProcessorImpl.h>
-#include <system/SystemEvent.h>
 #include <app/clusters/ota-requestor/DefaultOTARequestorUserConsent.h>
 static void InitOTARequestor();
 
@@ -153,6 +154,7 @@ void InitOTARequestor(void)
         gRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
         gRequestorCore.Init(Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
         gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
+        gRequestorUser.SetSendNotifyUpdateApplied(true);
         gImageProcessor.SetOTADownloader(&gDownloader);
         gImageProcessor.ota_get_firmware_name(app_name);
         gDownloader.SetImageProcessorDelegate(&gImageProcessor);
@@ -160,6 +162,7 @@ void InitOTARequestor(void)
     }
 }
 /*fota code end*/
+#endif /* CHIP_ENABLE_OTA_STORAGE_ON_HOST  */
 
 
 static void OpenUserIntentCommissioningWindow(intptr_t arg)
@@ -243,10 +246,6 @@ void InitServer(intptr_t context)
     // custom_msg_exchange_api_init();
     CommissioningInterface::EnableCommissioning();
     matterutils::MatterConfigLog();
-    /* Trigger Connect WiFi Network if the Device is already Provisioned */
-    if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
-        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
-    }
 }
 
 chip::Credentials::DeviceAttestationCredentialsProvider * get_dac_provider(void)
@@ -299,8 +298,10 @@ void app_test()
     err = chip::DeviceLayer::PlatformMgr().ScheduleWork(InitServer, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nPlatformMgrImpl::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
 
+#if CHIP_ENABLE_OTA_STORAGE_ON_HOST
     err = chip::DeviceLayer::PlatformMgrImpl().AddEventHandler(InitOTARequestor, reinterpret_cast<intptr_t>(nullptr));
     os_printf("\nOTA::ScheduleWork err %d, %s", err.AsInteger(), err.AsString());
+#endif /* CHIP_ENABLE_OTA_STORAGE_ON_HOST  */
 
 }
 

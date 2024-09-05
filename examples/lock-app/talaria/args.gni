@@ -21,7 +21,7 @@ import("${chip_root}/config/talaria/common.gni")
 
 declare_args() {
   is_debug = false
-  chip_enable_ota_requestor = true
+  chip_enable_ota_requestor = false
   config_enable_talaria_factory_data_provider = false
   config_enable_talaria_device_instance_info_provider = false
 

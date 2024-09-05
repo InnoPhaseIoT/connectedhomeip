@@ -33,11 +33,21 @@ extern "C" {
 #endif
 #include "hio/matter.h"
 #include "hio/matter_hio.h"
+#include "utils.h"
 
 static bool OTAStop = false;
 void SetOTAFailFlag( bool value)
 {
     OTAStop = value;
+}
+
+static SemaphoreHandle_t imageIntCheckSem;
+static bool image_integrity_check_ok = false;
+void SetImageIntegrityCheck(bool integrity_flag)
+{
+    ChipLogProgress(SoftwareUpdate, "Image Integrity Check... %s", integrity_flag? "OK": "Failed");
+    image_integrity_check_ok = integrity_flag;
+    xSemaphoreGive(imageIntCheckSem);
 }
 
 #ifdef __cplusplus
@@ -75,7 +85,41 @@ CHIP_ERROR OTAImageProcessorImpl::Abort()
 {
     DeviceLayer::PlatformMgr().ScheduleWork(HandleAbort, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
-};
+}
+
+bool OTAImageProcessorImpl::IsFirstImageRun()
+{
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    if (requestor == nullptr)
+    {
+        return false;
+    }
+
+    /* Adding safe delay for wifi to get connected before updating the notification to provider */
+    vTaskDelay(pdMS_TO_TICKS(100));
+    return requestor->GetCurrentUpdateState() == OTARequestorInterface::OTAUpdateStateEnum::kApplying;
+}
+
+CHIP_ERROR OTAImageProcessorImpl::ConfirmCurrentImage()
+{
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    if (requestor == nullptr)
+    {
+        return CHIP_ERROR_INTERNAL;
+    }
+
+    uint32_t currentVersion;
+    uint32_t targetVersion = requestor->GetTargetVersion();
+    ReturnErrorOnFailure(DeviceLayer::ConfigurationMgr().GetSoftwareVersion(currentVersion));
+    if (currentVersion != targetVersion)
+    {
+        ChipLogError(SoftwareUpdate, "Current software version = %" PRIu32 ", expected software version = %" PRIu32, currentVersion,
+                     targetVersion);
+        return CHIP_ERROR_INCORRECT_STATE;
+    }
+
+    return CHIP_NO_ERROR;
+}
 
 CHIP_ERROR OTAImageProcessorImpl::ProcessBlock(ByteSpan & block)
 {
@@ -119,19 +163,20 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
 #endif
     ChipLogProgress(SoftwareUpdate, "[APP]Perform Fota");
     /* Disable power save for FOTA */
-    TalariaUtils::ConfigWcmPMForFOTA();
+    TalariaUtils::DisableWcmPMConfig();
     /* Start a timer for restoring the PM config in case the FOTA is stopped in the middle somehow */
     /* Debug boot argument: matter.max_ota_power_save_disable_time in seconds */
     int power_save_reenable_timeout = os_get_boot_arg_int("matter.max_ota_power_save_disable_time", 360);
 
     DeviceLayer::SystemLayer().StartTimer(
-        static_cast<System::Clock::Timeout>(power_save_reenable_timeout * 1000), OnOTADowanloadFailure, NULL);
+        static_cast<System::Clock::Timeout>(power_save_reenable_timeout * 1000), OnOTADowanloadFailure, imageProcessor);
     imageProcessor->mHeaderParser.Init();
     imageProcessor->mDownloader->OnPreparedForDownload(CHIP_NO_ERROR);
 }
 
-void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, void * aAppState)
+void OTAImageProcessorImpl::OnOTADowanloadFailure(chip::System::Layer * aLayer, intptr_t context)
 {
+    ChipLogProgress(SoftwareUpdate, "Fast Download Timedout, enabling powersave");
     /* Reenable power save */
     TalariaUtils::RestoreWcmPMConfig();
 }
@@ -163,12 +208,17 @@ void OTAImageProcessorImpl::HandleAbort(intptr_t context)
     /* Reenable power save */
     TalariaUtils::RestoreWcmPMConfig();
     DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-    ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
+    if (imageProcessor->mOTAUpdateHandle != NULL) {
+        ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
+    }
+#endif
     imageProcessor->mOTAUpdateHandle = NULL;
     imageProcessor->ReleaseBlock();
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
     free(fw_hash);
 #endif
+    GetRequestorInstance()->CancelImageUpdate();
 }
 
 void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
@@ -197,10 +247,7 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (error != CHIP_NO_ERROR)
     {
         ChipLogError(SoftwareUpdate, "Failed to process OTA image header");
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mDownloader->EndDownload(error);
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
     int err;
@@ -212,10 +259,7 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
 #else
@@ -223,13 +267,7 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
     if (err != 0)
     {
         ChipLogError(SoftwareUpdate, "T2_ota_write failed");
-        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
-        ota_deinit_matter(imageProcessor->mOTAUpdateHandle);
-        /* Reenable power save */
-        TalariaUtils::RestoreWcmPMConfig();
-        DeviceLayer::SystemLayer().CancelTimer(OnOTADowanloadFailure, NULL);
-        imageProcessor->mOTAUpdateHandle = NULL;
-        imageProcessor->mHeaderParser.Clear();
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
 #endif
@@ -250,8 +288,9 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     if (imageProcessor->mOTAUpdateHandle == NULL)
         return;
     /* fota commit.  This will reset the system */
-    if (!ota_commit_matter(imageProcessor->mOTAUpdateHandle, 1)) {
+    if (ota_commit_matter(imageProcessor->mOTAUpdateHandle, 0)) {
         ChipLogError(SoftwareUpdate,"[APP]Error: FOTA commit failed");
+        imageProcessor->OTAImageProcessorImpl::Abort();
         return;
     }
     /* Deinitialize fota */
@@ -261,7 +300,30 @@ void OTAImageProcessorImpl::HandleApply(intptr_t context)
     imageProcessor->mHeaderParser.Clear();
     ChipLogProgress(SoftwareUpdate, "Commit Done!. de-init OTA");
 #if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
+    imageIntCheckSem = xSemaphoreCreateCounting(1, 0);
+
     matter_notify(OTA_SOFTWARE_UPDATE_REQUESTOR, FOTA_ANNOUNCE_OTAPROVIDER, 0, NULL);
+
+    if (xSemaphoreTake(imageIntCheckSem, portMAX_DELAY) == pdFAIL) {
+        ChipLogError(SoftwareUpdate, "Unable to wait on Image integrity check semaphore...!!");
+    }
+    vSemaphoreDelete(imageIntCheckSem);
+
+    if (image_integrity_check_ok == false) {
+        ChipLogError(SoftwareUpdate, "Image Integrity Check has failed. Cancelling the OTA...");
+        imageProcessor->OTAImageProcessorImpl::Abort();
+        return;
+    } else {
+        ChipLogError(SoftwareUpdate, "Image Integrity Check OK.. Applying the image");
+        image_integrity_check_ok = true;
+    }
+#endif
+    /* Update the image version */
+    OTARequestorInterface * requestor = chip::GetRequestorInstance();
+    TalariaConfig::WriteConfigValue(TalariaConfig::kConfigKey_TargetSoftwareVersion, requestor->GetTargetVersion());
+#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == false)
+    /* Reset device after committing the OTA successfuly */
+    reset_device();
 #endif
 }
 

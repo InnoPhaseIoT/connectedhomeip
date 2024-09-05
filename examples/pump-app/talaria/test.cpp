@@ -131,11 +131,6 @@ void InitServer(intptr_t context)
     CommissioningInterface::EnableCommissioning();
     matterutils::MatterConfigLog();
 
-    /* Trigger Connect WiFi Network if the Device is already Provisioned */
-    if (chip::DeviceLayer::Internal::TalariaUtils::IsStationProvisioned() == true) {
-        chip::DeviceLayer::NetworkCommissioning::TalariaWiFiDriver::GetInstance().TriggerConnectNetwork();
-    }
-
     if (matterutils::IsNodeCommissioned() == true)
     {
 	if (SoftwareTimer_Init() != 0)

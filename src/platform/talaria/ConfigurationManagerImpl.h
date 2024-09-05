@@ -54,6 +54,9 @@ public:
     CHIP_ERROR StoreBootReason(uint32_t bootReason) override;
     CHIP_ERROR GetRegulatoryLocation(uint8_t & location) override;
     CHIP_ERROR GetLocationCapability(uint8_t & location) override;
+    CHIP_ERROR GetSoftwareVersionString(char * buf, size_t bufSize) override;
+    CHIP_ERROR GetSoftwareVersion(uint32_t & softwareVer) override;
+    CHIP_ERROR StoreSoftwareVersion(uint32_t softwareVer) override;
     static ConfigurationManagerImpl & GetDefaultInstance();
 
 private:

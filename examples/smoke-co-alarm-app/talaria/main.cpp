@@ -56,6 +56,7 @@ void Event_handler_push_button(void);
 #include <app/clusters/smoke-co-alarm-server/smoke-co-alarm-server.h>
 #include <app/clusters/smoke-co-alarm-server/SmokeCOTestEventTriggerDelegate.h>
 #include <app/clusters/identify-server/identify-server.h>
+#include <app/clusters/power-source-server/power-source-server.h>
 
 #define IDENTIFY_TIMER_DELAY_MS  1000
 #define LED_PIN 14
@@ -88,6 +89,7 @@ using namespace chip::Credentials;
 using namespace chip::app::Clusters;
 using namespace chip::talaria;
 using namespace chip::app::Clusters::SmokeCoAlarm;
+using namespace chip::app::Clusters::PowerSource;
 using namespace chip::app::Clusters::SmokeCoAlarm::Attributes;
 
 DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
@@ -109,6 +111,8 @@ static std::array<ExpressedStateEnum, SmokeCoAlarmServer::kPriorityOrderLength> 
     ExpressedStateEnum::kInterconnectCO, ExpressedStateEnum::kHardwareFault,     ExpressedStateEnum::kTesting,
     ExpressedStateEnum::kEndOfService,   ExpressedStateEnum::kBatteryAlert
 };
+
+static PowerSourceServer & powerSourceServer = PowerSourceServer::Instance();
 
 static void Update_SmokeCOAlarm_status_attributes(intptr_t arg)
 {
@@ -151,6 +155,17 @@ static void Update_SmokeCOAlarm_status_attributes(intptr_t arg)
 		    static_cast<SensitivityEnum>(revd_smoke_co_alarm_data.SmokeSensitivityLevel));
 
     SmokeCoAlarm::Attributes::ExpiryDate::Set(SMOKE_ALARM_ENDPOINT_ID, revd_smoke_co_alarm_data.ExpiryDate);
+
+    PowerSource::Attributes::Status::Set(SMOKE_ALARM_ENDPOINT_ID,
+		    static_cast<PowerSourceStatusEnum>(revd_smoke_co_alarm_data.PowerSourceStatus));
+
+    PowerSource::Attributes::BatChargeLevel::Set(SMOKE_ALARM_ENDPOINT_ID,
+	            static_cast<BatChargeLevelEnum>(revd_smoke_co_alarm_data.BatChargeLevel));
+
+    PowerSource::Attributes::BatReplacementNeeded::Set(SMOKE_ALARM_ENDPOINT_ID, revd_smoke_co_alarm_data.BatReplacementNeeded);
+
+    PowerSource::Attributes::BatReplaceability::Set(SMOKE_ALARM_ENDPOINT_ID,
+	            static_cast<BatReplaceabilityEnum>(revd_smoke_co_alarm_data.BatReplaceability));
 }
 
 void Smoke_co_alarm_update_status(void)
@@ -165,15 +180,17 @@ void Smoke_co_alarm_update_status(void)
     ChipLogProgress(Support, "[Smoke-CO-Alarm] Data received from host...");
     DeviceLayer::PlatformMgr().ScheduleWork(Update_SmokeCOAlarm_status_attributes, reinterpret_cast<intptr_t>(nullptr));
 
-    ChipLogProgress(Support, "[Smoke-CO-Alarm] Status: ExpressedState: %d, SmokeState: %d, COState: %d, BatteryAlert: %d"
-		    " DeviceMuted: %d, TestInProgress: %d, HardwareFaultAlert: %d, EndOfServiceAlert: %d, InterconnectSmokeAlarm: %d"
-		    "InterconnectCOAlarm: %d, ContaminationState: %d, SmokeSensitivityLevel: %d, ExpiryDate: %d",
+    ChipLogProgress(Support, "[Smoke-CO-Alarm] Status: ExpressedState: %d, SmokeState: %d, COState: %d, BatteryAlert: %d\n"
+		    " DeviceMuted: %d, TestInProgress: %d, HardwareFaultAlert: %d, EndOfServiceAlert: %d, InterconnectSmokeAlarm: %d\n"
+		    "InterconnectCOAlarm: %d, ContaminationState: %d, SmokeSensitivityLevel: %d, ExpiryDate: %d\n"
+		    "PowerSourceStatus: %d, BatChargeLevel: %d, BatReplacementNeeded: %d, BatReplaceability: %d",
 		    revd_smoke_co_alarm_data.ExpressedState, revd_smoke_co_alarm_data.SmokeState, revd_smoke_co_alarm_data.COState,
 		    revd_smoke_co_alarm_data.BatteryAlert, revd_smoke_co_alarm_data.DeviceMuted, revd_smoke_co_alarm_data.TestInProgress,
 		    revd_smoke_co_alarm_data.HardwareFaultAlert, revd_smoke_co_alarm_data.EndOfServiceAlert,
 		    revd_smoke_co_alarm_data.InterconnectSmokeAlarm, revd_smoke_co_alarm_data.InterconnectCOAlarm,
 		    revd_smoke_co_alarm_data.ContaminationState, revd_smoke_co_alarm_data.SmokeSensitivityLevel,
-		    revd_smoke_co_alarm_data.ExpiryDate);
+		    revd_smoke_co_alarm_data.ExpiryDate, revd_smoke_co_alarm_data.PowerSourceStatus, revd_smoke_co_alarm_data.BatChargeLevel,
+		    revd_smoke_co_alarm_data.BatReplacementNeeded, revd_smoke_co_alarm_data.BatReplaceability);
 }
 
 static void Update_SmokeCOAlarm_status_post_EndSelfTest(intptr_t arg)
@@ -420,6 +437,32 @@ static void Trigger_SelfTest_emberAf(intptr_t arg)
     mSmokealarmInstance.RequestSelfTest(SMOKE_ALARM_ENDPOINT_ID);
 }
 
+static void Power_Source_Cluster_Init(void)
+{
+    /* Place-Holder: To update the list of endpoints that are powered by the source
+     * defined by this cluster as per the requirement. */
+    EndpointId endpoint_list[1] = { SMOKE_ALARM_ENDPOINT_ID };
+    powerSourceServer.SetEndpointList(SMOKE_ALARM_ENDPOINT_ID, Span<EndpointId>(endpoint_list));
+
+    /* Place-Holder: To update the default status of the power source defined by this cluster. */
+    PowerSource::Attributes::Status::Set(SMOKE_ALARM_ENDPOINT_ID, PowerSource::PowerSourceStatusEnum::kUnspecified);
+
+    /* Place-Holder: To update the default value of order OR relative preference with which the Node
+     * will select this source to provide power if multiple power sources connected as per the requirement. */
+    PowerSource::Attributes::Order::Set(SMOKE_ALARM_ENDPOINT_ID, 0);
+
+    /* Place-Holder: To update the default value of user-facing description of this source
+     * used to distinguish it from other power sources as per the requirement. */
+    PowerSource::Attributes::Description::Set(SMOKE_ALARM_ENDPOINT_ID, chip::CharSpan::fromCharString("Primary Battery"));
+
+    /* Place-Holder: To update the default values of charge level, Battery Replacement Needed
+     * and Battery Replaceability of the battery of the power source
+     * defined by this cluster as per the requirement. */
+    PowerSource::Attributes::BatChargeLevel::Set(SMOKE_ALARM_ENDPOINT_ID, PowerSource::BatChargeLevelEnum::kOk);
+    PowerSource::Attributes::BatReplacementNeeded::Set(SMOKE_ALARM_ENDPOINT_ID, false);
+    PowerSource::Attributes::BatReplaceability::Set(SMOKE_ALARM_ENDPOINT_ID, PowerSource::BatReplaceabilityEnum::kUnspecified);
+}
+
 /** @brief  Smoke CO Alarm Cluster Init
  *
  * This function is called when a specific cluster is initialized. It gives the
@@ -435,6 +478,7 @@ static void Trigger_SelfTest_emberAf(intptr_t arg)
 void emberAfSmokeCoAlarmClusterInitCallback(EndpointId endpoint)
 {
     ChipLogDetail(AppServer, "emberAfSmokeCoAlarmClusterInitCallback");
+    Power_Source_Cluster_Init();
 }
 
 void emberAfIdentifyClusterInitCallback(chip::EndpointId endpoint)

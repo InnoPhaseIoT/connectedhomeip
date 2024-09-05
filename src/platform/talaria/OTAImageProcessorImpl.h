@@ -48,8 +48,8 @@ public:
     CHIP_ERROR Abort() override;
     CHIP_ERROR ProcessBlock(ByteSpan & block) override;
     void ota_get_firmware_name(char *str);
-    bool IsFirstImageRun() override { return false; }
-    CHIP_ERROR ConfirmCurrentImage() override { return CHIP_NO_ERROR; }
+    bool IsFirstImageRun() override;
+    CHIP_ERROR ConfirmCurrentImage() override;
     void SetOTADownloader(OTADownloader * downloader) { mDownloader = downloader; };
 
 private:
@@ -58,7 +58,7 @@ private:
     static void HandleAbort(intptr_t context);
     static void HandleProcessBlock(intptr_t context);
     static void HandleApply(intptr_t context);
-    static void OnOTADowanloadFailure(chip::System::Layer * aLayer, void * aAppState);
+    static void OnOTADowanloadFailure(chip::System::Layer * aLayer, intptr_t context);
 
     CHIP_ERROR SetBlock(ByteSpan & block);
     CHIP_ERROR ReleaseBlock();

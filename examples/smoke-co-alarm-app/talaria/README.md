@@ -147,6 +147,14 @@ NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x
           e.g. identify read identify-type 1111 1
           e.g. identify read identify-time 1111 1
 
+          ## Command to read Power Source cluster attributes status
+          >>> powersource read <attribute-name> <destination-id> <endpoint-id>
+          e.g. powersource read bat-charge-level 1111 1
+          e.g. powersource read status 1111 1
+          ## Command to subscribe for Power Source cluster attributes status
+          >>> powersource subscribe <attribute-name> <min-interval> <max-interval> <destination-id> <endpoint-id>
+          e.g. powersource subscribe bat-charge-level 5 10 1111 1
+          e.g. powersource subscribe status 5 10 1111 1
 
 - The self-test-request command can be triggered manually by pressing and holding the user push button on the host for at least 3 seconds, then releasing it.
 ### Enabling test event trigger
