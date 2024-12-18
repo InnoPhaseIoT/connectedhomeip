@@ -30,7 +30,7 @@ extern "C" {
 #include <hio/matter.h>
 #include <hio/matter_hio.h>
 
-
+int FactoryReset_Trigger_From_Host(int FactoryReset);
 #ifdef __cplusplus
 }
 #endif
@@ -74,6 +74,7 @@ void app_test();
 
 SemaphoreHandle_t ServerInitDone;
 SemaphoreHandle_t Getdata;
+
 /* Function Declarations */
 
 static void OnOffPostAttributeChangeCallback(EndpointId endpointId, AttributeId attributeId, uint8_t * value)
@@ -229,6 +230,18 @@ void print_test_results(nlTestSuite * tSuite)
 
 BOOTARG_INT("disp_pkt_info", "display packet info", "1 to enable packet info print. 0(default) to disable");
 
+int FactoryReset_Trigger_From_Host(int FactoryReset)
+{
+    vTaskDelay(2000); // To wait for T2 to Intialize
+    talariautils::UserButtonFactoryReset(FactoryReset);
+    vTaskDelay(2000); // To wait for Erase all the data
+    int ret = matter_notify(FACTORY_RESET, RESET, 0, NULL);
+    if (ret != 0)
+    os_printf("\nFailed to send the Reset Command to Host...\n");
+
+    return 0;
+}
+
 int main(void)
 {
     talariautils::ApplicationInitLog("matter speaker app");
@@ -239,13 +252,6 @@ int main(void)
        otherwise don't see any response*/
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1 || FactoryReset == 2)
-    {
-        talariautils::FactoryReset(FactoryReset);
-        while (1)
-		vTaskSuspend(NULL);
-    }
 #ifdef UNIT_TEST
     run_unit_test();
 #endif

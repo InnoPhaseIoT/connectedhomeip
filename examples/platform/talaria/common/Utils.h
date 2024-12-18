@@ -15,6 +15,7 @@ void ApplicationInitLog(char * str);
 void HeapAvailableLog();
 void EnableSuspend();
 void FactoryReset(int factory_reset_level);
+void UserButtonFactoryReset(int factory_reset_level);
 
 } // namespace talariautils
 

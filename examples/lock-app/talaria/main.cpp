@@ -35,6 +35,7 @@ extern "C" {
 void print_faults();
 int filesystem_util_mount_data_if(const char * path);
 void print_ver(char * banner, int print_sdk_name, int print_emb_app_ver);
+int FactoryReset_Trigger_From_Host(int FactoryReset);
 
 #ifdef __cplusplus
 }
@@ -77,6 +78,7 @@ DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 struct dl_set_get_user revd_user;
 struct dl_set_get_credential revd_credential;
+static bool factoryReset2Set = false;
 
 /*-----------------------------------------------------------*/
 void test_fn_1();
@@ -616,6 +618,13 @@ void load_stored_info_from_host()
     }
     os_printf("\nReading User Lock data from host is completed...!!\n");
     vSemaphoreDelete(Getdata);
+    if (factoryReset2Set)
+    {
+        vTaskDelay(2000); // To wait for Erase all the data
+        int ret = matter_notify(FACTORY_RESET, RESET, 0, NULL);
+        if (ret != 0)
+        os_printf("\nFailed to send the Reset Command to Host...\n");
+    }
     vTaskDelete(NULL);
 }
 
@@ -662,6 +671,25 @@ void chk_and_register_pkt_hook()
     }
 }
 
+int FactoryReset_Trigger_From_Host(int FactoryReset)
+{
+    factoryReset2Set = true;
+    vTaskDelay(2000); // To wait for T2 to Intialize
+    talariautils::UserButtonFactoryReset(FactoryReset);
+
+    memset(&userList, 0, sizeof(userList));
+    memset(&credentialsList, 0, sizeof(credentialsList));
+
+    if (FactoryReset == 1) {
+        vTaskDelay(2000); // To wait for Erase all the data
+        int ret = matter_notify(FACTORY_RESET, RESET, 0, NULL);
+        if (ret != 0)
+            os_printf("\nFailed to send the Reset Command to Host...\n");
+    }
+
+    return 0;
+}
+
 int main(void)
 {
 #ifdef UNIT_TEST
@@ -681,41 +709,7 @@ int main(void)
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     /* This Delay is specifically for Nuvoton Host secured FOTA */
-#if (CHIP_ENABLE_OTA_STORAGE_ON_HOST == true)
     vTaskDelay(pdMS_TO_TICKS(2500));
-#endif
-
-    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1 || FactoryReset == 2)
-    {
-        talariautils::FactoryReset(FactoryReset);
-
-        /* Factory Reset the host side data as well */
-        struct dl_set_get_user setUser;
-        struct dl_set_get_credential setCredential;
-        memset(&setUser, 0, sizeof(setUser));
-        memset(&setCredential, 0, sizeof(setCredential));
-        os_printf("\n Clearing User Data from host....");
-        for (int i = 1; i <= MAX_USERS; i++)
-        {
-            setUser.userindex       = i;
-            setCredential.userindex = i;
-            int ret                 = matter_notify(DOOR_LOCK, CLEAR_USER, sizeof(setUser), &setUser);
-            if (ret != 0)
-                return -1;
-            os_printf(".");
-            ret = matter_notify(DOOR_LOCK, CLEAR_CREDENTIAL, sizeof(setCredential), &setCredential);
-            if (ret != 0)
-                return -1;
-            os_printf(".");
-        }
-
-        os_printf("\n Cleared User Data from host Completed successfully \n");
-        os_printf("\nFACTORY RESET is completed ...........");
-
-        while (1)
-            vTaskDelay(100000);
-    }
 
     BaseType_t xReturned;
     TaskHandle_t xHandle = NULL;

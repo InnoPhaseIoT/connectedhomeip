@@ -46,14 +46,6 @@ This doc is tested on **Ubuntu 22.04.3 LTS (x86_64)**
     0: Uses default vendor-id and product-id details (Default)
     1: Uses configured vendor-id and product-id details
 
--   `matter.factory_reset=<value>`
-
-    To enable/disable the flow for factory resetting the device.
-    0: Disable Factory Reset (Default)
-    1: Reset to Factory Defaults (e.g. chip-counters and chip-config content will be reset)
-    2: Enable full factory reset (In this case, contents of the data partition table (SSID, passphrase, chip-tool keys) on     Talaria TWO will be erased)
-       Note: In case of connecting to a new AP, ensure to erase the contents of the data partition table before initiating a new connection.
-
 -   `hio.transport=spi disp_pkt_info=1 hio.maxsize=512 hio.baudrate=2560000`
 
     These Boot arguments are mandatory for Smoke-CO-Alarm Sensor to work on the Nuvoton setup for communication with host
@@ -195,3 +187,7 @@ NOTE: Here it's considered that factory data is created inside 'FreeRTOS_sdk_3.x
           ## Example:
           >>> generaldiagnostics test-event-trigger hex:00112233445566778899aabbccddeeff 0xffffffff00000090 1111 0
 - Here "hex:00112233445566778899aabbccddeeff" is the default EnableKey programmed, can be configurable.
+
+## Factory Reset Flow
+1. To trigger factory reset 1 flow, press and hold the user button of host (STM32U5/M2354) for more than 10 seconds.
+2. To trigger factory reset 2 flow, press and hold the user button, press the reset button of host (STM32U5/M2354).

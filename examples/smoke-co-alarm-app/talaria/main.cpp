@@ -32,6 +32,7 @@ extern "C" {
 
 void Smoke_co_alarm_update_status();
 void Event_handler_push_button(void);
+int FactoryReset_Trigger_From_Host(int FactoryReset);
 #ifdef __cplusplus
 }
 #endif
@@ -80,7 +81,6 @@ struct Identify gIdentify = {
 struct smoke_co_alarm_get_data revd_smoke_co_alarm_data;
 SemaphoreHandle_t ServerInitDone;
 SemaphoreHandle_t Getdata;
-
 
 using namespace chip;
 using namespace chip::Platform;
@@ -634,6 +634,18 @@ void Event_handler_push_button()
     }
 }
 
+int FactoryReset_Trigger_From_Host(int FactoryReset)
+{
+    vTaskDelay(2000); // To wait for T2 to Intialize
+    talariautils::UserButtonFactoryReset(FactoryReset);
+    vTaskDelay(2000); // To wait for Erase all the data
+    int ret = matter_notify(FACTORY_RESET, RESET, 0, NULL);
+    if (ret != 0)
+    os_printf("\nFailed to send the Reset Command to Host...\n");
+
+    return 0;
+}
+
 int main(void)
 {
     talariautils::ApplicationInitLog("matter Smoke CO Alarm app");
@@ -643,13 +655,6 @@ int main(void)
        otherwise don't see any response*/
     vTaskDelay(pdMS_TO_TICKS(2000));
 
-    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1 || FactoryReset == 2)
-    {
-        talariautils::FactoryReset(FactoryReset);
-        while (1)
-            vTaskSuspend(NULL);
-    }
     flag_test_harness_enable = os_get_boot_arg_int("matter.test_harness", 0);
     if (flag_test_harness_enable == 1)
         os_printf("Test Harness enabled...\n");

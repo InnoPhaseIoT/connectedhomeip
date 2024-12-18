@@ -80,6 +80,7 @@ struct Identify gIdentify = {
 };
 
 static enum Switch_Position Current_Switch_Pos = SWITCH_POS_0;
+static SwitchServer mSwitchServer = SwitchServer::Instance();
 
 static int GpioValueAfterInterupt;
 TimerHandle_t xTimer;
@@ -498,6 +499,9 @@ static void Update_SwitchPosition_Attribute_Status(uint8_t current_pos)
 {
     /* Update Current Switch Position attribute value */
     Switch::Attributes::CurrentPosition::Set(SWITCH_ENDPOINT_ID, current_pos);
+
+    /* Update Current Switch Position event */
+    mSwitchServer.OnSwitchLatch(SWITCH_ENDPOINT_ID, current_pos);
 }
 
 static void OnSwitchPositionChanged(uint8_t Switch_Pos)
@@ -573,7 +577,9 @@ int SoftwareTimer_Init()
     if (xTimer != NULL)
 	    return 0;
 
-    xTimer = xTimerCreate("switch_position", pdMS_TO_TICKS(SWITCH_POS_PERIODIC_TIME_OUT_MS),
+    int switch_pos_periodic_timeout_ms = os_get_boot_arg_int("matter.config_app_timer_interval_ms", SWITCH_POS_PERIODIC_TIME_OUT_MS);
+    os_printf("\nswitch_pos_periodic_timeout set to :%d ms", switch_pos_periodic_timeout_ms);
+    xTimer = xTimerCreate("switch_position", pdMS_TO_TICKS(switch_pos_periodic_timeout_ms),
 		          pdTRUE, (void *) 0, vTimerCallback_switch_position_change);
     if (xTimer == NULL)
     {

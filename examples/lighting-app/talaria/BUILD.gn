@@ -86,13 +86,13 @@ executable("lighting-app.elf") {
             "aws_iot_sdk_t2_pal",
      ]
      lib_dirs += [
-            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/freertos/subscribe_publish_sample/out/lib/aws_iot_sdk_t2",
-            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/freertos/subscribe_publish_sample/out/lib/aws_iot_sdk_t2_pal",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/sdk_3.x/subscribe_publish_sample/out/lib/aws_iot_sdk_t2",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/sample_apps/sdk_3.x/subscribe_publish_sample/out/lib/aws_iot_sdk_t2_pal",
      ]
      include_dirs += [
             "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/aws-iot-device-sdk-embedded-C/include",
             "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/aws-iot-device-sdk-embedded-C/external_libs/jsmn",
-            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/talaria_two_pal/freertos/include",
+            "${chip_root}/third_party/talaria/repo/freertos_sdk/apps/talaria_two_aws/talaria_two_pal/sdk_3.x/include",
             "talaria_aws_iot",
      ]
   }

@@ -55,6 +55,7 @@
 #pragma GCC diagnostic pop
 #include <CHIPProjectAppConfig.h>
 
+StaticSemaphore_t hio_req_mutex;
 struct os_semaphore hio_ind_sem;
 
 // #define TESTCODE
@@ -101,6 +102,7 @@ void hio_reqmsg_send(QueueHandle_t xQueue, int msg_type, int event, struct packe
 
 void hio_reqmsg_free(struct hio_msg_hdr * msg);
 
+int FactoryReset_Trigger_From_Host(int FactoryReset);
 /*fota code start*/
 
 #include "json.h"
@@ -331,11 +333,13 @@ static void hio_matter_data_ind_free(struct packet ** pkt)
 
 int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t payload_len, void * data)
 {
+    xSemaphoreTake((QueueHandle_t)&hio_req_mutex, portMAX_DELAY);
     struct packet * pkt;
     pkt = create_matter_cmd_notify_ind(cluster, cmd, payload_len, NULL);
     if (pkt == NULL)
     {
         os_printf("\nPkt alloc error");
+        xSemaphoreGive(&hio_req_mutex);
         return -1;
     }
 
@@ -344,6 +348,7 @@ int matter_notify(const uint32_t cluster, const uint32_t cmd, const uint32_t pay
 
     hio_write_msg(pkt, HIO_GROUP_MATTER, MATTER_CMD_NOTIFY_IND, 0);
     os_sem_wait(&hio_ind_sem); /* Wait here until packet is sent */
+    xSemaphoreGive(&hio_req_mutex);
     return 0;
 }
 
@@ -382,6 +387,27 @@ static void matter_data_req(struct os_thread * sender, struct packet * msg)
         fota_flag_status_set(FOTA_IN_PROGRESS, "1");
     }
 
+    if (req->cluster == FACTORY_RESET)
+    {
+        if (req->cmd == FACTORY_RESET_1)
+        {
+            ok      = true;
+            rsp_pkt = OS_ERROR_ON_NULL(create_matter_data_send_rsp(ok));
+            hio_matter_send_rsp(sender, MATTER_DATA_SEND_RSP, rsp_pkt);
+            os_printf("\nFactory Reset 1 Receievd\n");
+            FactoryReset_Trigger_From_Host(FACTORY_RESET_1);
+            return;
+        }
+        if (req->cmd == FACTORY_RESET_2)
+        {
+            ok      = true;
+            rsp_pkt = OS_ERROR_ON_NULL(create_matter_data_send_rsp(ok));
+            hio_matter_send_rsp(sender, MATTER_DATA_SEND_RSP, rsp_pkt);
+            os_printf("\nFactory Reset 2 Receievd\n");
+            FactoryReset_Trigger_From_Host(FACTORY_RESET_2);
+            return;
+        }
+    }
 #if (CHIP_DEVICE_CONFIG_DEVICE_TYPE == 10)
     if (req->cluster == DOOR_LOCK)
     {
@@ -592,5 +618,6 @@ void matter_hio_init(void)
 {
     hio_api_init(&matter_api, NULL);
     os_sem_init(&hio_ind_sem, 0);
+    (void)xSemaphoreCreateMutexStatic(&hio_req_mutex);
     hio_matter_create_thread();
 }

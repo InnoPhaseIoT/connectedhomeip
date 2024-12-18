@@ -46,6 +46,39 @@ void EnableSuspend()
     }
 }
 
+void UserButtonFactoryReset(int factory_reset_level)
+{
+    CHIP_ERROR err = CHIP_NO_ERROR;
+
+    os_printf("\e[1;43;31;5m");
+    os_printf("\n*******************************\n");
+    os_printf("\nFACTORY RESET\n");
+    os_printf("\n*******************************\n");
+
+    /* The Factory Reset is distributed into 2 levels,
+       level 1: Reset to Factory Default values. e.g. counters and configs
+       level 2: Full factory reset, which removes the kvs and counters and configs
+    */
+    if (factory_reset_level >= 1) {
+        chip::DeviceLayer::Internal::TalariaConfig::FactoryDefaultConfigCotunters();
+    }
+    if (factory_reset_level == 2) {
+        chip::Server::GetInstance().ScheduleFactoryReset();
+        while(chip::talaria::matterutils::FabricCount() != 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        /*
+           Wait Until the FacbricCount becomes 0, so that the data is deleted completely
+        */
+    }
+
+    os_printf("\n%s is completed .............", (factory_reset_level == 1)? "Factory Default": "Full Factory Reset");
+    os_printf("\nProgram T2 elf without FactoryReset to commission the device \n");
+    os_printf("\n*******************************");
+    os_printf("\e[0m");
+}
+
 void FactoryReset(int factory_reset_level)
 {
     CHIP_ERROR err = CHIP_NO_ERROR;
@@ -70,15 +103,16 @@ void FactoryReset(int factory_reset_level)
     }
     if (factory_reset_level == 2) {
         chip::Server::GetInstance().ScheduleFactoryReset();
+        while(chip::talaria::matterutils::FabricCount() != 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        /*
+           Wait Until the FacbricCount becomes 0, so that the data is deleted completely
+        */
     }
-    /*
-       Wait Until the FacbricCount becomes 0, so that the data is deleted completely
-     */
-    while(chip::talaria::matterutils::FabricCount() != 0)
-    {
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    os_printf("\n%s is completed ...........", (factory_reset_level == 1)? "Factory Default": "Full Factory Reset");
+
+    os_printf("\n%s is completed .............", (factory_reset_level == 1)? "Factory Default": "Full Factory Reset");
     os_printf("\nProgram T2 elf without FactoryReset to commission the device \n");
     os_printf("\n*******************************");
     os_printf("\e[0m");

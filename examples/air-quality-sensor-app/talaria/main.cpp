@@ -184,7 +184,9 @@ int SoftwareTimer_Init()
     if (xTimer != NULL)
 	    return 0;
 
-    xTimer = xTimerCreate("aqs_timer", pdMS_TO_TICKS(AQS_PERIODIC_TIME_OUT_MS), pdTRUE, (void *) 0, vTimerCallback_aqs);
+    int aqs_periodic_timeout_ms = os_get_boot_arg_int("matter.config_app_timer_interval_ms", AQS_PERIODIC_TIME_OUT_MS);
+    os_printf("\naqs_periodic_timeout_ms set to :%d ms", aqs_periodic_timeout_ms);
+    xTimer = xTimerCreate("aqs_timer", pdMS_TO_TICKS(aqs_periodic_timeout_ms), pdTRUE, (void *) 0, vTimerCallback_aqs);
     if (xTimer == NULL)
     {
 	    os_printf("\naqs_timer creation failed");
@@ -195,7 +197,7 @@ int SoftwareTimer_Init()
 	    os_printf("\naqs_timer start failed");
 	    return -1;
     }
-    xTimerUpdate = xTimerCreate("aqs_timer", pdMS_TO_TICKS(AQS_PERIODIC_TIME_OUT_MS), pdTRUE, (void *) 0, UpdateTimer);
+    xTimerUpdate = xTimerCreate("aqs_timer", pdMS_TO_TICKS(aqs_periodic_timeout_ms), pdTRUE, (void *) 0, UpdateTimer);
     if (xTimerUpdate == NULL)
     {
 	    os_printf("\naqs_timer creation failed");

@@ -44,6 +44,7 @@ enum matter_clusters
     SPEAKER,
     BASIC_VIDEO_PLAYER,
     SMOKE_CO_ALARM,
+    FACTORY_RESET,
     MAX_CLUSTER,
     /*USERS CAN ADD CLUSTERS HERE*/
 };
@@ -100,6 +101,13 @@ enum doorlock_cluster_cmd
     READ_EVENT,
     SUBSCRIBE_EVENT_BY_ID,
     SUBSCRIBE_EVENT,
+};
+
+enum factory_reset_cluster_cmd {
+	FACTORY_RESET_1 = 1,
+	FACTORY_RESET_2,
+	RESET,
+	MAX_COMMAND=999,
 };
 
 #if CHIP_DEVICE_CONFIG_DEVICE_TYPE == 34

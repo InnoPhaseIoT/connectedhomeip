@@ -30,6 +30,7 @@ extern "C" {
 #include <hio/matter.h>
 #include <hio/matter_hio.h>
 
+int FactoryReset_Trigger_From_Host(int FactoryReset);
 #ifdef __cplusplus
 }
 #endif
@@ -196,6 +197,9 @@ static void read_temperature_from_host(void)
      * This ensures that by the time the hio command is sent,
      * the HAPI initialization on the host side is completed. */
     vTaskDelay(pdMS_TO_TICKS(5000));
+    int thermostat_periodic_timeout_ms = os_get_boot_arg_int("matter.config_app_timer_interval_ms", THERMOSTAT_PERIODIC_TIME_OUT_MS);
+    os_printf("\nthermostat_periodic_timeout_ms set to :%d ms", thermostat_periodic_timeout_ms);
+
     while(1)
     {
 	    get_temperature = &get_temp;
@@ -212,7 +216,7 @@ static void read_temperature_from_host(void)
 	    memcpy(get_temperature, &revd_temp, sizeof(struct thermostat_read_temperature));
 
 	    DeviceLayer::PlatformMgr().ScheduleWork(Update_Thermostat_Temperature_attribute_status, reinterpret_cast<intptr_t>(nullptr));
-	    vTaskDelay(pdMS_TO_TICKS(THERMOSTAT_PERIODIC_TIME_OUT_MS));
+	    vTaskDelay(pdMS_TO_TICKS(thermostat_periodic_timeout_ms));
     }
 }
 
@@ -418,6 +422,17 @@ void print_test_results(nlTestSuite * tSuite)
 
 BOOTARG_INT("disp_pkt_info", "display packet info", "1 to enable packet info print. 0(default) to disable");
 
+int FactoryReset_Trigger_From_Host(int FactoryReset)
+{
+    vTaskDelay(2000); // To wait for T2 to Intialize
+    talariautils::UserButtonFactoryReset(FactoryReset);
+    vTaskDelay(2000); // To wait for Erase all the data
+    int ret = matter_notify(FACTORY_RESET, RESET, 0, NULL);
+    if (ret != 0)
+    os_printf("\nFailed to send the Reset Command to Host...\n");
+
+    return 0;
+}
 
 int main(void)
 {
@@ -431,13 +446,6 @@ int main(void)
     /* Delay is required before start doing the communication over hio,
        otherwise don't see any response*/
     vTaskDelay(pdMS_TO_TICKS(2000));
-
-    int FactoryReset = os_get_boot_arg_int("matter.factory_reset", 0);
-    if (FactoryReset == 1 || FactoryReset == 2)
-    {
-        talariautils::FactoryReset(FactoryReset);
-	vTaskSuspend(NULL);
-    }
 
     DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
     led_pin = GPIO_PIN(LED_PIN);
